@@ -1,30 +1,37 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Plus, X, ThumbsUp, Lightbulb, AlertTriangle, Target } from "lucide-react"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import {
+  Plus,
+  X,
+  ThumbsUp,
+  Lightbulb,
+  AlertTriangle,
+  Target,
+} from "lucide-react";
 
 interface RetroItem {
-  id: string
-  text: string
-  author: string
-  votes: number
-  timestamp: Date
+  id: string;
+  text: string;
+  author: string;
+  votes: number;
+  timestamp: Date;
 }
 
 interface Column {
-  id: string
-  title: string
-  description: string
-  icon: React.ReactNode
-  color: string
-  items: RetroItem[]
+  id: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  color: string;
+  items: RetroItem[];
 }
 
 export function RetrospectiveBoard() {
@@ -107,14 +114,14 @@ export function RetrospectiveBoard() {
         },
       ],
     },
-  ])
+  ]);
 
-  const [newItemText, setNewItemText] = useState("")
-  const [newItemAuthor, setNewItemAuthor] = useState("")
-  const [activeColumn, setActiveColumn] = useState<string | null>(null)
+  const [newItemText, setNewItemText] = useState("");
+  const [newItemAuthor, setNewItemAuthor] = useState("");
+  const [activeColumn, setActiveColumn] = useState<string | null>(null);
 
   const addItem = (columnId: string) => {
-    if (!newItemText.trim() || !newItemAuthor.trim()) return
+    if (!newItemText.trim() || !newItemAuthor.trim()) return;
 
     const newItem: RetroItem = {
       id: Date.now().toString(),
@@ -122,22 +129,28 @@ export function RetrospectiveBoard() {
       author: newItemAuthor,
       votes: 0,
       timestamp: new Date(),
-    }
+    };
 
-    setColumns((prev) => prev.map((col) => (col.id === columnId ? { ...col, items: [...col.items, newItem] } : col)))
+    setColumns((prev) =>
+      prev.map((col) =>
+        col.id === columnId ? { ...col, items: [...col.items, newItem] } : col
+      )
+    );
 
-    setNewItemText("")
-    setNewItemAuthor("")
-    setActiveColumn(null)
-  }
+    setNewItemText("");
+    setNewItemAuthor("");
+    setActiveColumn(null);
+  };
 
   const removeItem = (columnId: string, itemId: string) => {
     setColumns((prev) =>
       prev.map((col) =>
-        col.id === columnId ? { ...col, items: col.items.filter((item) => item.id !== itemId) } : col,
-      ),
-    )
-  }
+        col.id === columnId
+          ? { ...col, items: col.items.filter((item) => item.id !== itemId) }
+          : col
+      )
+    );
+  };
 
   const voteItem = (columnId: string, itemId: string) => {
     setColumns((prev) =>
@@ -145,22 +158,27 @@ export function RetrospectiveBoard() {
         col.id === columnId
           ? {
               ...col,
-              items: col.items.map((item) => (item.id === itemId ? { ...item, votes: item.votes + 1 } : item)),
+              items: col.items.map((item) =>
+                item.id === itemId ? { ...item, votes: item.votes + 1 } : item
+              ),
             }
-          : col,
-      ),
-    )
-  }
+          : col
+      )
+    );
+  };
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
+    <div className="container mx-auto max-w-7xl p-6">
       {/* Header */}
       <div className="mb-8 text-center">
-        <h1 className="text-4xl font-bold text-balance mb-4">Sprint Retrospective Board</h1>
-        <p className="text-lg text-muted-foreground text-pretty max-w-2xl mx-auto">
-          Reflect on your team&apos;s performance and identify opportunities for continuous improvement
+        <h1 className="mb-4 text-4xl font-bold text-balance">
+          Sprint Retrospective Board
+        </h1>
+        <p className="text-muted-foreground mx-auto max-w-2xl text-lg text-pretty">
+          Reflect on your team&apos;s performance and identify opportunities for
+          continuous improvement
         </p>
-        <div className="flex items-center justify-center gap-4 mt-6">
+        <div className="mt-6 flex items-center justify-center gap-4">
           <Badge variant="secondary" className="px-3 py-1">
             Sprint 24
           </Badge>
@@ -171,7 +189,7 @@ export function RetrospectiveBoard() {
       </div>
 
       {/* Board */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         {columns.map((column) => (
           <Card key={column.id} className={`${column.color} border-2`}>
             <CardHeader className="pb-4">
@@ -179,28 +197,37 @@ export function RetrospectiveBoard() {
                 {column.icon}
                 {column.title}
               </CardTitle>
-              <p className="text-sm text-muted-foreground">{column.description}</p>
+              <p className="text-muted-foreground text-sm">
+                {column.description}
+              </p>
             </CardHeader>
             <CardContent className="space-y-3">
               {/* Items */}
               {column.items
                 .sort((a, b) => b.votes - a.votes)
                 .map((item) => (
-                  <Card key={item.id} className="bg-card/50 border border-border/50">
+                  <Card
+                    key={item.id}
+                    className="bg-card/50 border-border/50 border"
+                  >
                     <CardContent className="p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <p className="text-sm text-pretty flex-1">{item.text}</p>
+                      <div className="mb-2 flex items-start justify-between">
+                        <p className="flex-1 text-sm text-pretty">
+                          {item.text}
+                        </p>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 w-6 p-0 ml-2"
+                          className="ml-2 h-6 w-6 p-0"
                           onClick={() => removeItem(column.id, item.id)}
                         >
                           <X className="h-3 w-3" />
                         </Button>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">{item.author}</span>
+                        <span className="text-muted-foreground text-xs">
+                          {item.author}
+                        </span>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -216,8 +243,8 @@ export function RetrospectiveBoard() {
 
               {/* Add new item */}
               {activeColumn === column.id ? (
-                <Card className="bg-card/30 border-dashed border-2">
-                  <CardContent className="p-4 space-y-3">
+                <Card className="bg-card/30 border-2 border-dashed">
+                  <CardContent className="space-y-3 p-4">
                     <Textarea
                       placeholder="What would you like to share?"
                       value={newItemText}
@@ -241,9 +268,9 @@ export function RetrospectiveBoard() {
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          setActiveColumn(null)
-                          setNewItemText("")
-                          setNewItemAuthor("")
+                          setActiveColumn(null);
+                          setNewItemText("");
+                          setNewItemAuthor("");
                         }}
                       >
                         Cancel
@@ -254,10 +281,10 @@ export function RetrospectiveBoard() {
               ) : (
                 <Button
                   variant="ghost"
-                  className="w-full border-2 border-dashed border-border/50 h-12"
+                  className="border-border/50 h-12 w-full border-2 border-dashed"
                   onClick={() => setActiveColumn(column.id)}
                 >
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Plus className="mr-2 h-4 w-4" />
                   Add item
                 </Button>
               )}
@@ -268,10 +295,11 @@ export function RetrospectiveBoard() {
 
       {/* Footer */}
       <div className="mt-12 text-center">
-        <p className="text-sm text-muted-foreground">
-          Click 👍 to vote on items • Items are sorted by votes • Add your thoughts to drive team improvement
+        <p className="text-muted-foreground text-sm">
+          Click 👍 to vote on items • Items are sorted by votes • Add your
+          thoughts to drive team improvement
         </p>
       </div>
     </div>
-  )
+  );
 }

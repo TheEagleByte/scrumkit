@@ -1,36 +1,216 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🚀 ScrumKit - Open Source Scrum Toolkit
 
-## Getting Started
+<div align="center">
 
-First, run the development server:
+[![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.0-38B2AC)](https://tailwindcss.com/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/TheEagleByte/scrumkit/pulls)
+
+**Open source tools for better sprints**
+
+[Live Demo](https://scrumkit.dev) • [Documentation](./docs) • [Report Bug](https://github.com/TheEagleByte/scrumkit/issues) • [Request Feature](https://github.com/TheEagleByte/scrumkit/issues)
+
+</div>
+
+## 🎯 Overview
+
+ScrumKit is a modern, self-hostable toolkit for agile development teams. It provides all essential scrum ceremony tools in one unified platform with real-time collaboration, beautiful UX, and deep developer tool integrations.
+
+### ✨ Key Features
+
+- **🔄 Sprint Retrospectives** - Real-time collaborative boards with 10+ built-in templates
+- **🎲 Planning Poker** - Estimate stories together with customizable sequences
+- **📊 Daily Standups** - Track progress and blockers efficiently
+- **💚 Team Health Checks** - Monitor and improve team dynamics
+- **🔒 Privacy-First** - Self-host your data or use our cloud version
+- **⚡ Real-time Sync** - Live collaboration without refresh
+- **📱 Responsive Design** - Works on desktop, tablet, and mobile
+- **🔗 Integrations** - Connect with Slack, GitHub, Jira, and more
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js 18+
+- PostgreSQL 14+
+- npm or yarn
+
+### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/TheEagleByte/scrumkit.git
+cd scrumkit
+
+# Install dependencies
+npm install
+
+# Setup environment variables
+cp .env.example .env.local
+# Edit .env.local with your database and auth credentials
+
+# Run database migrations
+npm run db:push
+npm run db:seed # Optional: Add sample data
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Open http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### One-Click Deploy
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Deploy your own instance with one click:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/TheEagleByte/scrumkit)
+[![Deploy to Railway](https://railway.app/button.svg)](https://railway.app/template/scrumkit)
 
-## Learn More
+## 🛠️ Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
+- **Framework:** [Next.js 15](https://nextjs.org/) with App Router
+- **UI Components:** [Radix UI](https://radix-ui.com/) + [Tailwind CSS](https://tailwindcss.com/)
+- **Database:** [PostgreSQL](https://www.postgresql.org/) with [Prisma ORM](https://www.prisma.io/)
+- **Real-time:** [Pusher](https://pusher.com/) or [Liveblocks](https://liveblocks.io/)
+- **State Management:** [Zustand](https://zustand-demo.pmnd.rs/) + [TanStack Query](https://tanstack.com/query)
+- **Authentication:** [NextAuth.js](https://next-auth.js.org/)
+- **Type Safety:** [TypeScript](https://www.typescriptlang.org/) with strict mode
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📦 Features
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 🔄 ScrumKit Retro
 
-## Deploy on Vercel
+Create and run sprint retrospectives with your team:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Anonymous & Authenticated modes** - Choose your privacy level
+- **10+ Templates** - Mad/Sad/Glad, Start/Stop/Continue, 4Ls, and more
+- **Real-time collaboration** - See changes as they happen
+- **Voting system** - Prioritize discussion topics
+- **Action items** - Track follow-ups from retrospectives
+- **Export options** - Markdown, PDF, or integrate with your tools
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 🎲 ScrumKit Poker
+
+Estimate stories as a team with planning poker:
+
+- **Multiple sequences** - Fibonacci, T-shirt sizes, custom values
+- **Story import** - Pull from GitHub, Jira, or Linear
+- **Synchronized reveal** - Show all votes at once
+- **Velocity tracking** - Monitor team estimation patterns
+- **Discussion timer** - Keep estimation sessions focused
+
+### 📊 ScrumKit Daily
+
+Run efficient daily standups:
+
+- **Yesterday/Today/Blockers** format
+- **Parking lot** for off-topic items
+- **Round-robin timer** - Equal speaking time
+- **Async updates** - Perfect for distributed teams
+- **Blocker escalation** - Notify relevant stakeholders
+
+### 💚 ScrumKit Health
+
+Monitor team health and morale:
+
+- **Spotify health check model** - Industry-standard metrics
+- **Custom metrics** - Define what matters to your team
+- **Trend tracking** - See improvements over time
+- **Anonymous feedback** - Honest insights
+- **Heat map visualization** - Spot issues quickly
+
+## 🔌 Integrations
+
+### Available Now
+- **Slack** - Post summaries, create action items
+- **GitHub** - Import/export issues, link PRs
+
+### Coming Soon
+- **Jira** - Full sprint synchronization
+- **Linear** - Bi-directional issue sync
+- **Google Calendar** - Schedule ceremonies
+- **Microsoft Teams** - Native integration
+- **GitLab** - Issue management
+
+## 🗺️ Roadmap
+
+### Phase 1: MVP ✅
+- [x] Project initialization
+- [ ] Core retrospective board
+- [ ] Basic planning poker
+- [ ] Authentication system
+
+### Phase 2: Enhanced Features
+- [ ] Team management
+- [ ] Slack integration
+- [ ] Daily standup board
+- [ ] Analytics dashboard
+
+### Phase 3: Scale & Polish
+- [ ] Mobile apps
+- [ ] Enterprise features
+- [ ] Advanced analytics
+- [ ] AI-powered insights
+
+View our [detailed roadmap](./docs/ROADMAP.md) for more information.
+
+## 🤝 Contributing
+
+We love contributions! Please see our [Contributing Guide](./CONTRIBUTING.md) for details.
+
+### Development Setup
+
+```bash
+# Run tests
+npm run test
+
+# Run linting
+npm run lint
+
+# Format code
+npm run format
+
+# Type checking
+npm run type-check
+```
+
+### How to Contribute
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+ScrumKit is open source software [licensed as MIT](./LICENSE).
+
+## 💬 Community & Support
+
+- **[GitHub Discussions](https://github.com/TheEagleByte/scrumkit/discussions)** - Ask questions and share ideas
+- **[Discord Server](https://discord.gg/scrumkit)** - Real-time chat with the community
+- **[Bug Reports](https://github.com/TheEagleByte/scrumkit/issues)** - Report issues you find
+- **[Feature Requests](https://github.com/TheEagleByte/scrumkit/issues)** - Suggest new features
+
+## 🙏 Acknowledgments
+
+- Built with amazing open source projects
+- Inspired by agile teams worldwide
+- Special thanks to all contributors
+
+## 📊 Stats
+
+![GitHub stars](https://img.shields.io/github/stars/TheEagleByte/scrumkit?style=social)
+![GitHub forks](https://img.shields.io/github/forks/TheEagleByte/scrumkit?style=social)
+![GitHub watchers](https://img.shields.io/github/watchers/TheEagleByte/scrumkit?style=social)
+
+---
+
+<div align="center">
+Made with ❤️ by the ScrumKit Team
+
+[Website](https://scrumkit.dev)
+</div>

@@ -23,6 +23,7 @@ npm run lint
 **ScrumKit** is a Sprint Retrospective Board application built with Next.js 15 and React 19, using the App Router architecture.
 
 ### Technology Stack
+
 - **Framework**: Next.js 15 with Turbopack
 - **UI Components**: Radix UI primitives with custom shadcn/ui components
 - **Styling**: Tailwind CSS v4 with CSS-in-JS support
@@ -43,6 +44,7 @@ npm run lint
 ### Core Application Flow
 
 The main retrospective board (`src/components/RetrospectiveBoard.tsx`) implements:
+
 - Four-column layout (What went well, What could be improved, Blockers, Action items)
 - Real-time item creation and deletion
 - Voting system for prioritization
