@@ -158,7 +158,7 @@ export function RetrospectiveBoard() {
       <div className="mb-8 text-center">
         <h1 className="text-4xl font-bold text-balance mb-4">Sprint Retrospective Board</h1>
         <p className="text-lg text-muted-foreground text-pretty max-w-2xl mx-auto">
-          Reflect on your team's performance and identify opportunities for continuous improvement
+          Reflect on your team&apos;s performance and identify opportunities for continuous improvement
         </p>
         <div className="flex items-center justify-center gap-4 mt-6">
           <Badge variant="secondary" className="px-3 py-1">
