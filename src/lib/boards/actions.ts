@@ -5,7 +5,7 @@ import { getTemplateById, getDefaultTemplate } from "./templates";
 import { generateBoardUrl, BoardSettings, defaultBoardSettings } from "./utils";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
-import type { RetrospectiveUpdate } from "@/lib/supabase/types-enhanced";
+import type { RetrospectiveUpdate, Database } from "@/lib/supabase/types-enhanced";
 
 export interface CreateBoardInput {
   title: string;
@@ -238,7 +238,10 @@ export async function updateBoard(
   };
 
   if (updates.title !== undefined) updateData.title = updates.title;
-  if (updates.settings !== undefined) updateData.settings = updates.settings;
+  if (updates.settings !== undefined) {
+    // Cast BoardSettings to Json type for database compatibility
+    updateData.settings = updates.settings as unknown as Database["public"]["Tables"]["retrospectives"]["Update"]["settings"];
+  }
   if (updates.voting_limit !== undefined) updateData.voting_limit = updates.voting_limit;
   if (updates.is_archived !== undefined) updateData.is_archived = updates.is_archived;
 
