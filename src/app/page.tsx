@@ -103,7 +103,7 @@ export default function Home() {
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Magnet padding={50} magnetStrength={3}>
-                    <Link href="/retro">
+                    <Link href="/boards/new">
                       <StarBorder
                         color="#8b5cf6"
                         speed="3s"
@@ -315,7 +315,7 @@ export default function Home() {
                       Dot voting & prioritization
                     </li>
                   </ul>
-                  <Link href="/retro">
+                  <Link href="/boards/new">
                     <Button className="w-full bg-green-500/10 hover:bg-green-500/20 text-green-400 border-green-500/20">
                       Start Retrospective
                       <ArrowRight className="ml-2 h-4 w-4" />
@@ -734,7 +734,7 @@ export default function Home() {
                   Join 500+ teams using ScrumKit for better sprints. Free and open source forever.
                 </p>
                 <Magnet padding={100} magnetStrength={2.5}>
-                  <Link href="/retro">
+                  <Link href="/boards/new">
                     <StarBorder
                       color="#8b5cf6"
                       speed="3s"
@@ -781,7 +781,7 @@ export default function Home() {
               <div>
                 <h3 className="font-semibold mb-4 text-gray-300">Features</h3>
                 <ul className="space-y-2">
-                  <li><Link href="/retro" className="text-sm text-gray-400 hover:text-white transition">Retrospectives</Link></li>
+                  <li><Link href="/boards" className="text-sm text-gray-400 hover:text-white transition">Retrospectives</Link></li>
                   <li><span className="text-sm text-gray-600">Planning Poker</span></li>
                   <li><span className="text-sm text-gray-600">Daily Standups</span></li>
                   <li><span className="text-sm text-gray-600">Health Checks</span></li>

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getUserFromServer } from "@/lib/supabase/auth";
-import { AuthForm } from "@/components/auth/AuthForm";
+import { AuthFormWithQuery } from "@/components/auth/AuthFormWithQuery";
 
 export default async function AuthPage({
   searchParams,
@@ -27,7 +27,7 @@ export default async function AuthPage({
             Sign in to unlock all features
           </p>
         </div>
-        <AuthForm redirectTo={searchParams.redirectTo} />
+        <AuthFormWithQuery redirectTo={searchParams.redirectTo} />
       </div>
     </div>
   );

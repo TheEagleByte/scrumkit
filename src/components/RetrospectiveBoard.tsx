@@ -1,41 +1,14 @@
 "use client";
 
 import type React from "react";
-
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import {
-  Plus,
-  X,
-  ThumbsUp,
-  Lightbulb,
-  AlertTriangle,
-  Target,
-} from "lucide-react";
-
-interface RetroItem {
-  id: string;
-  text: string;
-  author: string;
-  votes: number;
-  timestamp: Date;
-}
-
-interface Column {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  color: string;
-  items: RetroItem[];
-}
+import { useState, useCallback } from "react";
+import { ThumbsUp, Lightbulb, AlertTriangle, Target } from "lucide-react";
+import { BoardHeader } from "./retro/BoardHeader";
+import { RetroColumn, type ColumnData } from "./retro/RetroColumn";
+import type { RetroItemData } from "./retro/RetroItem";
 
 export function RetrospectiveBoard() {
-  const [columns, setColumns] = useState<Column[]>([
+  const [columns, setColumns] = useState<ColumnData[]>([
     {
       id: "went-well",
       title: "What went well?",
@@ -116,17 +89,13 @@ export function RetrospectiveBoard() {
     },
   ]);
 
-  const [newItemText, setNewItemText] = useState("");
-  const [newItemAuthor, setNewItemAuthor] = useState("");
   const [activeColumn, setActiveColumn] = useState<string | null>(null);
 
-  const addItem = (columnId: string) => {
-    if (!newItemText.trim() || !newItemAuthor.trim()) return;
-
-    const newItem: RetroItem = {
+  const handleAddItem = useCallback((columnId: string, text: string, author: string) => {
+    const newItem: RetroItemData = {
       id: Date.now().toString(),
-      text: newItemText,
-      author: newItemAuthor,
+      text,
+      author,
       votes: 0,
       timestamp: new Date(),
     };
@@ -137,12 +106,10 @@ export function RetrospectiveBoard() {
       )
     );
 
-    setNewItemText("");
-    setNewItemAuthor("");
     setActiveColumn(null);
-  };
+  }, []);
 
-  const removeItem = (columnId: string, itemId: string) => {
+  const handleRemoveItem = useCallback((columnId: string, itemId: string) => {
     setColumns((prev) =>
       prev.map((col) =>
         col.id === columnId
@@ -150,9 +117,9 @@ export function RetrospectiveBoard() {
           : col
       )
     );
-  };
+  }, []);
 
-  const voteItem = (columnId: string, itemId: string) => {
+  const handleVoteItem = useCallback((columnId: string, itemId: string) => {
     setColumns((prev) =>
       prev.map((col) =>
         col.id === columnId
@@ -165,131 +132,33 @@ export function RetrospectiveBoard() {
           : col
       )
     );
-  };
+  }, []);
+
+  const handleActivateColumn = useCallback((columnId: string) => {
+    setActiveColumn(columnId);
+  }, []);
+
+  const handleCancelAdd = useCallback(() => {
+    setActiveColumn(null);
+  }, []);
 
   return (
     <div className="container mx-auto max-w-7xl p-6">
-      {/* Header */}
-      <div className="mb-8 text-center">
-        <h1 className="mb-4 text-4xl font-bold text-balance">
-          Sprint Retrospective Board
-        </h1>
-        <p className="text-muted-foreground mx-auto max-w-2xl text-lg text-pretty">
-          Reflect on your team&apos;s performance and identify opportunities for
-          continuous improvement
-        </p>
-        <div className="mt-6 flex items-center justify-center gap-4">
-          <Badge variant="secondary" className="px-3 py-1">
-            Sprint 24
-          </Badge>
-          <Badge variant="outline" className="px-3 py-1">
-            Development Team Alpha
-          </Badge>
-        </div>
-      </div>
+      <BoardHeader />
 
       {/* Board */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         {columns.map((column) => (
-          <Card key={column.id} className={`${column.color} border-2`}>
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                {column.icon}
-                {column.title}
-              </CardTitle>
-              <p className="text-muted-foreground text-sm">
-                {column.description}
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {/* Items */}
-              {column.items
-                .sort((a, b) => b.votes - a.votes)
-                .map((item) => (
-                  <Card
-                    key={item.id}
-                    className="bg-card/50 border-border/50 border"
-                  >
-                    <CardContent className="p-4">
-                      <div className="mb-2 flex items-start justify-between">
-                        <p className="flex-1 text-sm text-pretty">
-                          {item.text}
-                        </p>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="ml-2 h-6 w-6 p-0"
-                          onClick={() => removeItem(column.id, item.id)}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground text-xs">
-                          {item.author}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 px-2 text-xs"
-                          onClick={() => voteItem(column.id, item.id)}
-                        >
-                          👍 {item.votes}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-
-              {/* Add new item */}
-              {activeColumn === column.id ? (
-                <Card className="bg-card/30 border-2 border-dashed">
-                  <CardContent className="space-y-3 p-4">
-                    <Textarea
-                      placeholder="What would you like to share?"
-                      value={newItemText}
-                      onChange={(e) => setNewItemText(e.target.value)}
-                      className="min-h-[80px] resize-none"
-                    />
-                    <Input
-                      placeholder="Your name"
-                      value={newItemAuthor}
-                      onChange={(e) => setNewItemAuthor(e.target.value)}
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => addItem(column.id)}
-                        disabled={!newItemText.trim() || !newItemAuthor.trim()}
-                      >
-                        Add Item
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setActiveColumn(null);
-                          setNewItemText("");
-                          setNewItemAuthor("");
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Button
-                  variant="ghost"
-                  className="border-border/50 h-12 w-full border-2 border-dashed"
-                  onClick={() => setActiveColumn(column.id)}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add item
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+          <RetroColumn
+            key={column.id}
+            column={column}
+            activeColumnId={activeColumn}
+            onActivateColumn={handleActivateColumn}
+            onCancelAdd={handleCancelAdd}
+            onAddItem={handleAddItem}
+            onRemoveItem={handleRemoveItem}
+            onVoteItem={handleVoteItem}
+          />
         ))}
       </div>
 
