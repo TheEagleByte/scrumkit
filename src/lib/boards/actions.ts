@@ -69,9 +69,9 @@ export async function createBoard(input: CreateBoardInput) {
       template: template.id,
       settings,
       voting_limit: settings.votingLimit || 3,
-      is_anonymous: !input.teamId,
-      team_id: input.teamId || null,
-      creator_cookie: !input.teamId ? creatorCookie : null,
+      is_anonymous: true, // Always true for anonymous boards
+      team_id: null, // Always null for anonymous boards
+      creator_cookie: creatorCookie,
       status: "active",
     })
     .select()
