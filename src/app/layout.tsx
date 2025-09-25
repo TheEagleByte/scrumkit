@@ -2,7 +2,10 @@ import type React from "react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { ThemeProvider } from "next-themes";
 import { Suspense } from "react";
+import { Toaster } from "@/components/ui/sonner";
+import { QueryProvider } from "@/providers/query-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,11 +30,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body
         className={`font-sans ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Suspense fallback={null}>{children}</Suspense>
+        <QueryProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <Suspense fallback={null}>{children}</Suspense>
+            <Toaster />
+          </ThemeProvider>
+        </QueryProvider>
         <Analytics />
       </body>
     </html>

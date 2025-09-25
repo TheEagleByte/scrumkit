@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -11,8 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { createClient } from "@/lib/supabase/client";
+import { useSignOut } from "@/hooks/use-auth-query";
 import { LogOut, Settings, UserCircle, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { Profile } from "@/lib/supabase/types-enhanced";
@@ -26,32 +24,16 @@ interface UserMenuProps {
 }
 
 export function UserMenu({ user, profile }: UserMenuProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
   const router = useRouter();
-  const supabase = createClient();
+  const signOutMutation = useSignOut();
 
   const handleSignOut = async () => {
-    setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-
-      toast({
-        title: "Signed out",
-        description: "You've been signed out successfully.",
-      });
-
+      await signOutMutation.mutateAsync();
       router.push("/");
       router.refresh();
     } catch (error) {
-      toast({
-        title: "Error",
-        description: (error as Error).message || "Failed to sign out",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+      // Error is handled by the mutation
     }
   };
 
@@ -101,8 +83,8 @@ export function UserMenu({ user, profile }: UserMenuProps) {
           <span>Settings</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleSignOut} disabled={isLoading}>
-          {isLoading ? (
+        <DropdownMenuItem onClick={handleSignOut} disabled={signOutMutation.isPending}>
+          {signOutMutation.isPending ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             <LogOut className="mr-2 h-4 w-4" />

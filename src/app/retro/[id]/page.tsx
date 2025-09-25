@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { RetrospectiveBoardRealtime } from "@/components/RetrospectiveBoardRealtime";
+import { RetrospectiveBoardWithQuery } from "@/components/RetrospectiveBoardWithQuery";
 import { getUserFromServer, getProfileFromServer } from "@/lib/supabase/auth";
 import { getBoard } from "@/lib/boards/actions";
 import { generateAnonymousUserName } from "@/lib/boards/utils";
@@ -40,7 +40,7 @@ export default async function RetroPage({
 
   return (
     <main className="bg-background grid-pattern min-h-screen">
-      <RetrospectiveBoardRealtime
+      <RetrospectiveBoardWithQuery
         retrospectiveId={board.id}
         currentUser={boardUser}
         teamName={board.team?.name || "Anonymous Board"}

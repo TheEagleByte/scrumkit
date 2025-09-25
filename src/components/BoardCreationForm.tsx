@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createBoard } from "@/lib/boards/actions";
+import { useCreateBoard } from "@/hooks/use-boards";
 import { boardTemplates } from "@/lib/boards/templates";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,9 +23,10 @@ const templateIcons: Record<string, React.ReactNode> = {
 
 export function BoardCreationForm() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
   const [boardTitle, setBoardTitle] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState("default");
+
+  const createBoardMutation = useCreateBoard();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -35,20 +36,15 @@ export function BoardCreationForm() {
       return;
     }
 
-    setIsLoading(true);
-
     try {
-      const board = await createBoard({
+      const board = await createBoardMutation.mutateAsync({
         title: boardTitle,
         templateId: selectedTemplate,
       });
 
-      toast.success("Board created successfully!");
       router.push(`/retro/${board.unique_url}`);
     } catch (error) {
-      console.error("Error creating board:", error);
-      toast.error("Failed to create board. Please try again.");
-      setIsLoading(false);
+      // Error is handled by the mutation
     }
   }
 
@@ -63,7 +59,7 @@ export function BoardCreationForm() {
           placeholder="Sprint 24 Retrospective"
           value={boardTitle}
           onChange={(e) => setBoardTitle(e.target.value)}
-          disabled={isLoading}
+          disabled={createBoardMutation.isPending}
           className="text-lg"
           autoFocus
         />
@@ -78,7 +74,7 @@ export function BoardCreationForm() {
         <RadioGroup
           value={selectedTemplate}
           onValueChange={setSelectedTemplate}
-          disabled={isLoading}
+          disabled={createBoardMutation.isPending}
           className="grid gap-3"
         >
           {boardTemplates.map((template) => (
@@ -134,9 +130,9 @@ export function BoardCreationForm() {
         type="submit"
         size="lg"
         className="w-full"
-        disabled={isLoading || !boardTitle.trim()}
+        disabled={createBoardMutation.isPending || !boardTitle.trim()}
       >
-        {isLoading ? (
+        {createBoardMutation.isPending ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Creating Board...
