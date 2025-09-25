@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sprint Retrospective Board",
-  description: "Modern retrospective board for software development teams",
+  title: "ScrumKit - Sprint Retrospectives That Teams Love",
+  description: "Run engaging retrospectives that drive continuous improvement. Collect feedback, vote on issues, and track action items - all in real-time.",
   generator: "v0.app",
 };
 
