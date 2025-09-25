@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import { getUserFromServer } from "@/lib/supabase/auth";
 import { AuthForm } from "@/components/auth/AuthForm";
 
+// Force dynamic rendering since we need to check auth status
+export const dynamic = 'force-dynamic';
+
 export default async function AuthPage({
   searchParams,
 }: {

@@ -2,6 +2,9 @@ import { RetrospectiveBoardRealtime } from "@/components/RetrospectiveBoardRealt
 import { getUserFromServer, getProfileFromServer } from "@/lib/supabase/auth";
 import { v4 as uuidv4 } from "uuid";
 
+// Force dynamic rendering since we need to check auth status
+export const dynamic = 'force-dynamic';
+
 // Generate anonymous user data
 function generateAnonymousUser() {
   const adjectives = ["Happy", "Clever", "Brave", "Calm", "Eager", "Gentle", "Kind", "Lively"];
