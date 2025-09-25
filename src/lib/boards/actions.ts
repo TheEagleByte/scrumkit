@@ -5,6 +5,7 @@ import { getTemplateById, getDefaultTemplate } from "./templates";
 import { generateBoardUrl, BoardSettings, defaultBoardSettings } from "./utils";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
+import type { RetrospectiveUpdate } from "@/lib/supabase/types-enhanced";
 
 export interface CreateBoardInput {
   title: string;
@@ -232,12 +233,12 @@ export async function updateBoard(
   }
 
   // Update the board - ensure settings is properly formatted
-  const updateData: any = {
+  const updateData: RetrospectiveUpdate = {
     updated_at: new Date().toISOString(),
   };
 
   if (updates.title !== undefined) updateData.title = updates.title;
-  if (updates.settings !== undefined) updateData.settings = updates.settings as any;
+  if (updates.settings !== undefined) updateData.settings = updates.settings;
   if (updates.voting_limit !== undefined) updateData.voting_limit = updates.voting_limit;
   if (updates.is_archived !== undefined) updateData.is_archived = updates.is_archived;
 
