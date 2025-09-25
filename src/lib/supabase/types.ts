@@ -228,34 +228,61 @@ export type Database = {
           completed_at: string | null
           created_at: string | null
           created_by: string | null
+          creator_cookie: string | null
           id: string
+          is_anonymous: boolean | null
+          is_archived: boolean | null
+          is_deleted: boolean | null
+          settings: Json | null
           sprint_name: string | null
           sprint_number: number | null
           status: string | null
-          team_id: string
+          team_id: string | null
+          template: string | null
+          title: string | null
+          unique_url: string | null
           updated_at: string | null
+          voting_limit: number | null
         }
         Insert: {
           completed_at?: string | null
           created_at?: string | null
           created_by?: string | null
+          creator_cookie?: string | null
           id?: string
+          is_anonymous?: boolean | null
+          is_archived?: boolean | null
+          is_deleted?: boolean | null
+          settings?: Json | null
           sprint_name?: string | null
           sprint_number?: number | null
           status?: string | null
-          team_id: string
+          team_id?: string | null
+          template?: string | null
+          title?: string | null
+          unique_url?: string | null
           updated_at?: string | null
+          voting_limit?: number | null
         }
         Update: {
           completed_at?: string | null
           created_at?: string | null
           created_by?: string | null
+          creator_cookie?: string | null
           id?: string
+          is_anonymous?: boolean | null
+          is_archived?: boolean | null
+          is_deleted?: boolean | null
+          settings?: Json | null
           sprint_name?: string | null
           sprint_number?: number | null
           status?: string | null
-          team_id?: string
+          team_id?: string | null
+          template?: string | null
+          title?: string | null
+          unique_url?: string | null
           updated_at?: string | null
+          voting_limit?: number | null
         }
         Relationships: [
           {
@@ -389,7 +416,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_unique_url: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
