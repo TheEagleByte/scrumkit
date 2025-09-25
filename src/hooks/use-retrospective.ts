@@ -150,7 +150,7 @@ export function useCreateItem() {
         .insert({
           retrospective_id: input.retrospectiveId,
           column_id: input.columnId,
-          content: sanitizedContent,
+          text: sanitizedContent,
           author_id: input.authorId,
           author_name: sanitizedName,
         })
@@ -174,15 +174,12 @@ export function useCreateItem() {
       // Optimistically update
       const optimisticItem: RetrospectiveItem = {
         id: `temp-${Date.now()}`,
-        retrospective_id: input.retrospectiveId,
         column_id: input.columnId,
-        content: sanitizeItemContent(input.content),
+        text: sanitizeItemContent(input.content),
         author_id: input.authorId,
         author_name: sanitizeUsername(input.authorName),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        position: 0,
-        color: null,
       };
 
       queryClient.setQueryData<RetrospectiveItem[]>(
@@ -228,9 +225,10 @@ export function useDeleteItem() {
       retrospectiveId: string;
       userId: string;
     }) => {
-      // Check permission
-      if (!canDeleteItem(userId, userId)) { // In real app, check if user is author
-        throw new Error("You can only delete your own items");
+      // Check permission - in a real app, would check if user is the author
+      // For now, just check rate limit
+      if (!canDeleteItem(userId)) {
+        throw new Error("Please wait before deleting another item");
       }
 
       const supabase = createClient();
@@ -307,7 +305,7 @@ export function useToggleVote() {
           .from("votes")
           .delete()
           .eq("item_id", itemId)
-          .eq("user_id", userId);
+          .eq("profile_id", userId);
 
         if (error) throw error;
         return { action: "removed" as const };
@@ -317,7 +315,7 @@ export function useToggleVote() {
           .from("votes")
           .insert({
             item_id: itemId,
-            user_id: userId,
+            profile_id: userId,
           })
           .select()
           .single();
@@ -340,14 +338,14 @@ export function useToggleVote() {
         // Remove vote
         queryClient.setQueryData<Vote[]>(
           retrospectiveKeys.votes(retrospectiveId),
-          (old = []) => old.filter(v => !(v.item_id === itemId && v.user_id === userId))
+          (old = []) => old.filter(v => !(v.item_id === itemId && v.profile_id === userId))
         );
       } else {
         // Add vote
         const optimisticVote: Vote = {
           id: `temp-${Date.now()}`,
           item_id: itemId,
-          user_id: userId,
+          profile_id: userId,
           created_at: new Date().toISOString(),
         };
         queryClient.setQueryData<Vote[]>(
@@ -394,7 +392,7 @@ export function useUpdateItem() {
 
       const { data, error } = await supabase
         .from("retrospective_items")
-        .update({ content: sanitizedContent })
+        .update({ text: sanitizedContent })
         .eq("id", itemId)
         .select()
         .single();
@@ -416,7 +414,7 @@ export function useUpdateItem() {
         retrospectiveKeys.items(retrospectiveId),
         (old = []) => old.map(item =>
           item.id === itemId
-            ? { ...item, content: sanitizeItemContent(content), updated_at: new Date().toISOString() }
+            ? { ...item, text: sanitizeItemContent(content), updated_at: new Date().toISOString() }
             : item
         )
       );

@@ -41,7 +41,20 @@ export const boardKeys = {
 export function useBoards(options?: UseQueryOptions<Board[]>) {
   return useQuery({
     queryKey: boardKeys.lists(),
-    queryFn: getUserBoards,
+    queryFn: async () => {
+      const boards = await getUserBoards();
+      // Map the database response to match our Board interface
+      return boards.map(b => ({
+        id: b.id,
+        unique_url: b.unique_url || '',
+        title: b.title || 'Untitled Board',
+        template: b.template,
+        is_archived: b.is_archived || false,
+        is_deleted: false, // Not in DB response, default to false
+        created_at: b.created_at || new Date().toISOString(),
+        updated_at: b.updated_at || new Date().toISOString(),
+      })) as Board[];
+    },
     ...options,
   });
 }

@@ -181,7 +181,7 @@ export function RetrospectiveBoardWithQuery({
   };
 
   const handleToggleVote = async (itemId: string) => {
-    const hasVoted = votes.some(v => v.item_id === itemId && v.user_id === currentUser.id);
+    const hasVoted = votes.some(v => v.item_id === itemId && v.profile_id === currentUser.id);
 
     const cooldownTime = getCooldownTime("vote", currentUser.id);
     if (cooldownTime > 0) {
@@ -216,7 +216,7 @@ export function RetrospectiveBoardWithQuery({
         const aVotes = votes.filter(v => v.item_id === a.id).length;
         const bVotes = votes.filter(v => v.item_id === b.id).length;
         if (aVotes !== bVotes) return bVotes - aVotes;
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
       });
   };
 
@@ -267,7 +267,7 @@ export function RetrospectiveBoardWithQuery({
       {/* Columns */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {columnConfigs.map((config) => {
-          const column = columns.find(c => c.type === config.type);
+          const column = columns.find(c => c.column_type === config.type);
           if (!column) return null;
 
           const columnItems = getColumnItems(column.id);
@@ -331,8 +331,8 @@ export function RetrospectiveBoardWithQuery({
                 <div className="space-y-2">
                   {columnItems.map((item) => {
                     const itemVotes = votes.filter(v => v.item_id === item.id);
-                    const hasVoted = itemVotes.some(v => v.user_id === currentUser.id);
-                    const isAuthor = item.author_id === currentUser.id;
+                    const hasVoted = itemVotes.some(v => v.profile_id === currentUser.id);
+                    const isAuthor = item.author_id && item.author_id === currentUser.id;
 
                     return (
                       <div
@@ -340,13 +340,13 @@ export function RetrospectiveBoardWithQuery({
                         className="p-3 rounded-lg bg-background/50 hover:bg-background/80 transition-colors"
                       >
                         <div className="flex justify-between items-start gap-2 mb-2">
-                          <p className="text-sm flex-1">{item.content}</p>
+                          <p className="text-sm flex-1">{item.text}</p>
                           {isAuthor && (
                             <Button
                               variant="ghost"
                               size="icon"
                               className="h-6 w-6"
-                              onClick={() => handleDeleteItem(item.id, item.author_id)}
+                              onClick={() => handleDeleteItem(item.id, item.author_id || '')}
                               disabled={deleteItemMutation.isPending}
                             >
                               <X className="h-3 w-3" />

@@ -199,13 +199,14 @@ export function useUpdateProfile() {
       if (!user) throw new Error("No user logged in");
 
       const supabase = createClient();
-      const updates: Partial<Profile> = {
-        id: user.id,
-        updated_at: new Date().toISOString(),
-      };
 
-      if (fullName !== undefined) updates.full_name = fullName;
-      if (avatarUrl !== undefined) updates.avatar_url = avatarUrl;
+      const updates = {
+        id: user.id,
+        email: user.email!,
+        updated_at: new Date().toISOString(),
+        ...(fullName !== undefined && { full_name: fullName }),
+        ...(avatarUrl !== undefined && { avatar_url: avatarUrl }),
+      };
 
       const { data, error } = await supabase
         .from("profiles")
@@ -382,14 +383,15 @@ export function useAuthStateChange(
 }
 
 // Check if user has a specific role
-export function useHasRole(role: string) {
-  const { data: profile } = useProfile();
-
-  return {
-    hasRole: profile?.role === role,
-    isLoading: !profile,
-  };
-}
+// Note: Profile doesn't have a role field in current schema
+// export function useHasRole(role: string) {
+//   const { data: profile } = useProfile();
+//
+//   return {
+//     hasRole: profile?.role === role,
+//     isLoading: !profile,
+//   };
+// }
 
 // Check if user is authenticated
 export function useIsAuthenticated() {

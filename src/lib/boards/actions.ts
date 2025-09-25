@@ -231,13 +231,19 @@ export async function updateBoard(
     throw new Error("You don't have permission to update this board");
   }
 
-  // Update the board
+  // Update the board - ensure settings is properly formatted
+  const updateData: any = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (updates.title !== undefined) updateData.title = updates.title;
+  if (updates.settings !== undefined) updateData.settings = updates.settings as any;
+  if (updates.voting_limit !== undefined) updateData.voting_limit = updates.voting_limit;
+  if (updates.is_archived !== undefined) updateData.is_archived = updates.is_archived;
+
   const { error: updateError } = await supabase
     .from("retrospectives")
-    .update({
-      ...updates,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updateData)
     .eq("unique_url", uniqueUrl);
 
   if (updateError) {
