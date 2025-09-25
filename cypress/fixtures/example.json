@@ -1,0 +1,35 @@
+{
+  "retrospective": {
+    "id": "test-retro-123",
+    "name": "Sprint 42 Retrospective",
+    "date": "2025-01-25",
+    "team": "Development Team Alpha"
+  },
+  "testUser": {
+    "email": "test@example.com",
+    "password": "TestPassword123!",
+    "name": "Test User"
+  },
+  "items": {
+    "wentWell": [
+      "Completed all planned features",
+      "Great collaboration between frontend and backend",
+      "Successfully deployed to production without issues"
+    ],
+    "improvements": [
+      "Need better test coverage",
+      "Sprint planning took too long",
+      "Documentation needs updating"
+    ],
+    "blockers": [
+      "Waiting on design approvals",
+      "Third-party API rate limits",
+      "Legacy code refactoring"
+    ],
+    "actionItems": [
+      "Schedule design review meetings earlier",
+      "Investigate caching solutions for API",
+      "Allocate time for tech debt"
+    ]
+  }
+}
