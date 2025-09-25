@@ -11,9 +11,22 @@ export function useAuth() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const supabase = createClient();
+  // Check if Supabase environment variables are available
+  const hasSupabaseConfig = !!(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+
+  // Only create client if we have the required config
+  const supabase = hasSupabaseConfig ? createClient() : null;
 
   useEffect(() => {
+    // If no Supabase client, just set loading to false and return
+    if (!supabase) {
+      setIsLoading(false);
+      return;
+    }
+
     // Get initial session
     const initAuth = async () => {
       try {
@@ -69,9 +82,11 @@ export function useAuth() {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [supabase]);
 
   const signOut = async () => {
+    if (!supabase) throw new Error("Supabase client not initialized");
+
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error("Error signing out:", error);
@@ -80,6 +95,7 @@ export function useAuth() {
   };
 
   const updateProfile = async (updates: Partial<Profile>) => {
+    if (!supabase) throw new Error("Supabase client not initialized");
     if (!user) throw new Error("No user logged in");
 
     const { data, error } = await supabase
