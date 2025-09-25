@@ -8,20 +8,22 @@ import { Button } from "@/components/ui/button";
 export default function Home() {
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden">
+      {/* Skip to main content for accessibility */}
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-white text-black px-4 py-2 rounded-md z-50">
+        Skip to main content
+      </a>
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 bg-black/50 backdrop-blur-lg border-b border-white/5">
         <div className="container max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg" />
+            <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg" aria-hidden="true" />
             <span className="font-semibold text-lg">ScrumKit</span>
           </div>
           <div className="hidden md:flex items-center gap-8">
             <Link href="#features" className="text-gray-400 hover:text-white transition">Features</Link>
-            <Link href="#pricing" className="text-gray-400 hover:text-white transition">Pricing</Link>
-            <Link href="#testimonials" className="text-gray-400 hover:text-white transition">Testimonials</Link>
           </div>
           <Link href="/retro">
-            <Button className="bg-white text-black hover:bg-gray-200 font-medium">
+            <Button className="bg-white text-black hover:bg-gray-200 font-medium" aria-label="Start using ScrumKit for free">
               Start Free
             </Button>
           </Link>
@@ -29,6 +31,7 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
+      <main id="main-content">
       <section className="relative pt-32 pb-20 px-6">
         {/* Background gradient */}
         <div className="absolute inset-0 bg-gradient-to-b from-violet-950/20 via-transparent to-transparent" />
@@ -329,7 +332,7 @@ export default function Home() {
             viewport={{ once: true }}
           >
             <h2 className="text-5xl font-bold mb-6">
-              Ready to improve your team's retrospectives?
+              Ready to improve your team&apos;s retrospectives?
             </h2>
             <p className="text-xl text-gray-400 mb-8">
               Join 500+ teams already using ScrumKit. No credit card required.
@@ -349,12 +352,14 @@ export default function Home() {
         </div>
       </section>
 
+      </main>
+
       {/* Footer */}
       <footer className="py-12 px-6 border-t border-white/5">
         <div className="container max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg" />
+              <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg" aria-hidden="true" />
               <span className="font-semibold text-lg">ScrumKit</span>
             </div>
             <p className="text-sm text-gray-500">
