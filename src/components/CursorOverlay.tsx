@@ -8,7 +8,7 @@ interface CursorOverlayProps {
   channelName: string;
   userId: string;
   userName?: string;
-  containerRef?: React.RefObject<HTMLElement>;
+  containerRef?: React.RefObject<HTMLElement | null>;
 }
 
 interface CursorProps {
@@ -68,7 +68,7 @@ export function CursorOverlay({
   containerRef,
 }: CursorOverlayProps) {
   const { cursors, updateCursor, isSubscribed } = useCursorTracking(channelName, userId);
-  const rafRef = useRef<number>();
+  const rafRef = useRef<number | undefined>(undefined);
   const lastPositionRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {

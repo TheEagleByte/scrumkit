@@ -9,6 +9,12 @@ import type {
 } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types-enhanced";
 import { logger } from "@/lib/logger";
+import {
+  CONNECTION_CONFIG,
+  PRESENCE_CONFIG,
+  CURSOR_CONFIG,
+  USER_COLORS,
+} from "@/lib/realtime/constants";
 
 type RetrospectiveItem = Database["public"]["Tables"]["retrospective_items"]["Row"];
 type Vote = Database["public"]["Tables"]["votes"]["Row"];
@@ -42,8 +48,9 @@ export function useRetrospectiveRealtime(retrospectiveId: string) {
 
     const channel = supabase
       .channel(`retrospective:${retrospectiveId}`)
-      .on<RetrospectiveItem>(
-        "postgres_changes",
+      .on(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        "postgres_changes" as any,
         {
           event: "*",
           schema: "public",
@@ -71,8 +78,9 @@ export function useRetrospectiveRealtime(retrospectiveId: string) {
           }
         }
       )
-      .on<Vote>(
-        "postgres_changes",
+      .on(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        "postgres_changes" as any,
         {
           event: "*",
           schema: "public",
@@ -91,8 +99,9 @@ export function useRetrospectiveRealtime(retrospectiveId: string) {
           }
         }
       )
-      .on<Retrospective>(
-        "postgres_changes",
+      .on(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        "postgres_changes" as any,
         {
           event: "UPDATE",
           schema: "public",
@@ -121,15 +130,12 @@ export function useRetrospectiveRealtime(retrospectiveId: string) {
   const loadInitialData = useCallback(async () => {
     const supabase = createClient();
 
-    const [itemsResult, votesResult, retroResult] = await Promise.all([
+    // First load items and retrospective
+    const [itemsResult, retroResult] = await Promise.all([
       supabase
         .from("retrospective_items")
         .select("*")
         .eq("retrospective_id", retrospectiveId),
-      supabase
-        .from("votes")
-        .select("*")
-        .in("item_id", items.map((i) => i.id)),
       supabase
         .from("retrospectives")
         .select("*")
@@ -137,10 +143,23 @@ export function useRetrospectiveRealtime(retrospectiveId: string) {
         .single(),
     ]);
 
-    if (itemsResult.data) setItems(itemsResult.data);
-    if (votesResult.data) setVotes(votesResult.data);
+    if (itemsResult.data) {
+      setItems(itemsResult.data);
+
+      // Load votes based on fetched items, not state
+      const itemIds = itemsResult.data.map(item => item.id);
+      if (itemIds.length > 0) {
+        const votesResult = await supabase
+          .from("votes")
+          .select("*")
+          .in("item_id", itemIds);
+
+        if (votesResult.data) setVotes(votesResult.data);
+      }
+    }
+
     if (retroResult.data) setRetrospective(retroResult.data);
-  }, [retrospectiveId, items]);
+  }, [retrospectiveId]);
 
   useEffect(() => {
     if (isSubscribed) {
@@ -215,7 +234,7 @@ export function usePresence(channelName: string, userData: Partial<PresenceUser>
           lastSeen: Date.now(),
         });
       }
-    }, 30000);
+    }, PRESENCE_CONFIG.HEARTBEAT_INTERVAL);
 
     return () => {
       clearInterval(heartbeatInterval);
@@ -295,7 +314,6 @@ export function useCursorTracking(channelName: string, userId: string) {
     new Map()
   );
   const lastBroadcast = useRef<number>(0);
-  const broadcastThrottle = 50;
 
   const { broadcast, isSubscribed } = useBroadcast<{
     userId: string;
@@ -324,7 +342,7 @@ export function useCursorTracking(channelName: string, userId: string) {
   const updateCursor = useCallback(
     (x: number, y: number) => {
       const now = Date.now();
-      if (now - lastBroadcast.current > broadcastThrottle) {
+      if (now - lastBroadcast.current > CURSOR_CONFIG.BROADCAST_THROTTLE) {
         broadcast({
           userId,
           x,
@@ -358,7 +376,6 @@ export function useConnectionStatus() {
   const [status, setStatus] = useState<"connected" | "connecting" | "disconnected">("connecting");
   const [retryCount, setRetryCount] = useState(0);
   const [lastError, setLastError] = useState<Error | null>(null);
-  const maxRetries = 5;
 
   useEffect(() => {
     const supabase = createClient();
@@ -378,8 +395,11 @@ export function useConnectionStatus() {
         setLastError(err);
         setStatus("disconnected");
 
-        if (retryCount < maxRetries) {
-          const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
+        if (retryCount < CONNECTION_CONFIG.MAX_RETRY_ATTEMPTS) {
+          const delay = Math.min(
+            CONNECTION_CONFIG.INITIAL_RETRY_DELAY * Math.pow(2, retryCount),
+            CONNECTION_CONFIG.MAX_RETRY_DELAY
+          );
           logger.warn(`Connection failed, retrying in ${delay}ms`, {
             attempt: retryCount + 1,
             error: err.message,
@@ -407,7 +427,7 @@ export function useConnectionStatus() {
         }
       });
 
-    const interval = setInterval(checkConnection, 30000);
+    const interval = setInterval(checkConnection, CONNECTION_CONFIG.CONNECTION_CHECK_INTERVAL);
 
     return () => {
       clearInterval(interval);
@@ -433,14 +453,14 @@ export function useConnectionStatus() {
 }
 
 function generateUserColor(userId: string): string {
-  const colors = [
-    "#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8",
-    "#F7DC6F", "#BB8FCE", "#85C1E2", "#F8B739", "#52B788",
-  ];
+  // Improved hash function to reduce collisions
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    const char = userId.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
 
-  const hash = userId.split("").reduce((acc, char) => {
-    return char.charCodeAt(0) + acc;
-  }, 0);
-
-  return colors[hash % colors.length];
+  const index = Math.abs(hash) % USER_COLORS.length;
+  return USER_COLORS[index];
 }

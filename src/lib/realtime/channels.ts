@@ -27,18 +27,11 @@ export const PRESENCE_EVENTS = {
 
 export function createRetrospectiveChannel(
   supabase: SupabaseClient<Database>,
-  retrospectiveId: string,
-  config?: Partial<RealtimeChannelConfig>
+  retrospectiveId: string
 ) {
   const channelName = CHANNEL_NAMES.RETROSPECTIVE(retrospectiveId);
 
-  const channel = supabase.channel(channelName, {
-    config: {
-      broadcast: { self: false },
-      presence: { key: config?.params?.userId as string || "anonymous" },
-      ...config,
-    },
-  });
+  const channel = supabase.channel(channelName);
 
   logger.info(`Creating retrospective channel: ${channelName}`);
 
@@ -47,34 +40,16 @@ export function createRetrospectiveChannel(
 
 export function createPresenceChannel(
   supabase: SupabaseClient<Database>,
-  channelName: string,
-  userId: string
+  channelName: string
 ) {
-  return supabase.channel(channelName, {
-    config: {
-      presence: {
-        key: userId,
-      },
-      broadcast: {
-        self: false,
-        ack: false,
-      },
-    },
-  });
+  return supabase.channel(channelName);
 }
 
 export function createBroadcastChannel(
   supabase: SupabaseClient<Database>,
   channelName: string
 ) {
-  return supabase.channel(channelName, {
-    config: {
-      broadcast: {
-        self: false,
-        ack: false,
-      },
-    },
-  });
+  return supabase.channel(channelName);
 }
 
 interface RealtimePayload<T = unknown> {
@@ -96,7 +71,8 @@ export function setupRetrospectiveSubscriptions(
 ) {
   if (handlers.onItemChange) {
     channel.on(
-      "postgres_changes",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      "postgres_changes" as any,
       {
         event: "*",
         schema: "public",
@@ -109,7 +85,8 @@ export function setupRetrospectiveSubscriptions(
 
   if (handlers.onVoteChange) {
     channel.on(
-      "postgres_changes",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      "postgres_changes" as any,
       {
         event: "*",
         schema: "public",
@@ -121,7 +98,8 @@ export function setupRetrospectiveSubscriptions(
 
   if (handlers.onRetrospectiveChange) {
     channel.on(
-      "postgres_changes",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      "postgres_changes" as any,
       {
         event: "UPDATE",
         schema: "public",
@@ -134,7 +112,8 @@ export function setupRetrospectiveSubscriptions(
 
   if (handlers.onActionItemChange) {
     channel.on(
-      "postgres_changes",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      "postgres_changes" as any,
       {
         event: "*",
         schema: "public",

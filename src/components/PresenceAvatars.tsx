@@ -11,6 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { PRESENCE_CONFIG } from "@/lib/realtime/constants";
 
 interface PresenceAvatarsProps {
   channelName: string;
@@ -46,7 +47,7 @@ export function PresenceAvatars({
   };
 
   const isRecentlyActive = (lastSeen: number) => {
-    return Date.now() - lastSeen < 60000;
+    return Date.now() - lastSeen < PRESENCE_CONFIG.RECENTLY_ACTIVE_THRESHOLD;
   };
 
   if (otherUsers.length === 0) {

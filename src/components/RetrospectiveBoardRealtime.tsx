@@ -17,6 +17,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabase/client";
 import { useRetrospectiveRealtime } from "@/hooks/use-realtime";
+import { sanitizeItemContent, sanitizeUsername } from "@/lib/utils/sanitize";
+import { canCreateItem, canDeleteItem, canVote, getCooldownTime } from "@/lib/utils/rate-limit";
 import { ConnectionStatus } from "@/components/ConnectionStatus";
 import { PresenceAvatars } from "@/components/PresenceAvatars";
 import { CursorOverlay } from "@/components/CursorOverlay";
@@ -100,11 +102,11 @@ export function RetrospectiveBoardRealtime({
 
   useEffect(() => {
     const createDefaultColumns = async () => {
-      const newColumns: Partial<RetrospectiveColumn>[] = columnConfigs.map((config, index) => ({
+      const newColumns = columnConfigs.map((config, index) => ({
         retrospective_id: retrospectiveId,
         title: config.title,
         column_type: config.type,
-        order_index: index,
+        display_order: index,
       }));
 
       const { data, error } = await supabase
@@ -129,7 +131,7 @@ export function RetrospectiveBoardRealtime({
         .from("retrospective_columns")
         .select("*")
         .eq("retrospective_id", retrospectiveId)
-        .order("order_index");
+        .order("display_order");
 
       if (error) {
         toast({
@@ -149,21 +151,31 @@ export function RetrospectiveBoardRealtime({
     };
 
     const loadUserVotes = async () => {
-      const { data, error } = await supabase
-        .from("votes")
-        .select("item_id")
-        .eq("profile_id", currentUser.id);
+      // Get current items from database first
+      const { data: currentItems } = await supabase
+        .from("retrospective_items")
+        .select("id")
+        .eq("retrospective_id", retrospectiveId);
 
-      if (error) {
-        console.error("Error loading user votes:", error);
-        return;
+      if (currentItems && currentItems.length > 0) {
+        const itemIds = currentItems.map(item => item.id);
+        const { data, error } = await supabase
+          .from("votes")
+          .select("item_id")
+          .eq("profile_id", currentUser.id)
+          .in("item_id", itemIds);
+
+        if (error) {
+          console.error("Error loading user votes:", error);
+          return;
+        }
+
+        setUserVotes(new Set(data?.map(v => v.item_id) || []));
       }
-
-      setUserVotes(new Set(data?.map(v => v.item_id) || []));
     };
 
-    loadColumns();
-    loadUserVotes();
+    // Load columns first, then votes to avoid race condition
+    loadColumns().then(() => loadUserVotes());
   }, [retrospectiveId, currentUser.id, supabase, toast]);
 
   useEffect(() => {
@@ -177,26 +189,44 @@ export function RetrospectiveBoardRealtime({
   const addItem = async (columnId: string) => {
     if (!newItemText.trim() || isSubmitting) return;
 
+    // Check rate limit
+    if (!canCreateItem(currentUser.id)) {
+      const cooldown = getCooldownTime('create', currentUser.id);
+      toast({
+        title: "Rate limit exceeded",
+        description: `Please wait ${Math.ceil(cooldown / 1000)} seconds before creating another item`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const sanitizedContent = sanitizeItemContent(newItemText.trim());
     setIsSubmitting(true);
+
+    // Optimistically clear the input
+    const tempText = newItemText;
+    setNewItemText("");
+    setActiveColumn(null);
 
     const { error } = await supabase
       .from("retrospective_items")
       .insert({
         column_id: columnId,
-        content: newItemText.trim(),
+        text: sanitizedContent,
         author_id: currentUser.id,
-        retrospective_id: retrospectiveId,
+        author_name: sanitizeUsername(currentUser.name),
       });
 
     if (error) {
+      // Rollback on error
+      setNewItemText(tempText);
+      setActiveColumn(columnId);
       toast({
         title: "Error adding item",
         description: error.message,
         variant: "destructive",
       });
     } else {
-      setNewItemText("");
-      setActiveColumn(null);
       toast({
         title: "Item added",
         description: "Your item has been added to the board",
@@ -207,6 +237,17 @@ export function RetrospectiveBoardRealtime({
   };
 
   const removeItem = async (itemId: string) => {
+    // Check rate limit
+    if (!canDeleteItem(currentUser.id)) {
+      const cooldown = getCooldownTime('delete', currentUser.id);
+      toast({
+        title: "Rate limit exceeded",
+        description: `Please wait ${Math.ceil(cooldown / 1000)} seconds before deleting another item`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     const { error } = await supabase
       .from("retrospective_items")
       .delete()
@@ -223,7 +264,31 @@ export function RetrospectiveBoardRealtime({
   };
 
   const toggleVote = async (itemId: string) => {
-    if (userVotes.has(itemId)) {
+    // Check rate limit
+    if (!canVote(currentUser.id)) {
+      const cooldown = getCooldownTime('vote', currentUser.id);
+      toast({
+        title: "Rate limit exceeded",
+        description: `Please wait ${Math.ceil(cooldown / 1000)} seconds before voting again`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const wasVoted = userVotes.has(itemId);
+
+    // Optimistic update
+    setUserVotes(prev => {
+      const next = new Set(prev);
+      if (wasVoted) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
+
+    if (wasVoted) {
       const { error } = await supabase
         .from("votes")
         .delete()
@@ -231,16 +296,12 @@ export function RetrospectiveBoardRealtime({
         .eq("profile_id", currentUser.id);
 
       if (error) {
+        // Rollback on error
+        setUserVotes(prev => new Set([...prev, itemId]));
         toast({
           title: "Error removing vote",
           description: error.message,
           variant: "destructive",
-        });
-      } else {
-        setUserVotes(prev => {
-          const next = new Set(prev);
-          next.delete(itemId);
-          return next;
         });
       }
     } else {
@@ -252,13 +313,17 @@ export function RetrospectiveBoardRealtime({
         });
 
       if (error) {
+        // Rollback on error
+        setUserVotes(prev => {
+          const next = new Set(prev);
+          next.delete(itemId);
+          return next;
+        });
         toast({
           title: "Error adding vote",
           description: error.message,
           variant: "destructive",
         });
-      } else {
-        setUserVotes(prev => new Set([...prev, itemId]));
       }
     }
   };
@@ -303,7 +368,10 @@ export function RetrospectiveBoardRealtime({
           <div className="mb-4 flex items-center justify-between">
             <PresenceAvatars
               channelName={`retrospective:${retrospectiveId}_presence`}
-              currentUser={currentUser}
+              currentUser={{
+                ...currentUser,
+                name: sanitizeUsername(currentUser.name),
+              }}
             />
             <ConnectionStatus />
           </div>
@@ -357,9 +425,10 @@ export function RetrospectiveBoardRealtime({
                     >
                       <CardContent className="p-4">
                         <div className="mb-2 flex items-start justify-between">
-                          <p className="flex-1 text-sm text-pretty">
-                            {item.content}
-                          </p>
+                          <p
+                            className="flex-1 text-sm text-pretty"
+                            dangerouslySetInnerHTML={{ __html: item.text }}
+                          />
                           {item.author_id === currentUser.id && (
                             <Button
                               variant="ghost"
