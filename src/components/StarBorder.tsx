@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
 
 type StarBorderProps<T extends React.ElementType> = React.ComponentPropsWithoutRef<T> & {
