@@ -88,6 +88,62 @@ export async function signIn(email: string, password: string) {
 }
 
 /**
+ * Sign in with magic link
+ */
+export async function signInWithMagicLink(
+  email: string,
+  redirectTo?: string
+) {
+  try {
+    const supabase = createClient();
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: redirectTo || `${window.location.origin}/auth/confirm`,
+      },
+    });
+
+    if (error) {
+      logger.error('Magic link error', error);
+      throw new Error(error.message || AUTH_ERRORS.UNKNOWN_ERROR);
+    }
+
+    return { success: true };
+  } catch (error) {
+    logger.error('Magic link failed', error as Error);
+    throw error;
+  }
+}
+
+/**
+ * Verify OTP token from magic link
+ */
+export async function verifyOtp(
+  token: string,
+  type: 'email' = 'email'
+) {
+  try {
+    const supabase = createClient();
+
+    const { data, error } = await supabase.auth.verifyOtp({
+      token_hash: token,
+      type: type as 'email',
+    });
+
+    if (error) {
+      logger.error('OTP verification error', error);
+      throw new Error(error.message || AUTH_ERRORS.UNKNOWN_ERROR);
+    }
+
+    return { user: data.user, session: data.session };
+  } catch (error) {
+    logger.error('OTP verification failed', error as Error);
+    throw error;
+  }
+}
+
+/**
  * Sign out the current user
  */
 export async function signOut() {
