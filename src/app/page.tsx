@@ -9,6 +9,7 @@ import StarBorder from "@/components/StarBorder";
 import Magnet from "@/components/Magnet";
 import LiquidEther from "@/components/LiquidEther";
 import GithubIcon from "@/components/GithubIcon";
+import { Header } from "@/components/layout/Header";
 
 export default function Home() {
   return (
@@ -41,29 +42,7 @@ export default function Home() {
           Skip to main content
         </a>
         {/* Navigation */}
-        <nav className="fixed top-0 w-full z-50 bg-black/50 backdrop-blur-lg border-b border-white/5">
-          <div className="container max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg" aria-hidden="true" />
-              <span className="font-semibold text-lg">ScrumKit</span>
-            </div>
-            <div className="hidden md:flex items-center gap-8">
-              <Link href="#features" className="text-gray-400 hover:text-white transition">Features</Link>
-              <Link href="#integrations" className="text-gray-400 hover:text-white transition">Integrations</Link>
-              <a href="https://github.com/scrumkit/scrumkit" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition flex items-center gap-1">
-                <GithubIcon className="w-4 h-4" />
-                <span>GitHub</span>
-              </a>
-            </div>
-            <Magnet padding={50} magnetStrength={4}>
-              <Link href="/retro">
-                <Button className="bg-white text-black hover:bg-gray-200 font-medium" aria-label="Start using ScrumKit for free">
-                  Start Free
-                </Button>
-              </Link>
-            </Magnet>
-          </div>
-        </nav>
+        <Header showAuth={true} />
 
         {/* Hero Section */}
         <main id="main-content">

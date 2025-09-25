@@ -2,6 +2,21 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
 
+// Define protected routes that require authentication
+const PROTECTED_ROUTES = [
+  '/profile',
+  '/settings',
+  '/team',
+  '/organization',
+];
+
+// Define public routes that should redirect authenticated users
+const AUTH_ROUTES = [
+  '/auth',
+  '/auth/signin',
+  '/auth/signup',
+];
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -52,11 +67,28 @@ export async function middleware(request: NextRequest) {
       }
     );
 
-    // Refresh session if expired
-    const { error } = await supabase.auth.getUser();
+    // Get current user session
+    const { data: { user }, error } = await supabase.auth.getUser();
 
+    const pathname = request.nextUrl.pathname;
+    const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
+    const isAuthRoute = AUTH_ROUTES.some(route => pathname.startsWith(route));
+
+    // Handle protected routes - redirect to auth if not authenticated
+    if (isProtectedRoute && !user) {
+      const redirectUrl = new URL('/auth', request.url);
+      redirectUrl.searchParams.set('redirectTo', pathname);
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    // Handle auth routes - redirect to home if already authenticated
+    if (isAuthRoute && user) {
+      const redirectTo = request.nextUrl.searchParams.get('redirectTo') || '/retro';
+      return NextResponse.redirect(new URL(redirectTo, request.url));
+    }
+
+    // Log auth errors except for expected "missing session" errors
     if (error && error.message !== 'Auth session missing') {
-      // Log actual auth errors, but not missing sessions (common for anonymous users)
       logger.warn('Auth session refresh error', {
         error: error.message,
         pathname: request.nextUrl.pathname,
