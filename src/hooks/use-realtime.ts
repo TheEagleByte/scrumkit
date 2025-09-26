@@ -13,26 +13,24 @@ import {
   PRESENCE_CONFIG,
   CURSOR_CONFIG,
   USER_COLORS,
+  CONNECTION_CONFIG,
 } from "@/lib/realtime/constants";
+import { toast } from "sonner";
 
 type RetrospectiveItem = Database["public"]["Tables"]["retrospective_items"]["Row"];
 type Vote = Database["public"]["Tables"]["votes"]["Row"];
 type Retrospective = Database["public"]["Tables"]["retrospectives"]["Row"];
 
-interface PresenceUser {
-  id: string;
-  name: string;
-  email?: string;
-  avatar?: string;
-  color?: string;
-  cursor?: { x: number; y: number };
-  lastSeen: number;
-}
+import type {
+  UserPresence,
+  CursorPosition,
+  ConnectionState,
+} from '@/lib/realtime/types';
 
-interface CursorData {
-  x: number;
-  y: number;
-  color: string;
+// Alias for consistency with existing code
+type PresenceUser = UserPresence;
+
+interface CursorData extends Omit<CursorPosition, 'userId' | 'timestamp'> {
   name?: string;
 }
 
@@ -50,6 +48,32 @@ interface RealtimeEvent<T = unknown> {
  * - Cursor tracking
  * - Connection status
  */
+interface RealtimeHookReturn {
+  // Database data
+  items: RetrospectiveItem[];
+  votes: Vote[];
+  retrospective: Retrospective | null;
+
+  // Presence
+  presenceUsers: PresenceUser[];
+  otherUsers: PresenceUser[];
+  activeUsersCount: number;
+  myPresenceState: PresenceUser | null;
+  updatePresence: (data: Partial<PresenceUser>) => void;
+
+  // Cursors
+  cursors: Map<string, CursorData>;
+  updateCursor: (x: number, y: number) => void;
+
+  // Connection
+  isSubscribed: boolean;
+  connectionStatus: ConnectionState['status'];
+
+  // Utilities
+  broadcast: <T = unknown>(event: string, payload: T) => void;
+  refetch: () => Promise<void>;
+}
+
 export function useRetrospectiveRealtime(
   retrospectiveId: string,
   currentUser: {
@@ -58,7 +82,7 @@ export function useRetrospectiveRealtime(
     email?: string;
     avatar?: string;
   }
-) {
+): RealtimeHookReturn {
   // State for database data
   const [items, setItems] = useState<RetrospectiveItem[]>([]);
   const [votes, setVotes] = useState<Vote[]>([]);
@@ -74,7 +98,10 @@ export function useRetrospectiveRealtime(
 
   // State for connection
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionState['status']>('connecting');
+  const [, setConnectionError] = useState<Error | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Channel reference
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -153,7 +180,7 @@ export function useRetrospectiveRealtime(
   }, [myPresenceState]);
 
   // Broadcast custom event
-  const broadcast = useCallback(async (event: string, payload: unknown) => {
+  const broadcast = useCallback(async <T = unknown>(event: string, payload: T) => {
     if (channelRef.current && isSubscribed) {
       await channelRef.current.send({
         type: "broadcast",
@@ -266,7 +293,7 @@ export function useRetrospectiveRealtime(
       })
       // Cursor tracking
       .on("broadcast", { event: "cursor_move" }, ({ payload }) => {
-        const data = payload as { userId: string; x: number; y: number; color: string; name?: string };
+        const data = payload as CursorPosition & { name?: string };
         if (data.userId !== currentUser.id) {
           setCursors((prev) => {
             const next = new Map(prev);
@@ -289,6 +316,15 @@ export function useRetrospectiveRealtime(
         if (status === "SUBSCRIBED") {
           setConnectionStatus("connected");
 
+          // Show reconnection success message if this was a retry
+          if (retryCount > 0) {
+            setRetryCount(0);
+            setConnectionError(null);
+            toast.success("Reconnected successfully!", {
+              duration: 3000,
+            });
+          }
+
           // Track presence once subscribed
           await channel.track(presenceData);
           setMyPresenceState(presenceData);
@@ -298,6 +334,43 @@ export function useRetrospectiveRealtime(
           loadInitialData();
         } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
           setConnectionStatus("disconnected");
+
+          // Handle connection errors with retry logic
+          const error = new Error(`Connection failed: ${status}`);
+          setConnectionError(error);
+
+          // Show user-friendly error message
+          if (retryCount === 0) {
+            toast.error("Connection lost. Attempting to reconnect...", {
+              duration: 4000,
+            });
+          }
+
+          // Implement exponential backoff retry
+          if (retryCount < CONNECTION_CONFIG.MAX_RETRY_ATTEMPTS) {
+            const delay = Math.min(
+              CONNECTION_CONFIG.INITIAL_RETRY_DELAY * Math.pow(2, retryCount),
+              CONNECTION_CONFIG.MAX_RETRY_DELAY
+            );
+
+            reconnectTimeoutRef.current = setTimeout(() => {
+              setRetryCount(prev => prev + 1);
+              logger.info(`Reconnecting... (attempt ${retryCount + 1})`);
+
+              // Resubscribe to channel
+              if (channelRef.current) {
+                channelRef.current.subscribe();
+              }
+            }, delay);
+          } else {
+            toast.error("Unable to establish connection. Please refresh the page.", {
+              duration: 0, // Persistent until dismissed
+              action: {
+                label: "Refresh",
+                onClick: () => window.location.reload(),
+              },
+            });
+          }
         } else {
           setConnectionStatus("connecting");
         }
@@ -318,12 +391,30 @@ export function useRetrospectiveRealtime(
     // Cleanup
     return () => {
       clearInterval(heartbeatInterval);
-      if (channelRef.current) {
-        channelRef.current.untrack();
-        supabase.removeChannel(channelRef.current);
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
       }
+      if (channelRef.current) {
+        // Set presence to offline before leaving
+        channelRef.current.track({
+          ...myPresenceState,
+          status: 'offline',
+          lastSeen: Date.now(),
+        }).then(() => {
+          channelRef.current?.untrack();
+        });
+
+        // Remove channel after untracking
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+
+      // Clear all state
+      setCursors(new Map());
+      setPresenceUsers([]);
+      setMyPresenceState(null);
     };
-  }, [retrospectiveId, currentUser.id, currentUser.name, currentUser.email, currentUser.avatar, getUserColor, loadInitialData]);
+  }, [retrospectiveId, currentUser.id, currentUser.name, currentUser.email, currentUser.avatar, getUserColor, loadInitialData, myPresenceState, retryCount]);
 
   // Compute derived values
   const otherUsers = presenceUsers.filter(user => user.id !== currentUser.id);

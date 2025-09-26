@@ -35,7 +35,9 @@ import { useRetrospectiveRealtime } from "@/hooks/use-realtime";
 import { Users } from "lucide-react";
 import { getCooldownTime } from "@/lib/utils/rate-limit";
 import { debounce } from "@/lib/utils/debounce";
+import { throttle } from "@/lib/utils/throttle";
 import { isAnonymousItemOwner } from "@/lib/boards/anonymous-items";
+import { sanitizeItemContent, isValidItemText } from "@/lib/utils/sanitize";
 
 interface RetrospectiveBoardProps {
   retrospectiveId: string;
@@ -106,15 +108,31 @@ export function RetrospectiveBoard({
   // Set up unified real-time subscriptions
   const realtime = useRetrospectiveRealtime(retrospectiveId, currentUser);
 
-  // Track cursor movement
+  // Track cursor movement with throttling for better performance
+  const throttledCursorUpdate = useMemo(
+    () => throttle((x: number, y: number) => {
+      realtime.updateCursor(x, y);
+    }, 16), // ~60fps limit
+    [realtime]
+  );
+
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      realtime.updateCursor(e.clientX, e.clientY);
+      throttledCursorUpdate(e.clientX, e.clientY);
+    };
+
+    const handleMouseLeave = () => {
+      realtime.updateCursor(-100, -100); // Hide cursor when leaving
     };
 
     document.addEventListener("mousemove", handleMouseMove);
-    return () => document.removeEventListener("mousemove", handleMouseMove);
-  }, [realtime]);
+    document.addEventListener("mouseleave", handleMouseLeave);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseleave", handleMouseLeave);
+    };
+  }, [throttledCursorUpdate, realtime]);
 
   // Track cooldowns
   useEffect(() => {
@@ -134,8 +152,10 @@ export function RetrospectiveBoard({
   }, []);
 
   const handleAddItem = async (columnId: string) => {
-    if (!newItemText.trim()) {
-      toast.error("Please enter some content");
+    // Validate input
+    const validation = isValidItemText(newItemText);
+    if (!validation.valid) {
+      toast.error(validation.error || "Invalid input");
       return;
     }
 
@@ -146,11 +166,14 @@ export function RetrospectiveBoard({
       return;
     }
 
+    // Sanitize the input before saving
+    const sanitizedContent = sanitizeItemContent(newItemText);
+
     try {
       await createItemMutation.mutateAsync({
         retrospectiveId,
         columnId,
-        content: newItemText,
+        content: sanitizedContent,
         authorId: currentUser.id,
         authorName: currentUser.name,
       });
@@ -211,9 +234,19 @@ export function RetrospectiveBoard({
   const handleEditItem = useMemo(
     () =>
       debounce(async (itemId: string, newText: string) => {
+        // Validate input
+        const validation = isValidItemText(newText);
+        if (!validation.valid) {
+          toast.error(validation.error || "Invalid input");
+          return;
+        }
+
+        // Sanitize the input before saving
+        const sanitizedContent = sanitizeItemContent(newText);
+
         await updateItemMutation.mutateAsync({
           itemId,
-          content: newText,
+          content: sanitizedContent,
           retrospectiveId,
         });
       }, 500),
@@ -490,7 +523,7 @@ export function RetrospectiveBoard({
       {Array.from(realtime.cursors.entries()).map(([userId, cursor]) => (
         <div
           key={userId}
-          className="pointer-events-none fixed z-50"
+          className="pointer-events-none fixed z-50 transition-all duration-75 ease-out"
           style={{
             left: cursor.x,
             top: cursor.y,

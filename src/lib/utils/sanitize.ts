@@ -86,3 +86,41 @@ export function createSafeDisplayName(name?: string, email?: string): string {
 
   return 'Anonymous';
 }
+
+/**
+ * Validates if the text is valid for a retrospective item
+ * @param text - The text to validate
+ * @returns Whether the text is valid
+ */
+export function isValidItemText(text: string): { valid: boolean; error?: string } {
+  if (!text || typeof text !== 'string') {
+    return { valid: false, error: 'Text is required' };
+  }
+
+  const trimmed = text.trim();
+
+  // Must have at least 3 characters
+  if (trimmed.length < 3) {
+    return { valid: false, error: 'Text must be at least 3 characters long' };
+  }
+
+  // Must not exceed max length
+  if (trimmed.length > 500) {
+    return { valid: false, error: 'Text must not exceed 500 characters' };
+  }
+
+  // Check for spam patterns
+  const spamPatterns = [
+    { pattern: /(.)\1{10,}/, error: 'Text contains repeated characters' },
+    { pattern: /^[^a-zA-Z0-9\s]+$/, error: 'Text must contain alphanumeric characters' },
+    { pattern: /^[\s]+$/, error: 'Text cannot be only whitespace' },
+  ];
+
+  for (const { pattern, error } of spamPatterns) {
+    if (pattern.test(trimmed)) {
+      return { valid: false, error };
+    }
+  }
+
+  return { valid: true };
+}

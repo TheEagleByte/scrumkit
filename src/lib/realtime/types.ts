@@ -33,7 +33,7 @@ export type UserPresence = {
   color: string;
   cursor?: { x: number; y: number };
   lastSeen: number;
-  status: "active" | "away" | "offline";
+  status?: "active" | "away" | "offline" | "online";
 };
 
 export type RealtimeChannelStatus =
