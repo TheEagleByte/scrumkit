@@ -159,12 +159,15 @@ export function useCreateItem() {
       const sanitizedContent = sanitizeItemContent(input.content);
       const sanitizedName = sanitizeUsername(input.authorName);
 
+      // For anonymous users (IDs starting with "anon-"), use null for author_id
+      const authorId = input.authorId.startsWith("anon-") ? null : input.authorId;
+
       const { data, error } = await supabase
         .from("retrospective_items")
         .insert({
           column_id: input.columnId,
           text: sanitizedContent,
-          author_id: input.authorId,
+          author_id: authorId,
           author_name: sanitizedName,
         })
         .select()
@@ -189,7 +192,7 @@ export function useCreateItem() {
         id: uuidv4(),
         column_id: input.columnId,
         text: sanitizeItemContent(input.content),
-        author_id: input.authorId,
+        author_id: input.authorId.startsWith("anon-") ? null : input.authorId,
         author_name: sanitizeUsername(input.authorName),
         color: null,
         created_at: new Date().toISOString(),
@@ -505,7 +508,7 @@ export function useMergeItems() {
         .insert({
           column_id: targetColumnId,
           text: mergedText,
-          author_id: authorId,
+          author_id: authorId.startsWith("anon-") ? null : authorId,
           author_name: `${authorName} (merged)`,
         })
         .select()
