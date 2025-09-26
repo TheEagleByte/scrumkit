@@ -26,7 +26,7 @@ interface RetroItemProps {
 }
 
 const PRESET_COLORS = [
-  '#ffffff', // white
+  'default', // use default theme color
   '#fef3c7', // yellow
   '#dbeafe', // blue
   '#d1fae5', // green
@@ -85,15 +85,19 @@ export const RetroItem = memo(function RetroItem({
 
   const handleColorChange = (color: string) => {
     if (onColorChange) {
+      // Pass empty string for default to clear the color
       onColorChange(item.id, color);
     }
   };
 
-  const cardBgColor = item.color || '#ffffff';
+  // Use a default that works with both light and dark themes
+  const cardBgColor = item.color || 'transparent';
+  const hasCustomColor = item.color && item.color !== '#ffffff';
+
   return (
     <Card
-      className="bg-card/50 border-border/50 border transition-all"
-      style={{ backgroundColor: cardBgColor }}
+      className={`border-border/50 border transition-all ${!hasCustomColor ? 'bg-card/50' : ''}`}
+      style={hasCustomColor ? { backgroundColor: cardBgColor } : undefined}
       onDoubleClick={handleStartEdit}
     >
       <CardContent className="p-4">
@@ -162,14 +166,20 @@ export const RetroItem = memo(function RetroItem({
                         {PRESET_COLORS.map((color) => (
                           <button
                             key={color}
-                            className="h-8 w-8 rounded border-2 hover:scale-110 transition-transform"
-                            style={{
+                            className={`h-8 w-8 rounded border-2 hover:scale-110 transition-transform ${
+                              color === 'default' ? 'bg-card/50 flex items-center justify-center text-xs' : ''
+                            }`}
+                            style={color !== 'default' ? {
                               backgroundColor: color,
                               borderColor: color === cardBgColor ? '#000' : '#ccc'
+                            } : {
+                              borderColor: (!hasCustomColor && color === 'default') ? '#000' : '#ccc'
                             }}
-                            onClick={() => handleColorChange(color)}
+                            onClick={() => handleColorChange(color === 'default' ? '' : color)}
                             aria-label={`Set color ${color}`}
-                          />
+                          >
+                            {color === 'default' && '✓'}
+                          </button>
                         ))}
                       </div>
                     </PopoverContent>
