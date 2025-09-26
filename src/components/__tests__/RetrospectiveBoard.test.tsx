@@ -6,7 +6,68 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RetrospectiveBoard } from '../RetrospectiveBoard';
+
+// Mock hooks and dependencies
+jest.mock('@/hooks/use-retrospective', () => ({
+  useRetrospective: jest.fn(() => ({ data: null, isLoading: false })),
+  useRetrospectiveColumns: jest.fn(() => ({ data: [], isLoading: false })),
+  useRetrospectiveItems: jest.fn(() => ({ data: { data: [], totalCount: 0 }, isLoading: false })),
+  useVotes: jest.fn(() => ({ data: [], isLoading: false })),
+  useCreateItem: jest.fn(() => ({ mutateAsync: jest.fn(), isPending: false })),
+  useDeleteItem: jest.fn(() => ({ mutateAsync: jest.fn(), isPending: false })),
+  useToggleVote: jest.fn(() => ({ mutateAsync: jest.fn(), isPending: false })),
+  useUpdateItem: jest.fn(() => ({ mutateAsync: jest.fn(), isPending: false })),
+}));
+
+jest.mock('@/hooks/use-realtime', () => ({
+  useRetrospectiveRealtime: jest.fn(() => ({
+    items: [],
+    votes: [],
+    retrospective: null,
+    presenceUsers: [],
+    otherUsers: [],
+    activeUsersCount: 0,
+    myPresenceState: null,
+    updatePresence: jest.fn(),
+    cursors: new Map(),
+    updateCursor: jest.fn(),
+    isSubscribed: true,
+    connectionStatus: 'connected',
+    broadcast: jest.fn(),
+    refetch: jest.fn(),
+  })),
+}));
+
+jest.mock('@/lib/supabase/client', () => ({
+  createClient: jest.fn(() => ({
+    auth: {
+      getUser: jest.fn().mockResolvedValue({ data: { user: null }, error: null }),
+    },
+  })),
+}));
+
+jest.mock('sonner', () => ({
+  toast: {
+    error: jest.fn(),
+    success: jest.fn(),
+    warning: jest.fn(),
+  },
+}));
+
+jest.mock('@/lib/utils/sanitize', () => ({
+  sanitizeItemContent: jest.fn((text) => text),
+  isValidItemText: jest.fn(() => ({ valid: true })),
+}));
+
+jest.mock('@/lib/utils/rate-limit', () => ({
+  getCooldownTime: jest.fn(() => 0),
+}));
+
+jest.mock('@/lib/boards/anonymous-items', () => ({
+  isAnonymousItemOwner: jest.fn(() => false),
+}));
 
 // Mock the child components
 jest.mock('../retro/BoardHeader', () => ({
@@ -74,14 +135,42 @@ jest.mock('../retro/RetroColumn', () => ({
 }));
 
 describe('RetrospectiveBoard', () => {
+  let queryClient: QueryClient;
+
+  const defaultProps = {
+    retrospectiveId: 'test-retro-123',
+    currentUser: {
+      id: 'user-123',
+      name: 'Test User',
+      email: 'test@example.com',
+    },
+    teamName: 'Test Team',
+    sprintName: 'Sprint 1',
+  };
+
   beforeEach(() => {
     // Clear any mocks
     jest.clearAllMocks();
+    // Create new QueryClient for each test
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
   });
+
+  const renderWithProviders = (ui: React.ReactElement) => {
+    return render(
+      <QueryClientProvider client={queryClient}>
+        {ui}
+      </QueryClientProvider>
+    );
+  };
 
   describe('Initial Render', () => {
     it('renders all four default columns', () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       expect(screen.getByTestId('column-went-well')).toBeInTheDocument();
       expect(screen.getByTestId('column-improve')).toBeInTheDocument();
@@ -90,19 +179,19 @@ describe('RetrospectiveBoard', () => {
     });
 
     it('renders board header', () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
       expect(screen.getByTestId('board-header')).toBeInTheDocument();
     });
 
     it('renders footer with instructions', () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
       expect(
         screen.getByText(/Click 👍 to vote on items • Items are sorted by votes/)
       ).toBeInTheDocument();
     });
 
     it('renders with correct column titles', () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       expect(screen.getByText('What went well?')).toBeInTheDocument();
       expect(screen.getByText('What could be improved?')).toBeInTheDocument();
@@ -111,7 +200,7 @@ describe('RetrospectiveBoard', () => {
     });
 
     it('renders with correct column descriptions', () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       expect(
         screen.getByText('Celebrate successes and positive outcomes')
@@ -130,7 +219,7 @@ describe('RetrospectiveBoard', () => {
 
   describe('Default Items', () => {
     it('renders default items in went-well column', () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       expect(
         screen.getByText(
@@ -143,7 +232,7 @@ describe('RetrospectiveBoard', () => {
     });
 
     it('renders default items in improve column', () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       expect(
         screen.getByText('Code review process took longer than expected')
@@ -154,7 +243,7 @@ describe('RetrospectiveBoard', () => {
     });
 
     it('renders default items in blockers column', () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       expect(
         screen.getByText('Third-party API downtime affected testing')
@@ -162,7 +251,7 @@ describe('RetrospectiveBoard', () => {
     });
 
     it('renders default items in action-items column', () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       expect(
         screen.getByText('Set up automated code review reminders')
@@ -170,7 +259,7 @@ describe('RetrospectiveBoard', () => {
     });
 
     it('displays correct vote counts for default items', () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       expect(screen.getByTestId('votes-1')).toHaveTextContent('5');
       expect(screen.getByTestId('votes-2')).toHaveTextContent('3');
@@ -181,7 +270,7 @@ describe('RetrospectiveBoard', () => {
     });
 
     it('displays correct authors for default items', () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       expect(screen.getByText('Sarah Chen')).toBeInTheDocument();
       expect(screen.getByText('Mike Johnson')).toBeInTheDocument();
@@ -194,7 +283,7 @@ describe('RetrospectiveBoard', () => {
 
   describe('Column Activation', () => {
     it('activates column when add button is clicked', async () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       const activateButton = screen.getByTestId('activate-went-well');
       await userEvent.click(activateButton);
@@ -203,7 +292,7 @@ describe('RetrospectiveBoard', () => {
     });
 
     it('only shows add form for active column', async () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       const activateButton = screen.getByTestId('activate-improve');
       await userEvent.click(activateButton);
@@ -215,7 +304,7 @@ describe('RetrospectiveBoard', () => {
     });
 
     it('switches active column when different column is activated', async () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       // Activate first column
       await userEvent.click(screen.getByTestId('activate-went-well'));
@@ -228,7 +317,7 @@ describe('RetrospectiveBoard', () => {
     });
 
     it('cancels add form when cancel button is clicked', async () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       // Activate column
       await userEvent.click(screen.getByTestId('activate-went-well'));
@@ -242,7 +331,7 @@ describe('RetrospectiveBoard', () => {
 
   describe('Adding Items', () => {
     it('adds new item to column', async () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       // Activate column
       await userEvent.click(screen.getByTestId('activate-went-well'));
@@ -259,7 +348,7 @@ describe('RetrospectiveBoard', () => {
     });
 
     it('generates unique ID for new items', async () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       // Mock Date.now to return predictable values
       const mockDateNow = jest
@@ -283,7 +372,7 @@ describe('RetrospectiveBoard', () => {
     });
 
     it('initializes new items with zero votes', async () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       const mockDateNow = jest.spyOn(Date, 'now').mockReturnValue(1234567890);
 
@@ -298,7 +387,7 @@ describe('RetrospectiveBoard', () => {
 
   describe('Voting Functionality', () => {
     it('increments vote count when vote button is clicked', async () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       const voteButton = screen.getByTestId('vote-1');
       const votesDisplay = screen.getByTestId('votes-1');
@@ -311,7 +400,7 @@ describe('RetrospectiveBoard', () => {
     });
 
     it('allows multiple votes on same item', async () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       const voteButton = screen.getByTestId('vote-2');
       const votesDisplay = screen.getByTestId('votes-2');
@@ -326,7 +415,7 @@ describe('RetrospectiveBoard', () => {
     });
 
     it('allows voting on items in different columns', async () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       // Vote on item in went-well column
       await userEvent.click(screen.getByTestId('vote-1'));
@@ -340,7 +429,7 @@ describe('RetrospectiveBoard', () => {
 
   describe('Removing Items', () => {
     it('removes item when remove button is clicked', async () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       const itemText = 'Successfully delivered the user authentication feature ahead of schedule';
       expect(screen.getByText(itemText)).toBeInTheDocument();
@@ -352,7 +441,7 @@ describe('RetrospectiveBoard', () => {
     });
 
     it('removes item from correct column', async () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       const improveItemText = 'Code review process took longer than expected';
       const wentWellItemText = 'Successfully delivered the user authentication feature ahead of schedule';
@@ -368,7 +457,7 @@ describe('RetrospectiveBoard', () => {
     });
 
     it('can remove all items from a column', async () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       // Remove first item from blockers column
       await userEvent.click(screen.getByTestId('remove-5'));
@@ -381,7 +470,7 @@ describe('RetrospectiveBoard', () => {
 
   describe('State Management', () => {
     it('maintains separate state for each column', async () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       // Add item to went-well column
       await userEvent.click(screen.getByTestId('activate-went-well'));
@@ -405,7 +494,7 @@ describe('RetrospectiveBoard', () => {
     });
 
     it('persists column data after interactions', async () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       // Vote on item
       await userEvent.click(screen.getByTestId('vote-1'));
@@ -422,7 +511,7 @@ describe('RetrospectiveBoard', () => {
 
   describe('Accessibility', () => {
     it('renders semantic HTML structure', () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       // Should have main container div with proper classes
       const container = document.querySelector('.container.mx-auto.max-w-7xl');
@@ -436,7 +525,7 @@ describe('RetrospectiveBoard', () => {
     });
 
     it('provides descriptive column titles', () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       const columns = [
         'What went well?',
@@ -451,7 +540,7 @@ describe('RetrospectiveBoard', () => {
     });
 
     it('provides descriptive column descriptions', () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       const descriptions = [
         'Celebrate successes and positive outcomes',
@@ -468,7 +557,7 @@ describe('RetrospectiveBoard', () => {
 
   describe('Error Handling', () => {
     it('handles empty item text gracefully', async () => {
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       // Mock the add item with empty text
       const RetroColumn = require('../retro/RetroColumn').RetroColumn;
@@ -481,7 +570,7 @@ describe('RetrospectiveBoard', () => {
 
     it('handles missing item data gracefully', () => {
       // This test ensures the component doesn't crash with incomplete data
-      expect(() => render(<RetrospectiveBoard />)).not.toThrow();
+      expect(() => renderWithProviders(<RetrospectiveBoard {...defaultProps} />)).not.toThrow();
     });
   });
 
@@ -489,7 +578,7 @@ describe('RetrospectiveBoard', () => {
     it('uses callback functions to prevent unnecessary re-renders', () => {
       // This test verifies that callback functions are used properly
       // The actual performance benefits would be tested with React DevTools in real scenarios
-      render(<RetrospectiveBoard />);
+      renderWithProviders(<RetrospectiveBoard {...defaultProps} />);
 
       // Multiple interactions shouldn't cause issues
       const votes1 = screen.getByTestId('vote-1');

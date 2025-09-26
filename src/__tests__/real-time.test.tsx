@@ -5,42 +5,72 @@
 import React from 'react';
 import { render } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { RetrospectiveBoard } from '@/components/RetrospectiveBoard';
 import { useRetrospectiveRealtime } from '@/hooks/use-realtime';
 
 // Mock the modules
-vi.mock('@/lib/supabase/client', () => ({
-  createClient: vi.fn(() => ({
-    channel: vi.fn(() => ({
-      on: vi.fn().mockReturnThis(),
-      subscribe: vi.fn((callback) => {
+jest.mock('@/lib/supabase/client', () => ({
+  createClient: jest.fn(() => ({
+    channel: jest.fn(() => ({
+      on: jest.fn().mockReturnThis(),
+      subscribe: jest.fn((callback) => {
         callback?.('SUBSCRIBED');
         return { data: null, error: null };
       }),
-      send: vi.fn(),
-      unsubscribe: vi.fn(),
-      untrack: vi.fn(),
-      track: vi.fn(),
+      send: jest.fn(),
+      unsubscribe: jest.fn(),
+      untrack: jest.fn(),
+      track: jest.fn(),
     })),
-    removeChannel: vi.fn(),
+    removeChannel: jest.fn(),
     auth: {
-      getUser: vi.fn(() => ({ data: { user: null }, error: null })),
+      getUser: jest.fn(() => ({ data: { user: null }, error: null })),
     },
-    from: vi.fn(() => ({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnThis(),
-      single: vi.fn(() => ({ data: null, error: null })),
-      insert: vi.fn(() => ({ data: null, error: null })),
-      update: vi.fn(() => ({ data: null, error: null })),
-      delete: vi.fn(() => ({ data: null, error: null })),
+    from: jest.fn(() => ({
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      single: jest.fn(() => ({ data: null, error: null })),
+      insert: jest.fn(() => ({ data: null, error: null })),
+      update: jest.fn(() => ({ data: null, error: null })),
+      delete: jest.fn(() => ({ data: null, error: null })),
     })),
   })),
 }));
 
-vi.mock('@/hooks/use-realtime', () => ({
-  useRetrospectiveRealtime: vi.fn(() => ({
+jest.mock('@/hooks/use-retrospective', () => ({
+  useRetrospective: jest.fn(() => ({ data: null, isLoading: false })),
+  useRetrospectiveColumns: jest.fn(() => ({ data: [], isLoading: false })),
+  useRetrospectiveItems: jest.fn(() => ({ data: [], isLoading: false })),
+  useVotes: jest.fn(() => ({ data: [], isLoading: false })),
+  useCreateItem: jest.fn(() => ({ mutateAsync: jest.fn(), isPending: false })),
+  useDeleteItem: jest.fn(() => ({ mutateAsync: jest.fn(), isPending: false })),
+  useToggleVote: jest.fn(() => ({ mutateAsync: jest.fn(), isPending: false })),
+  useUpdateItem: jest.fn(() => ({ mutateAsync: jest.fn(), isPending: false })),
+}));
+
+jest.mock('sonner', () => ({
+  toast: {
+    error: jest.fn(),
+    success: jest.fn(),
+  },
+}));
+
+jest.mock('@/lib/utils/sanitize', () => ({
+  sanitizeItemContent: jest.fn((text) => text),
+  isValidItemText: jest.fn(() => ({ valid: true })),
+}));
+
+jest.mock('@/lib/utils/rate-limit', () => ({
+  getCooldownTime: jest.fn(() => 0),
+}));
+
+jest.mock('@/lib/boards/anonymous-items', () => ({
+  isAnonymousItemOwner: jest.fn(() => false),
+}));
+
+jest.mock('@/hooks/use-realtime', () => ({
+  useRetrospectiveRealtime: jest.fn(() => ({
     items: [],
     votes: [],
     retrospective: null,
@@ -48,49 +78,49 @@ vi.mock('@/hooks/use-realtime', () => ({
     otherUsers: [],
     activeUsersCount: 0,
     myPresenceState: null,
-    updatePresence: vi.fn(),
+    updatePresence: jest.fn(),
     cursors: new Map(),
-    updateCursor: vi.fn(),
+    updateCursor: jest.fn(),
     isSubscribed: true,
     connectionStatus: 'connected',
-    broadcast: vi.fn(),
-    refetch: vi.fn(),
+    broadcast: jest.fn(),
+    refetch: jest.fn(),
   })),
 }));
 
-vi.mock('@/hooks/use-retrospective', () => ({
-  useRetrospectiveItems: vi.fn(() => ({
+jest.mock('@/hooks/use-retrospective', () => ({
+  useRetrospectiveItems: jest.fn(() => ({
     data: { data: [], totalCount: 0 },
     isLoading: false,
     error: null,
   })),
-  useCreateItem: vi.fn(() => ({
-    mutate: vi.fn(),
+  useCreateItem: jest.fn(() => ({
+    mutate: jest.fn(),
     isPending: false,
   })),
-  useDeleteItem: vi.fn(() => ({
-    mutate: vi.fn(),
+  useDeleteItem: jest.fn(() => ({
+    mutate: jest.fn(),
     isPending: false,
   })),
-  useToggleVote: vi.fn(() => ({
-    mutate: vi.fn(),
+  useToggleVote: jest.fn(() => ({
+    mutate: jest.fn(),
     isPending: false,
   })),
-  useUpdateItem: vi.fn(() => ({
-    mutate: vi.fn(),
+  useUpdateItem: jest.fn(() => ({
+    mutate: jest.fn(),
     isPending: false,
   })),
 }));
 
 // Mock Next.js router
-vi.mock('next/navigation', () => ({
+jest.mock('next/navigation', () => ({
   useRouter: () => ({
-    push: vi.fn(),
-    replace: vi.fn(),
-    refresh: vi.fn(),
-    back: vi.fn(),
-    forward: vi.fn(),
-    prefetch: vi.fn(),
+    push: jest.fn(),
+    replace: jest.fn(),
+    refresh: jest.fn(),
+    back: jest.fn(),
+    forward: jest.fn(),
+    prefetch: jest.fn(),
   }),
   useSearchParams: () => new URLSearchParams(),
   usePathname: () => '/retro/test',
@@ -106,7 +136,7 @@ describe('Real-time Features', () => {
         mutations: { retry: false },
       },
     });
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   const renderWithProviders = (component: React.ReactElement) => {
@@ -138,7 +168,7 @@ describe('Real-time Features', () => {
     });
 
     it('should return all necessary real-time data', () => {
-      const result = vi.mocked(useRetrospectiveRealtime).mock.results[0]?.value;
+      const result = jest.mocked(useRetrospectiveRealtime).mock.results[0]?.value;
 
       // Database data
       expect(result).toHaveProperty('items');
@@ -182,7 +212,7 @@ describe('Real-time Features', () => {
         />
       );
 
-      const realtimeHook = vi.mocked(useRetrospectiveRealtime);
+      const realtimeHook = jest.mocked(useRetrospectiveRealtime);
       expect(realtimeHook).toHaveBeenCalled();
 
       const result = realtimeHook.mock.results[0]?.value;
@@ -206,7 +236,7 @@ describe('Real-time Features', () => {
         />
       );
 
-      const result = vi.mocked(useRetrospectiveRealtime).mock.results[0]?.value;
+      const result = jest.mocked(useRetrospectiveRealtime).mock.results[0]?.value;
       expect(result.presenceUsers).toBeDefined();
       expect(result.activeUsersCount).toBe(0);
       expect(result.otherUsers).toEqual([]);
@@ -229,7 +259,7 @@ describe('Real-time Features', () => {
         />
       );
 
-      const result = vi.mocked(useRetrospectiveRealtime).mock.results[0]?.value;
+      const result = jest.mocked(useRetrospectiveRealtime).mock.results[0]?.value;
       expect(result.cursors).toBeInstanceOf(Map);
       expect(result.updateCursor).toBeDefined();
     });
@@ -251,7 +281,7 @@ describe('Real-time Features', () => {
         />
       );
 
-      const result = vi.mocked(useRetrospectiveRealtime).mock.results[0]?.value;
+      const result = jest.mocked(useRetrospectiveRealtime).mock.results[0]?.value;
       expect(result.connectionStatus).toBe('connected');
       expect(result.isSubscribed).toBe(true);
     });
