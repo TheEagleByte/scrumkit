@@ -53,3 +53,12 @@ global.ResizeObserver = jest.fn().mockImplementation(() => ({
   unobserve: jest.fn(),
   disconnect: jest.fn(),
 }))
+
+// Mock TextEncoder/TextDecoder for Node.js environment
+global.TextEncoder = require('util').TextEncoder
+global.TextDecoder = require('util').TextDecoder
+
+// Mock web APIs for Next.js server functions
+global.Request = global.Request || jest.fn().mockImplementation(() => ({}))
+global.Response = global.Response || jest.fn().mockImplementation(() => ({}))
+global.Headers = global.Headers || jest.fn().mockImplementation(() => new Map())

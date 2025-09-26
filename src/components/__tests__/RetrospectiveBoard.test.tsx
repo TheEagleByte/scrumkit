@@ -424,9 +424,15 @@ describe('RetrospectiveBoard', () => {
     it('renders semantic HTML structure', () => {
       render(<RetrospectiveBoard />);
 
-      // Should have main container
-      const container = screen.getByRole('main', { hidden: true });
-      expect(container || screen.getByText('What went well?').closest('.container')).toBeInTheDocument();
+      // Should have main container div with proper classes
+      const container = document.querySelector('.container.mx-auto.max-w-7xl');
+      expect(container).toBeInTheDocument();
+
+      // Should render all main sections
+      expect(screen.getByText('What went well?')).toBeInTheDocument();
+      expect(screen.getByText('What could be improved?')).toBeInTheDocument();
+      expect(screen.getByText('What blocked us?')).toBeInTheDocument();
+      expect(screen.getByText('Action items')).toBeInTheDocument();
     });
 
     it('provides descriptive column titles', () => {

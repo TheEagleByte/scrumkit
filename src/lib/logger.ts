@@ -29,7 +29,11 @@ class Logger {
     let log = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
 
     if (context && Object.keys(context).length > 0) {
-      log += `\nContext: ${JSON.stringify(context, null, 2)}`;
+      try {
+        log += `\nContext: ${JSON.stringify(context, null, 2)}`;
+      } catch (e) {
+        log += `\nContext: [Circular Reference]`;
+      }
     }
 
     if (error) {

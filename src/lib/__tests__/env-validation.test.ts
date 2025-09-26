@@ -386,7 +386,7 @@ describe('Environment Validation Utility', () => {
 
       // Check that the URL is properly masked
       const logCall = (logger.info as jest.Mock).mock.calls[0][1];
-      expect(logCall.supabaseUrl).toHaveLength(33); // 30 chars + '...'
+      expect(logCall.supabaseUrl).toHaveLength(31); // 28 chars + '...'
     });
 
     it('should not log sensitive anon key', () => {

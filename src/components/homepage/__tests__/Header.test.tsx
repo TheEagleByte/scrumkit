@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Header } from '../Header';
 
@@ -12,8 +12,8 @@ jest.mock('motion/react', () => ({
 
 // Mock Next.js Link
 jest.mock('next/link', () => {
-  return ({ children, href, className }: any) => (
-    <a href={href} className={className}>
+  return ({ children, href, className, onClick }: any) => (
+    <a href={href} className={className} onClick={onClick}>
       {children}
     </a>
   );
@@ -184,21 +184,32 @@ describe('Header', () => {
 
     const buttons = screen.getAllByRole('button');
     const mobileMenuButton = buttons.find(btn => btn.classList.contains('md:hidden')) as HTMLElement;
-    await user.click(mobileMenuButton);
+
+    await act(async () => {
+      await user.click(mobileMenuButton);
+    });
 
     // Verify mobile menu is open
     expect(screen.getByTestId('x-icon')).toBeInTheDocument();
 
+    // Wait for mobile menu to fully render
+    await waitFor(() => {
+      expect(screen.getAllByText('Features')).toHaveLength(2); // Desktop + mobile
+    });
+
     // Click on a navigation link in mobile menu
     const mobileNavLinks = screen.getAllByText('Features');
-    const mobileLink = mobileNavLinks[mobileNavLinks.length - 1]; // Get the mobile one
-    await user.click(mobileLink);
+    const mobileLink = mobileNavLinks[1]; // Get the mobile one (second occurrence)
+
+    await act(async () => {
+      await user.click(mobileLink);
+    });
 
     // Mobile menu should be closed
     await waitFor(() => {
       expect(screen.queryByTestId('x-icon')).not.toBeInTheDocument();
       expect(screen.getByTestId('menu-icon')).toBeInTheDocument();
-    });
+    }, { timeout: 2000 });
   });
 
   it('handles smooth scrolling for hash links', async () => {
@@ -209,8 +220,10 @@ describe('Header', () => {
 
     await user.click(featuresLink);
 
-    expect(mockScrollIntoView).toHaveBeenCalledWith({
-      behavior: 'smooth',
+    await waitFor(() => {
+      expect(mockScrollIntoView).toHaveBeenCalledWith({
+        behavior: 'smooth',
+      });
     });
   });
 
@@ -219,16 +232,24 @@ describe('Header', () => {
     render(<Header />);
 
     // Open mobile menu
-    const mobileMenuButton = screen.getByRole('button', { name: /menu/i });
+    const buttons = screen.getAllByRole('button');
+    const mobileMenuButton = buttons.find(btn => btn.classList.contains('md:hidden')) as HTMLElement;
     await user.click(mobileMenuButton);
+
+    // Wait for mobile menu to fully render
+    await waitFor(() => {
+      expect(screen.getAllByText('Features')).toHaveLength(2); // Desktop + mobile
+    });
 
     // Click on mobile Features link
     const mobileNavLinks = screen.getAllByText('Features');
-    const mobileLink = mobileNavLinks[mobileNavLinks.length - 1]; // Get the mobile one
+    const mobileLink = mobileNavLinks[1]; // Get the mobile one (second occurrence)
     await user.click(mobileLink);
 
-    expect(mockScrollIntoView).toHaveBeenCalledWith({
-      behavior: 'smooth',
+    await waitFor(() => {
+      expect(mockScrollIntoView).toHaveBeenCalledWith({
+        behavior: 'smooth',
+      });
     });
   });
 
@@ -323,22 +344,22 @@ describe('Header', () => {
       // Verify mobile menu is open
       expect(screen.getByTestId('x-icon')).toBeInTheDocument();
 
-      // Find and click the mobile CTA button
-      const allCTAButtons = screen.getAllByText('Start Free Retro');
-      const mobileCTA = allCTAButtons.find(button => {
-        const container = button.closest('.md\\:hidden');
-        return container !== null;
+      // Wait for mobile menu to fully render
+      await waitFor(() => {
+        expect(screen.getAllByText('Start Free Retro')).toHaveLength(2); // Desktop + mobile
       });
 
-      if (mobileCTA) {
-        await user.click(mobileCTA);
+      // Find and click the mobile CTA button (the second occurrence)
+      const allCTAButtons = screen.getAllByText('Start Free Retro');
+      const mobileCTA = allCTAButtons[1]; // Mobile is the second one
 
-        // Mobile menu should be closed
-        await waitFor(() => {
-          expect(screen.queryByTestId('x-icon')).not.toBeInTheDocument();
-          expect(screen.getByTestId('menu-icon')).toBeInTheDocument();
-        });
-      }
+      await user.click(mobileCTA);
+
+      // Mobile menu should be closed
+      await waitFor(() => {
+        expect(screen.queryByTestId('x-icon')).not.toBeInTheDocument();
+        expect(screen.getByTestId('menu-icon')).toBeInTheDocument();
+      }, { timeout: 2000 });
     }
   });
 });

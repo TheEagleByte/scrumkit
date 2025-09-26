@@ -9,26 +9,26 @@ import userEvent from '@testing-library/user-event';
 import { AuthForm } from '../AuthForm';
 import { createClient } from '@/lib/supabase/client';
 
+// Create mock functions at module level
+const mockToast = jest.fn();
+const mockPush = jest.fn();
+const mockRefresh = jest.fn();
+
 // Mock dependencies
 jest.mock('@/lib/supabase/client');
 jest.mock('@/hooks/use-toast', () => ({
-  useToast: () => ({ toast: jest.fn() }),
+  useToast: () => ({ toast: mockToast }),
 }));
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
-    push: jest.fn(),
-    refresh: jest.fn(),
+    push: mockPush,
+    refresh: mockRefresh,
   }),
 }));
 
 // Mock window.location for components that use it
-const mockLocation = {
-  origin: 'http://localhost',
-};
-
-// Mock window object if not present or extend it
-(global as any).window = global.window || {};
-(global as any).window.location = mockLocation;
+delete (window as any).location;
+(window as any).location = { origin: 'http://localhost' };
 
 const mockCreateClient = createClient as jest.MockedFunction<typeof createClient>;
 
@@ -45,18 +45,9 @@ const mockSession = {
 
 describe('AuthForm', () => {
   let mockAuth: any;
-  let mockToast: jest.Mock;
-  let mockRouter: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
-
-    // Create mocks
-    mockToast = jest.fn();
-    mockRouter = {
-      push: jest.fn(),
-      refresh: jest.fn(),
-    };
 
     mockAuth = {
       signInWithOtp: jest.fn(),
@@ -69,8 +60,6 @@ describe('AuthForm', () => {
     };
 
     mockCreateClient.mockReturnValue(mockClient);
-
-    // The mocks are already set up at the top level, they should work by default
   });
 
   describe('Component Rendering', () => {
@@ -221,8 +210,8 @@ describe('AuthForm', () => {
       // Switch to password tab
       await user.click(screen.getByRole('tab', { name: 'Password' }));
 
-      const emailInput = screen.getByLabelText(/email/i);
-      const passwordInput = screen.getByLabelText(/password/i);
+      const emailInput = document.getElementById('signin-email') as HTMLInputElement;
+      const passwordInput = document.getElementById('signin-password') as HTMLInputElement;
       const submitButton = screen.getByRole('button', { name: /sign in/i });
 
       await user.type(emailInput, 'test@example.com');
@@ -239,8 +228,8 @@ describe('AuthForm', () => {
         description: "You've been signed in successfully.",
       });
 
-      expect(mockRouter.push).toHaveBeenCalledWith('/retro');
-      expect(mockRouter.refresh).toHaveBeenCalled();
+      expect(mockPush).toHaveBeenCalledWith('/retro');
+      expect(mockRefresh).toHaveBeenCalled();
     });
 
     it('handles sign in errors', async () => {
@@ -252,8 +241,8 @@ describe('AuthForm', () => {
       // Switch to password tab
       await user.click(screen.getByRole('tab', { name: 'Password' }));
 
-      const emailInput = screen.getByLabelText(/email/i);
-      const passwordInput = screen.getByLabelText(/password/i);
+      const emailInput = document.getElementById('signin-email') as HTMLInputElement;
+      const passwordInput = document.getElementById('signin-password') as HTMLInputElement;
       const submitButton = screen.getByRole('button', { name: /sign in/i });
 
       await user.type(emailInput, 'test@example.com');
@@ -281,8 +270,8 @@ describe('AuthForm', () => {
       // Switch to password tab
       await user.click(screen.getByRole('tab', { name: 'Password' }));
 
-      const emailInput = screen.getByLabelText(/email/i);
-      const passwordInput = screen.getByLabelText(/password/i);
+      const emailInput = document.getElementById('signin-email') as HTMLInputElement;
+      const passwordInput = document.getElementById('signin-password') as HTMLInputElement;
       const submitButton = screen.getByRole('button', { name: /sign in/i });
 
       await user.type(emailInput, 'test@example.com');
@@ -290,7 +279,7 @@ describe('AuthForm', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(mockRouter.push).toHaveBeenCalledWith('/dashboard');
+        expect(mockPush).toHaveBeenCalledWith('/dashboard');
       });
     });
   });
@@ -309,9 +298,9 @@ describe('AuthForm', () => {
       await user.click(screen.getByRole('tab', { name: 'Password' }));
       await user.click(screen.getByRole('tab', { name: 'Sign Up' }));
 
-      const fullNameInput = screen.getByLabelText(/full name/i);
-      const emailInput = screen.getByLabelText(/email/i);
-      const passwordInput = screen.getByLabelText(/password/i);
+      const fullNameInput = document.getElementById('signup-name') as HTMLInputElement;
+      const emailInput = document.getElementById('signup-email') as HTMLInputElement;
+      const passwordInput = document.getElementById('signup-password') as HTMLInputElement;
       const submitButton = screen.getByRole('button', { name: /sign up/i });
 
       await user.type(fullNameInput, 'John Doe');
@@ -346,9 +335,9 @@ describe('AuthForm', () => {
       await user.click(screen.getByRole('tab', { name: 'Password' }));
       await user.click(screen.getByRole('tab', { name: 'Sign Up' }));
 
-      const fullNameInput = screen.getByLabelText(/full name/i);
-      const emailInput = screen.getByLabelText(/email/i);
-      const passwordInput = screen.getByLabelText(/password/i);
+      const fullNameInput = document.getElementById('signup-name') as HTMLInputElement;
+      const emailInput = document.getElementById('signup-email') as HTMLInputElement;
+      const passwordInput = document.getElementById('signup-password') as HTMLInputElement;
       const submitButton = screen.getByRole('button', { name: /sign up/i });
 
       await user.type(fullNameInput, 'John Doe');
@@ -374,7 +363,7 @@ describe('AuthForm', () => {
       const guestButton = screen.getByText('continue as guest');
       await user.click(guestButton);
 
-      expect(mockRouter.push).toHaveBeenCalledWith('/retro');
+      expect(mockPush).toHaveBeenCalledWith('/retro');
     });
 
     it('navigates to custom redirect when continuing as guest', async () => {
@@ -384,7 +373,7 @@ describe('AuthForm', () => {
       const guestButton = screen.getByText('continue as guest');
       await user.click(guestButton);
 
-      expect(mockRouter.push).toHaveBeenCalledWith('/custom-path');
+      expect(mockPush).toHaveBeenCalledWith('/custom-path');
     });
   });
 
@@ -397,7 +386,7 @@ describe('AuthForm', () => {
       await user.click(screen.getByRole('tab', { name: 'Password' }));
       await user.click(screen.getByRole('tab', { name: 'Sign Up' }));
 
-      const passwordInput = screen.getByLabelText(/password/i);
+      const passwordInput = document.getElementById('signup-password');
       expect(passwordInput).toHaveAttribute('minLength', '6');
     });
   });

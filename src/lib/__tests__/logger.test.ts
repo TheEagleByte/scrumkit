@@ -16,8 +16,13 @@ jest.mock('@/lib/logger', () => {
   }
 
   class MockLogger {
-    private isDevelopment = process.env.NODE_ENV === 'development';
-    private logLevel: LogLevel = this.isDevelopment ? 'debug' : 'error';
+    private get isDevelopment(): boolean {
+      return process.env.NODE_ENV === 'development';
+    }
+
+    private get logLevel(): LogLevel {
+      return this.isDevelopment ? 'debug' : 'error';
+    }
 
     private shouldLog(level: LogLevel): boolean {
       const levels: LogLevel[] = ['debug', 'info', 'warn', 'error'];
@@ -31,7 +36,11 @@ jest.mock('@/lib/logger', () => {
       let log = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
 
       if (context && Object.keys(context).length > 0) {
-        log += `\nContext: ${JSON.stringify(context, null, 2)}`;
+        try {
+          log += `\nContext: ${JSON.stringify(context, null, 2)}`;
+        } catch (e) {
+          log += `\nContext: [Circular Reference]`;
+        }
       }
 
       if (error) {

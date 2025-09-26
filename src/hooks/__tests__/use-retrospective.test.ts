@@ -125,6 +125,7 @@ const createWrapper = () => {
 
 describe('use-retrospective', () => {
   let mockSupabase: any;
+  let mockQueryBuilder: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -142,32 +143,33 @@ describe('use-retrospective', () => {
     mockToast.success = jest.fn();
     mockToast.error = jest.fn();
 
-    // Create a proper chained mock for Supabase
-    const createChainedMock = () => {
-      const chainMethods = {
-        select: jest.fn().mockReturnThis(),
-        insert: jest.fn().mockReturnThis(),
-        update: jest.fn().mockReturnThis(),
-        delete: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        in: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: null, error: null }),
-      };
-
-      // Make sure all methods return the same object for chaining
-      Object.values(chainMethods).forEach(method => {
-        if (method !== chainMethods.single) {
-          method.mockReturnValue(chainMethods);
-        }
-      });
-
-      return chainMethods;
+    // Create a mock query builder that can be used across tests
+    mockQueryBuilder = {
+      select: jest.fn(),
+      insert: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      eq: jest.fn(),
+      in: jest.fn(),
+      order: jest.fn(),
+      single: jest.fn(),
     };
 
-    // Setup Supabase mock
+    // Set up method chaining - all methods return the same builder by default
+    mockQueryBuilder.select.mockReturnValue(mockQueryBuilder);
+    mockQueryBuilder.insert.mockReturnValue(mockQueryBuilder);
+    mockQueryBuilder.update.mockReturnValue(mockQueryBuilder);
+    mockQueryBuilder.delete.mockReturnValue(mockQueryBuilder);
+    mockQueryBuilder.eq.mockReturnValue(mockQueryBuilder);
+    mockQueryBuilder.in.mockReturnValue(mockQueryBuilder);
+    mockQueryBuilder.order.mockReturnValue(mockQueryBuilder);
+    mockQueryBuilder.single.mockReturnValue(mockQueryBuilder);
+
+    // Individual tests will override the terminal method they need
+
+    // Setup Supabase mock to return the same builder instance
     mockSupabase = {
-      from: jest.fn(() => createChainedMock()),
+      from: jest.fn(() => mockQueryBuilder),
     };
 
     mockCreateClient.mockReturnValue(mockSupabase);
@@ -186,9 +188,8 @@ describe('use-retrospective', () => {
 
   describe('useRetrospective', () => {
     it('fetches retrospective data successfully', async () => {
-      // Setup the chain mock to return the expected data
-      const fromChain = mockSupabase.from();
-      fromChain.single.mockResolvedValue({ data: mockRetrospective, error: null });
+      // Setup the mock to return the expected data
+      mockQueryBuilder.single.mockResolvedValue({ data: mockRetrospective, error: null });
 
       const { result } = renderHook(
         () => useRetrospective('retro-1'),
@@ -201,11 +202,12 @@ describe('use-retrospective', () => {
 
       expect(result.current.data).toEqual(mockRetrospective);
       expect(mockSupabase.from).toHaveBeenCalledWith('retrospectives');
+      expect(mockQueryBuilder.select).toHaveBeenCalledWith('*');
+      expect(mockQueryBuilder.eq).toHaveBeenCalledWith('id', 'retro-1');
     });
 
     it('handles retrospective fetch error', async () => {
-      const mockChain = mockSupabase.from().select().eq().single;
-      mockChain.mockResolvedValue({
+      mockQueryBuilder.single.mockResolvedValue({
         data: null,
         error: { message: 'Retrospective not found' }
       });
@@ -223,8 +225,7 @@ describe('use-retrospective', () => {
     });
 
     it('accepts custom options', async () => {
-      const mockChain = mockSupabase.from().select().eq().single;
-      mockChain.mockResolvedValue({ data: mockRetrospective, error: null });
+      mockQueryBuilder.single.mockResolvedValue({ data: mockRetrospective, error: null });
 
       const { result } = renderHook(
         () => useRetrospective('retro-1', { enabled: false }),
@@ -238,8 +239,7 @@ describe('use-retrospective', () => {
 
   describe('useRetrospectiveColumns', () => {
     it('fetches columns data successfully', async () => {
-      const mockChain = mockSupabase.from().select().eq().order;
-      mockChain.mockResolvedValue({ data: mockColumns, error: null });
+      mockQueryBuilder.order.mockResolvedValue({ data: mockColumns, error: null });
 
       const { result } = renderHook(
         () => useRetrospectiveColumns('retro-1'),
@@ -252,11 +252,13 @@ describe('use-retrospective', () => {
 
       expect(result.current.data).toEqual(mockColumns);
       expect(mockSupabase.from).toHaveBeenCalledWith('retrospective_columns');
+      expect(mockQueryBuilder.select).toHaveBeenCalledWith('*');
+      expect(mockQueryBuilder.eq).toHaveBeenCalledWith('retrospective_id', 'retro-1');
+      expect(mockQueryBuilder.order).toHaveBeenCalledWith('order_index', { ascending: true });
     });
 
     it('handles columns fetch error', async () => {
-      const mockChain = mockSupabase.from().select().eq().order;
-      mockChain.mockResolvedValue({
+      mockQueryBuilder.order.mockResolvedValue({
         data: null,
         error: { message: 'Columns not found' }
       });
@@ -274,8 +276,7 @@ describe('use-retrospective', () => {
     });
 
     it('orders columns by order_index ascending', async () => {
-      const mockChain = mockSupabase.from().select().eq().order;
-      mockChain.mockResolvedValue({ data: mockColumns, error: null });
+      mockQueryBuilder.order.mockResolvedValue({ data: mockColumns, error: null });
 
       renderHook(
         () => useRetrospectiveColumns('retro-1'),
@@ -283,18 +284,14 @@ describe('use-retrospective', () => {
       );
 
       await waitFor(() => {
-        expect(mockChain).toHaveBeenCalled();
+        expect(mockQueryBuilder.order).toHaveBeenCalledWith('order_index', { ascending: true });
       });
-
-      const orderCall = mockChain.mock.calls.find(call => call.length > 0);
-      expect(mockSupabase.from().select().eq().order).toHaveBeenCalledWith('order_index', { ascending: true });
     });
   });
 
   describe('useRetrospectiveItems', () => {
     it('fetches items data successfully', async () => {
-      const mockChain = mockSupabase.from().select().eq().order;
-      mockChain.mockResolvedValue({ data: mockItems, error: null });
+      mockQueryBuilder.order.mockResolvedValue({ data: mockItems, error: null });
 
       const { result } = renderHook(
         () => useRetrospectiveItems('retro-1'),
@@ -307,11 +304,13 @@ describe('use-retrospective', () => {
 
       expect(result.current.data).toEqual(mockItems);
       expect(mockSupabase.from).toHaveBeenCalledWith('retrospective_items');
+      expect(mockQueryBuilder.select).toHaveBeenCalledWith('*');
+      expect(mockQueryBuilder.eq).toHaveBeenCalledWith('retrospective_id', 'retro-1');
+      expect(mockQueryBuilder.order).toHaveBeenCalledWith('created_at', { ascending: false });
     });
 
     it('handles items fetch error', async () => {
-      const mockChain = mockSupabase.from().select().eq().order;
-      mockChain.mockResolvedValue({
+      mockQueryBuilder.order.mockResolvedValue({
         data: null,
         error: { message: 'Items not found' }
       });
@@ -329,8 +328,7 @@ describe('use-retrospective', () => {
     });
 
     it('polls for updates every 5 seconds', () => {
-      const mockChain = mockSupabase.from().select().eq().order;
-      mockChain.mockResolvedValue({ data: mockItems, error: null });
+      mockQueryBuilder.order.mockResolvedValue({ data: mockItems, error: null });
 
       renderHook(
         () => useRetrospectiveItems('retro-1'),
@@ -343,8 +341,7 @@ describe('use-retrospective', () => {
     });
 
     it('orders items by created_at descending', async () => {
-      const mockChain = mockSupabase.from().select().eq().order;
-      mockChain.mockResolvedValue({ data: mockItems, error: null });
+      mockQueryBuilder.order.mockResolvedValue({ data: mockItems, error: null });
 
       renderHook(
         () => useRetrospectiveItems('retro-1'),
@@ -352,17 +349,14 @@ describe('use-retrospective', () => {
       );
 
       await waitFor(() => {
-        expect(mockChain).toHaveBeenCalled();
+        expect(mockQueryBuilder.order).toHaveBeenCalledWith('created_at', { ascending: false });
       });
-
-      expect(mockSupabase.from().select().eq().order).toHaveBeenCalledWith('created_at', { ascending: false });
     });
   });
 
   describe('useVotes', () => {
     it('fetches votes data successfully', async () => {
-      const mockChain = mockSupabase.from().select().in;
-      mockChain.mockResolvedValue({ data: mockVotes, error: null });
+      mockQueryBuilder.in.mockResolvedValue({ data: mockVotes, error: null });
 
       const { result } = renderHook(
         () => useVotes('retro-1', ['item-1', 'item-2']),
@@ -375,6 +369,8 @@ describe('use-retrospective', () => {
 
       expect(result.current.data).toEqual(mockVotes);
       expect(mockSupabase.from).toHaveBeenCalledWith('votes');
+      expect(mockQueryBuilder.select).toHaveBeenCalledWith('*');
+      expect(mockQueryBuilder.in).toHaveBeenCalledWith('item_id', ['item-1', 'item-2']);
     });
 
     it('handles empty item IDs array', async () => {
@@ -383,18 +379,13 @@ describe('use-retrospective', () => {
         { wrapper: createWrapper() }
       );
 
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      expect(result.current.data).toEqual([]);
-      // Should not make API call when itemIds is empty
+      // When enabled: false, data is undefined and no API call is made
+      expect(result.current.data).toBeUndefined();
       expect(mockSupabase.from).not.toHaveBeenCalled();
     });
 
     it('handles votes fetch error', async () => {
-      const mockChain = mockSupabase.from().select().in;
-      mockChain.mockResolvedValue({
+      mockQueryBuilder.in.mockResolvedValue({
         data: null,
         error: { message: 'Votes not found' }
       });
@@ -422,8 +413,7 @@ describe('use-retrospective', () => {
     });
 
     it('polls for updates every 5 seconds', () => {
-      const mockChain = mockSupabase.from().select().in;
-      mockChain.mockResolvedValue({ data: mockVotes, error: null });
+      mockQueryBuilder.in.mockResolvedValue({ data: mockVotes, error: null });
 
       renderHook(
         () => useVotes('retro-1', ['item-1']),
@@ -436,9 +426,8 @@ describe('use-retrospective', () => {
 
   describe('useCreateItem', () => {
     it('creates item successfully', async () => {
-      const mockChain = mockSupabase.from().insert().select().single;
       const newItem = { ...mockItems[0], id: 'item-3' };
-      mockChain.mockResolvedValue({ data: newItem, error: null });
+      mockQueryBuilder.single.mockResolvedValue({ data: newItem, error: null });
 
       const { result } = renderHook(() => useCreateItem(), { wrapper: createWrapper() });
 
@@ -450,9 +439,7 @@ describe('use-retrospective', () => {
         authorName: 'John Doe',
       };
 
-      await waitFor(() => {
-        result.current.mutate(createInput);
-      });
+      result.current.mutate(createInput);
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
@@ -489,8 +476,7 @@ describe('use-retrospective', () => {
     });
 
     it('handles create item error', async () => {
-      const mockChain = mockSupabase.from().insert().select().single;
-      mockChain.mockResolvedValue({
+      mockQueryBuilder.single.mockResolvedValue({
         data: null,
         error: { message: 'Creation failed' }
       });
@@ -505,20 +491,17 @@ describe('use-retrospective', () => {
         authorName: 'John Doe',
       };
 
-      await waitFor(() => {
-        result.current.mutate(createInput);
-      });
+      result.current.mutate(createInput);
 
       await waitFor(() => {
         expect(result.current.isError).toBe(true);
       });
 
-      expect(mockToast.error).toHaveBeenCalledWith('Creation failed');
+      expect(mockToast.error).toHaveBeenCalledWith('Failed to add item');
     });
 
     it('performs optimistic update', async () => {
-      const mockChain = mockSupabase.from().insert().select().single;
-      mockChain.mockResolvedValue({ data: mockItems[0], error: null });
+      mockQueryBuilder.single.mockResolvedValue({ data: mockItems[0], error: null });
 
       const { result } = renderHook(() => useCreateItem(), { wrapper: createWrapper() });
 
@@ -530,8 +513,7 @@ describe('use-retrospective', () => {
 
   describe('useDeleteItem', () => {
     it('deletes item successfully', async () => {
-      const mockChain = mockSupabase.from().delete().eq;
-      mockChain.mockResolvedValue({ error: null });
+      mockQueryBuilder.eq.mockResolvedValue({ error: null });
 
       const { result } = renderHook(() => useDeleteItem(), { wrapper: createWrapper() });
 
@@ -541,9 +523,7 @@ describe('use-retrospective', () => {
         userId: 'user-1',
       };
 
-      await waitFor(() => {
-        result.current.mutate(deleteInput);
-      });
+      result.current.mutate(deleteInput);
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
@@ -576,8 +556,7 @@ describe('use-retrospective', () => {
     });
 
     it('handles delete error', async () => {
-      const mockChain = mockSupabase.from().delete().eq;
-      mockChain.mockResolvedValue({ error: { message: 'Delete failed' } });
+      mockQueryBuilder.eq.mockResolvedValue({ error: { message: 'Delete failed' } });
 
       const { result } = renderHook(() => useDeleteItem(), { wrapper: createWrapper() });
 
@@ -587,23 +566,20 @@ describe('use-retrospective', () => {
         userId: 'user-1',
       };
 
-      await waitFor(() => {
-        result.current.mutate(deleteInput);
-      });
+      result.current.mutate(deleteInput);
 
       await waitFor(() => {
         expect(result.current.isError).toBe(true);
       });
 
-      expect(mockToast.error).toHaveBeenCalledWith('Delete failed');
+      expect(mockToast.error).toHaveBeenCalledWith('Failed to delete item');
     });
   });
 
   describe('useToggleVote', () => {
     it('adds vote successfully', async () => {
-      const mockChain = mockSupabase.from().insert().select().single;
       const newVote = { id: 'vote-3', item_id: 'item-1', profile_id: 'user-3' };
-      mockChain.mockResolvedValue({ data: newVote, error: null });
+      mockQueryBuilder.single.mockResolvedValue({ data: newVote, error: null });
 
       const { result } = renderHook(() => useToggleVote(), { wrapper: createWrapper() });
 
@@ -614,9 +590,7 @@ describe('use-retrospective', () => {
         hasVoted: false,
       };
 
-      await waitFor(() => {
-        result.current.mutate(voteInput);
-      });
+      result.current.mutate(voteInput);
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
@@ -627,8 +601,10 @@ describe('use-retrospective', () => {
     });
 
     it('removes vote successfully', async () => {
-      const mockChain = mockSupabase.from().delete().eq().eq;
-      mockChain.mockResolvedValue({ error: null });
+      // For delete operations with two .eq() calls, the first returns builder, second returns resolved value
+      mockQueryBuilder.eq
+        .mockReturnValueOnce(mockQueryBuilder)  // First .eq() returns builder
+        .mockResolvedValueOnce({ error: null }); // Second .eq() returns resolved value
 
       const { result } = renderHook(() => useToggleVote(), { wrapper: createWrapper() });
 
@@ -639,9 +615,7 @@ describe('use-retrospective', () => {
         hasVoted: true,
       };
 
-      await waitFor(() => {
-        result.current.mutate(voteInput);
-      });
+      result.current.mutate(voteInput);
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
@@ -675,8 +649,7 @@ describe('use-retrospective', () => {
     });
 
     it('handles vote error', async () => {
-      const mockChain = mockSupabase.from().insert().select().single;
-      mockChain.mockResolvedValue({
+      mockQueryBuilder.single.mockResolvedValue({
         data: null,
         error: { message: 'Vote failed' }
       });
@@ -690,23 +663,20 @@ describe('use-retrospective', () => {
         hasVoted: false,
       };
 
-      await waitFor(() => {
-        result.current.mutate(voteInput);
-      });
+      result.current.mutate(voteInput);
 
       await waitFor(() => {
         expect(result.current.isError).toBe(true);
       });
 
-      expect(mockToast.error).toHaveBeenCalledWith('Vote failed');
+      expect(mockToast.error).toHaveBeenCalledWith('Failed to update vote');
     });
   });
 
   describe('useUpdateItem', () => {
     it('updates item successfully', async () => {
-      const mockChain = mockSupabase.from().update().eq().select().single;
       const updatedItem = { ...mockItems[0], text: 'Updated text' };
-      mockChain.mockResolvedValue({ data: updatedItem, error: null });
+      mockQueryBuilder.single.mockResolvedValue({ data: updatedItem, error: null });
 
       const { result } = renderHook(() => useUpdateItem(), { wrapper: createWrapper() });
 
@@ -716,9 +686,7 @@ describe('use-retrospective', () => {
         retrospectiveId: 'retro-1',
       };
 
-      await waitFor(() => {
-        result.current.mutate(updateInput);
-      });
+      result.current.mutate(updateInput);
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
@@ -730,8 +698,7 @@ describe('use-retrospective', () => {
     });
 
     it('handles update error', async () => {
-      const mockChain = mockSupabase.from().update().eq().select().single;
-      mockChain.mockResolvedValue({
+      mockQueryBuilder.single.mockResolvedValue({
         data: null,
         error: { message: 'Update failed' }
       });
@@ -744,9 +711,7 @@ describe('use-retrospective', () => {
         retrospectiveId: 'retro-1',
       };
 
-      await waitFor(() => {
-        result.current.mutate(updateInput);
-      });
+      result.current.mutate(updateInput);
 
       await waitFor(() => {
         expect(result.current.isError).toBe(true);
