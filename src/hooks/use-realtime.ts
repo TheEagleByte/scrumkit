@@ -212,16 +212,15 @@ export function usePresence(channelName: string, userData: Partial<PresenceUser>
         logger.debug("Presence sync", { users: usersList });
       })
       .on("presence", { event: "join" }, ({ key }: RealtimePresenceJoinPayload<PresenceUser>) => {
-        logger.info(`User joined: ${key}`);
+        logger.debug(`User joined: ${key}`);
       })
       .on("presence", { event: "leave" }, ({ key }: RealtimePresenceLeavePayload<PresenceUser>) => {
-        logger.info(`User left: ${key}`);
+        logger.debug(`User left: ${key}`);
       })
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
           await channel.track(presenceData);
           setMyPresenceState(presenceData);
-          logger.info("Joined presence channel", { channel: channelName });
         }
       });
 
