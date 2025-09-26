@@ -164,6 +164,20 @@ export function useCreateItem() {
       const isAnonymous = input.authorId.startsWith("anon-");
       const authorId = isAnonymous ? null : input.authorId;
 
+      // Get the highest position in the column to add item at the end
+      const { data: existingItems, error: fetchError } = await supabase
+        .from("retrospective_items")
+        .select("position")
+        .eq("column_id", input.columnId)
+        .order("position", { ascending: false })
+        .limit(1);
+
+      if (fetchError) throw fetchError;
+
+      const nextPosition = existingItems && existingItems.length > 0
+        ? (existingItems[0].position ?? 0) + 1
+        : 0;
+
       const { data, error } = await supabase
         .from("retrospective_items")
         .insert({
@@ -171,6 +185,7 @@ export function useCreateItem() {
           text: sanitizedContent,
           author_id: authorId,
           author_name: sanitizedName,
+          position: nextPosition,
         })
         .select()
         .single();
@@ -195,6 +210,12 @@ export function useCreateItem() {
         retrospectiveKeys.items(input.retrospectiveId)
       );
 
+      // Calculate position for optimistic update
+      const columnItems = previousItems?.filter(item => item.column_id === input.columnId) || [];
+      const maxPosition = columnItems.reduce((max, item) =>
+        Math.max(max, item.position ?? 0), -1
+      );
+
       // Optimistically update
       const optimisticItem: RetrospectiveItem = {
         id: uuidv4(),
@@ -203,6 +224,7 @@ export function useCreateItem() {
         author_id: input.authorId.startsWith("anon-") ? null : input.authorId,
         author_name: sanitizeUsername(input.authorName),
         color: null,
+        position: maxPosition + 1,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -483,6 +505,238 @@ export function useUpdateItem() {
       toast.success("Item updated");
     },
     onSettled: (_data, _error, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: retrospectiveKeys.items(variables.retrospectiveId)
+      });
+    },
+  });
+}
+
+// Move retrospective item between columns or reorder within column
+export function useMoveItem() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      itemId,
+      sourceColumnId,
+      destinationColumnId,
+      newPosition,
+      retrospectiveId
+    }: {
+      itemId: string;
+      sourceColumnId: string;
+      destinationColumnId: string;
+      newPosition: number;
+      retrospectiveId: string;
+    }) => {
+      const supabase = createClient();
+
+      // If moving between columns
+      if (sourceColumnId !== destinationColumnId) {
+        // First, get all items in the destination column to update positions
+        const { data: destItems, error: destError } = await supabase
+          .from("retrospective_items")
+          .select("id, position")
+          .eq("column_id", destinationColumnId)
+          .order("position", { ascending: true });
+
+        if (destError) throw destError;
+
+        // Update positions of items after the insertion point
+        if (destItems && destItems.length > 0) {
+          const updates = destItems
+            .filter(item => (item.position ?? 0) >= newPosition)
+            .map(item => ({
+              id: item.id,
+              position: (item.position ?? 0) + 1
+            }));
+
+          if (updates.length > 0) {
+            for (const update of updates) {
+              await supabase
+                .from("retrospective_items")
+                .update({ position: update.position })
+                .eq("id", update.id);
+            }
+          }
+        }
+
+        // Move the item to the new column with new position
+        const { data: movedItem, error: moveError } = await supabase
+          .from("retrospective_items")
+          .update({
+            column_id: destinationColumnId,
+            position: newPosition,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", itemId)
+          .select()
+          .single();
+
+        if (moveError) throw moveError;
+
+        // Update positions in source column to fill the gap
+        const { data: sourceItems, error: sourceError } = await supabase
+          .from("retrospective_items")
+          .select("id, position")
+          .eq("column_id", sourceColumnId)
+          .order("position", { ascending: true });
+
+        if (sourceError) throw sourceError;
+
+        // Re-index positions in source column
+        if (sourceItems && sourceItems.length > 0) {
+          for (let i = 0; i < sourceItems.length; i++) {
+            if (sourceItems[i].position !== i) {
+              await supabase
+                .from("retrospective_items")
+                .update({ position: i })
+                .eq("id", sourceItems[i].id);
+            }
+          }
+        }
+
+        return movedItem;
+      } else {
+        // Reordering within the same column
+        const { data: items, error: fetchError } = await supabase
+          .from("retrospective_items")
+          .select("id, position")
+          .eq("column_id", sourceColumnId)
+          .order("position", { ascending: true });
+
+        if (fetchError) throw fetchError;
+
+        const currentItem = items?.find(item => item.id === itemId);
+        if (!currentItem) throw new Error("Item not found");
+
+        const currentPosition = currentItem.position ?? 0;
+
+        // Calculate position updates
+        const updates: Array<{ id: string; position: number }> = [];
+
+        if (currentPosition < newPosition) {
+          // Moving down: shift items up
+          items?.forEach(item => {
+            if (item.id === itemId) {
+              updates.push({ id: item.id, position: newPosition });
+            } else if ((item.position ?? 0) > currentPosition && (item.position ?? 0) <= newPosition) {
+              updates.push({ id: item.id, position: (item.position ?? 0) - 1 });
+            }
+          });
+        } else if (currentPosition > newPosition) {
+          // Moving up: shift items down
+          items?.forEach(item => {
+            if (item.id === itemId) {
+              updates.push({ id: item.id, position: newPosition });
+            } else if ((item.position ?? 0) >= newPosition && (item.position ?? 0) < currentPosition) {
+              updates.push({ id: item.id, position: (item.position ?? 0) + 1 });
+            }
+          });
+        }
+
+        // Apply updates
+        for (const update of updates) {
+          await supabase
+            .from("retrospective_items")
+            .update({
+              position: update.position,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", update.id);
+        }
+
+        return { id: itemId, position: newPosition };
+      }
+    },
+    onMutate: async ({ itemId, sourceColumnId, destinationColumnId, newPosition, retrospectiveId }) => {
+      // Cancel in-flight queries
+      await queryClient.cancelQueries({
+        queryKey: retrospectiveKeys.items(retrospectiveId)
+      });
+
+      // Snapshot previous state
+      const previousItems = queryClient.getQueryData<RetrospectiveItem[]>(
+        retrospectiveKeys.items(retrospectiveId)
+      );
+
+      // Optimistically update the UI
+      queryClient.setQueryData<RetrospectiveItem[]>(
+        retrospectiveKeys.items(retrospectiveId),
+        (old = []) => {
+          const newItems = [...old];
+          const itemIndex = newItems.findIndex(item => item.id === itemId);
+
+          if (itemIndex !== -1) {
+            const [movedItem] = newItems.splice(itemIndex, 1);
+
+            // Update the moved item
+            movedItem.column_id = destinationColumnId;
+            movedItem.position = newPosition;
+
+            // Update positions for other items
+            if (sourceColumnId !== destinationColumnId) {
+              // Update source column positions
+              newItems
+                .filter(item => item.column_id === sourceColumnId)
+                .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+                .forEach((item, index) => {
+                  item.position = index;
+                });
+
+              // Update destination column positions
+              newItems
+                .filter(item => item.column_id === destinationColumnId)
+                .forEach(item => {
+                  if ((item.position ?? 0) >= newPosition) {
+                    item.position = (item.position ?? 0) + 1;
+                  }
+                });
+            } else {
+              // Reordering within same column
+              const currentPos = movedItem.position ?? 0;
+              newItems
+                .filter(item => item.column_id === sourceColumnId)
+                .forEach(item => {
+                  const pos = item.position ?? 0;
+                  if (currentPos < newPosition) {
+                    if (pos > currentPos && pos <= newPosition) {
+                      item.position = pos - 1;
+                    }
+                  } else if (currentPos > newPosition) {
+                    if (pos >= newPosition && pos < currentPos) {
+                      item.position = pos + 1;
+                    }
+                  }
+                });
+            }
+
+            // Re-insert the moved item
+            newItems.push(movedItem);
+          }
+
+          return newItems;
+        }
+      );
+
+      return { previousItems };
+    },
+    onError: (error, _variables, context) => {
+      console.error("Failed to move item:", error);
+
+      // Rollback on error
+      if (context?.previousItems) {
+        queryClient.setQueryData(
+          retrospectiveKeys.items(_variables.retrospectiveId),
+          context.previousItems
+        );
+      }
+
+      toast.error("Failed to move item");
+    },
+    onSettled: (_data, _error, variables) => {
+      // Re-fetch to ensure consistency
       queryClient.invalidateQueries({
         queryKey: retrospectiveKeys.items(variables.retrospectiveId)
       });

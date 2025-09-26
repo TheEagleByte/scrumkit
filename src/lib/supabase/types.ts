@@ -182,30 +182,33 @@ export type Database = {
         Row: {
           author_id: string | null
           author_name: string
-          column_id: string
           color: string | null
+          column_id: string
           created_at: string | null
           id: string
+          position: number | null
           text: string
           updated_at: string | null
         }
         Insert: {
           author_id?: string | null
           author_name: string
-          column_id: string
           color?: string | null
+          column_id: string
           created_at?: string | null
           id?: string
+          position?: number | null
           text: string
           updated_at?: string | null
         }
         Update: {
           author_id?: string | null
           author_name?: string
-          column_id?: string
           color?: string | null
+          column_id?: string
           created_at?: string | null
           id?: string
+          position?: number | null
           text?: string
           updated_at?: string | null
         }
