@@ -25,14 +25,12 @@ import type {
   UserPresence,
   CursorPosition,
   ConnectionState,
+  ValidatedCursorData,
+  RetrospectiveRealtimeState,
 } from '@/lib/realtime/types';
 
 // Alias for consistency with existing code
 type PresenceUser = UserPresence;
-
-interface CursorData extends Omit<CursorPosition, 'userId' | 'timestamp'> {
-  name?: string;
-}
 
 interface RealtimeEvent<T = unknown> {
   eventType: "INSERT" | "UPDATE" | "DELETE";
@@ -48,31 +46,6 @@ interface RealtimeEvent<T = unknown> {
  * - Cursor tracking
  * - Connection status
  */
-interface RealtimeHookReturn {
-  // Database data
-  items: RetrospectiveItem[];
-  votes: Vote[];
-  retrospective: Retrospective | null;
-
-  // Presence
-  presenceUsers: PresenceUser[];
-  otherUsers: PresenceUser[];
-  activeUsersCount: number;
-  myPresenceState: PresenceUser | null;
-  updatePresence: (data: Partial<PresenceUser>) => void;
-
-  // Cursors
-  cursors: Map<string, CursorData>;
-  updateCursor: (x: number, y: number) => void;
-
-  // Connection
-  isSubscribed: boolean;
-  connectionStatus: ConnectionState['status'];
-
-  // Utilities
-  broadcast: <T = unknown>(event: string, payload: T) => void;
-  refetch: () => Promise<void>;
-}
 
 export function useRetrospectiveRealtime(
   retrospectiveId: string,
@@ -82,7 +55,7 @@ export function useRetrospectiveRealtime(
     email?: string;
     avatar?: string;
   }
-): RealtimeHookReturn {
+): RetrospectiveRealtimeState {
   // State for database data
   const [items, setItems] = useState<RetrospectiveItem[]>([]);
   const [votes, setVotes] = useState<Vote[]>([]);
@@ -92,8 +65,8 @@ export function useRetrospectiveRealtime(
   const [presenceUsers, setPresenceUsers] = useState<PresenceUser[]>([]);
   const [myPresenceState, setMyPresenceState] = useState<PresenceUser | null>(null);
 
-  // State for cursors
-  const [cursors, setCursors] = useState<Map<string, CursorData>>(new Map());
+  // State for cursors with validated type
+  const [cursors, setCursors] = useState<Map<string, ValidatedCursorData>>(new Map());
   const lastBroadcast = useRef<number>(0);
 
   // State for connection
@@ -151,10 +124,28 @@ export function useRetrospectiveRealtime(
     if (retroResult.data) setRetrospective(retroResult.data);
   }, [retrospectiveId]);
 
-  // Update cursor position
+  // Update cursor position with validation
+  const lastPosition = useRef({ x: 0, y: 0 });
   const updateCursor = useCallback((x: number, y: number) => {
+    // Validate cursor position to prevent XSS
+    if (typeof x !== 'number' || typeof y !== 'number' ||
+        !isFinite(x) || !isFinite(y) ||
+        x < -100 || x > 200 || y < -100 || y > 200) {
+      logger.warn('Invalid cursor position', { x, y });
+      return;
+    }
+
+    // Calculate movement distance (increased threshold from 5px to 10px)
+    const distance = Math.sqrt(
+      Math.pow(x - lastPosition.current.x, 2) +
+      Math.pow(y - lastPosition.current.y, 2)
+    );
+
     const now = Date.now();
-    if (channelRef.current && now - lastBroadcast.current > CURSOR_CONFIG.BROADCAST_THROTTLE) {
+    // Only broadcast if moved enough distance AND throttle time passed
+    if (channelRef.current &&
+        distance >= 10 && // Increased from 5px to 10px
+        now - lastBroadcast.current > CURSOR_CONFIG.BROADCAST_THROTTLE) {
       channelRef.current.send({
         type: "broadcast",
         event: "cursor_move",
@@ -167,11 +158,12 @@ export function useRetrospectiveRealtime(
         },
       });
       lastBroadcast.current = now;
+      lastPosition.current = { x, y };
     }
   }, [currentUser.id, currentUser.name, getUserColor]);
 
-  // Update presence data
-  const updatePresence = useCallback(async (data: Partial<PresenceUser>) => {
+  // Update presence data with type safety
+  const updatePresence = useCallback(async (data: Partial<UserPresence>): Promise<void> => {
     if (channelRef.current && myPresenceState) {
       const updatedState = { ...myPresenceState, ...data, lastSeen: Date.now() };
       await channelRef.current.track(updatedState);
@@ -179,8 +171,8 @@ export function useRetrospectiveRealtime(
     }
   }, [myPresenceState]);
 
-  // Broadcast custom event
-  const broadcast = useCallback(async <T = unknown>(event: string, payload: T) => {
+  // Broadcast custom event with type safety
+  const broadcast = useCallback(async <T = unknown>(event: string, payload: T): Promise<void> => {
     if (channelRef.current && isSubscribed) {
       await channelRef.current.send({
         type: "broadcast",
@@ -291,20 +283,29 @@ export function useRetrospectiveRealtime(
       .on("presence", { event: "leave" }, ({ key }: RealtimePresenceLeavePayload<PresenceUser>) => {
         logger.debug(`User left: ${key}`);
       })
-      // Cursor tracking
+      // Cursor tracking with validated data
       .on("broadcast", { event: "cursor_move" }, ({ payload }) => {
         const data = payload as CursorPosition & { name?: string };
         if (data.userId !== currentUser.id) {
-          setCursors((prev) => {
-            const next = new Map(prev);
-            next.set(data.userId, {
-              x: data.x,
-              y: data.y,
-              color: data.color,
-              name: data.name,
+          // Validate cursor data before storing
+          if (typeof data.x === 'number' && typeof data.y === 'number' &&
+              isFinite(data.x) && isFinite(data.y) &&
+              data.x >= -100 && data.x <= 200 && data.y >= -100 && data.y <= 200) {
+            setCursors((prev) => {
+              const next = new Map(prev);
+              const validatedCursor: ValidatedCursorData = {
+                x: data.x,
+                y: data.y,
+                color: data.color,
+                userId: data.userId,
+                name: data.name,
+              };
+              next.set(data.userId, validatedCursor);
+              return next;
             });
-            return next;
-          });
+          } else {
+            logger.warn('Received invalid cursor data', { data });
+          }
         }
       })
       // Subscribe to channel
@@ -346,31 +347,39 @@ export function useRetrospectiveRealtime(
             });
           }
 
-          // Implement exponential backoff retry
-          if (retryCount < CONNECTION_CONFIG.MAX_RETRY_ATTEMPTS) {
-            const delay = Math.min(
-              CONNECTION_CONFIG.INITIAL_RETRY_DELAY * Math.pow(2, retryCount),
-              CONNECTION_CONFIG.MAX_RETRY_DELAY
-            );
+          // Implement exponential backoff retry with proper max limits
+          setRetryCount(prev => {
+            const nextCount = prev + 1;
 
-            reconnectTimeoutRef.current = setTimeout(() => {
-              setRetryCount(prev => prev + 1);
-              logger.info(`Reconnecting... (attempt ${retryCount + 1})`);
+            if (nextCount <= CONNECTION_CONFIG.MAX_RETRY_ATTEMPTS) {
+              const delay = Math.min(
+                CONNECTION_CONFIG.INITIAL_RETRY_DELAY * Math.pow(2, prev),
+                CONNECTION_CONFIG.MAX_RETRY_DELAY
+              );
 
-              // Resubscribe to channel
-              if (channelRef.current) {
-                channelRef.current.subscribe();
-              }
-            }, delay);
-          } else {
-            toast.error("Unable to establish connection. Please refresh the page.", {
-              duration: 0, // Persistent until dismissed
-              action: {
-                label: "Refresh",
-                onClick: () => window.location.reload(),
-              },
-            });
-          }
+              logger.info(`Scheduling reconnection attempt ${nextCount}/${CONNECTION_CONFIG.MAX_RETRY_ATTEMPTS} in ${delay}ms`);
+
+              reconnectTimeoutRef.current = setTimeout(() => {
+                logger.info(`Reconnecting... (attempt ${nextCount}/${CONNECTION_CONFIG.MAX_RETRY_ATTEMPTS})`);
+
+                // Resubscribe to channel
+                if (channelRef.current) {
+                  channelRef.current.subscribe();
+                }
+              }, delay);
+            } else {
+              logger.error(`Max retry attempts (${CONNECTION_CONFIG.MAX_RETRY_ATTEMPTS}) reached. Giving up.`);
+              toast.error("Unable to establish connection. Please refresh the page.", {
+                duration: 0, // Persistent until dismissed
+                action: {
+                  label: "Refresh",
+                  onClick: () => window.location.reload(),
+                },
+              });
+            }
+
+            return nextCount;
+          });
         } else {
           setConnectionStatus("connecting");
         }
@@ -388,33 +397,50 @@ export function useRetrospectiveRealtime(
       }
     }, PRESENCE_CONFIG.HEARTBEAT_INTERVAL);
 
-    // Cleanup
+    // Cleanup with proper memory leak prevention
     return () => {
+      // Clear all intervals and timeouts first
       clearInterval(heartbeatInterval);
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = undefined;
       }
+
+      // Cleanup channel
       if (channelRef.current) {
+        const channel = channelRef.current;
+        channelRef.current = null; // Clear ref immediately to prevent usage
+
+        // Get current presence state without causing re-render
+        const currentPresence = presenceData;
+
         // Set presence to offline before leaving
-        channelRef.current.track({
-          ...myPresenceState,
+        channel.track({
+          ...currentPresence,
           status: 'offline',
           lastSeen: Date.now(),
         }).then(() => {
-          channelRef.current?.untrack();
+          channel.untrack();
+        }).catch(error => {
+          logger.error('Error during cleanup untrack', error);
+        }).finally(() => {
+          // Remove channel after untracking
+          supabase.removeChannel(channel);
         });
-
-        // Remove channel after untracking
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
       }
 
-      // Clear all state
+      // Clear all state to prevent memory leaks
       setCursors(new Map());
       setPresenceUsers([]);
       setMyPresenceState(null);
+      setItems([]);
+      setVotes([]);
+      setRetrospective(null);
+      setConnectionError(null);
+      setConnectionStatus('disconnected');
     };
-  }, [retrospectiveId, currentUser.id, currentUser.name, currentUser.email, currentUser.avatar, getUserColor, loadInitialData, myPresenceState, retryCount]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [retrospectiveId, currentUser.id, currentUser.name, currentUser.email, currentUser.avatar, getUserColor, loadInitialData]); // Removed myPresenceState and retryCount to prevent memory leaks
 
   // Compute derived values
   const otherUsers = presenceUsers.filter(user => user.id !== currentUser.id);

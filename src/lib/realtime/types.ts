@@ -25,16 +25,26 @@ export type CursorPosition = {
   timestamp: number;
 };
 
-export type UserPresence = {
-  id: string;
-  name: string;
-  email?: string;
-  avatar?: string;
-  color: string;
-  cursor?: { x: number; y: number };
-  lastSeen: number;
-  status?: "active" | "away" | "offline" | "online";
-};
+// Strongly typed presence state
+export interface UserPresence {
+  readonly id: string;
+  readonly name: string;
+  readonly email?: string;
+  readonly avatar?: string;
+  readonly color: string;
+  readonly cursor?: CursorCoordinates;
+  readonly lastSeen: number;
+  readonly status?: PresenceStatus;
+}
+
+// Cursor coordinates with validation bounds
+export interface CursorCoordinates {
+  readonly x: number; // Should be 0-100 for percentage or -100 for hidden
+  readonly y: number; // Should be 0-100 for percentage or -100 for hidden
+}
+
+// Presence status enum for type safety
+export type PresenceStatus = "active" | "away" | "offline" | "online";
 
 export type RealtimeChannelStatus =
   | "SUBSCRIBED"
@@ -72,4 +82,31 @@ export interface RealtimeSubscriptionOptions {
   autoReconnect?: boolean;
   reconnectDelay?: number;
   maxReconnectAttempts?: number;
+}
+
+// Validated cursor data for safe rendering
+export interface ValidatedCursorData {
+  readonly x: number;
+  readonly y: number;
+  readonly color: string;
+  readonly name?: string;
+  readonly userId: string;
+}
+
+// Real-time hook return type for better type safety
+export interface RetrospectiveRealtimeState {
+  readonly items: Database["public"]["Tables"]["retrospective_items"]["Row"][];
+  readonly votes: Database["public"]["Tables"]["votes"]["Row"][];
+  readonly retrospective: Database["public"]["Tables"]["retrospectives"]["Row"] | null;
+  readonly presenceUsers: UserPresence[];
+  readonly otherUsers: UserPresence[];
+  readonly activeUsersCount: number;
+  readonly myPresenceState: UserPresence | null;
+  readonly cursors: Map<string, ValidatedCursorData>;
+  readonly isSubscribed: boolean;
+  readonly connectionStatus: ConnectionState['status'];
+  readonly updatePresence: (data: Partial<UserPresence>) => Promise<void>;
+  readonly updateCursor: (x: number, y: number) => void;
+  readonly broadcast: <T = unknown>(event: string, payload: T) => Promise<void>;
+  readonly refetch: () => Promise<void>;
 }
