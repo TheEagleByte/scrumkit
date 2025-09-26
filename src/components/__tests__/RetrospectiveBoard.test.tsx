@@ -26,6 +26,7 @@ jest.mock('@/hooks/use-retrospective', () => ({
   useDeleteItem: jest.fn(() => ({ mutateAsync: jest.fn(), isPending: false })),
   useToggleVote: jest.fn(() => ({ mutateAsync: jest.fn(), isPending: false })),
   useUpdateItem: jest.fn(() => ({ mutateAsync: jest.fn(), isPending: false })),
+  useMoveItem: jest.fn(() => ({ mutateAsync: jest.fn(), isPending: false })),
 }));
 
 jest.mock('@/hooks/use-realtime', () => ({

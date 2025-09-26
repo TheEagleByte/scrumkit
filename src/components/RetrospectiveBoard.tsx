@@ -19,7 +19,10 @@ import {
   Smile,
   MessageSquare,
 } from "lucide-react";
-import { RetroItem, type RetroItemData } from "@/components/retro/RetroItem";
+import { DraggableRetroItem } from "@/components/retro/DraggableRetroItem";
+import type { RetroItemData } from "@/components/retro/RetroItem";
+import type { DraggableItem } from "@/types/drag-and-drop";
+import { DroppableColumn } from "@/components/retro/DroppableColumn";
 import { toast } from "sonner";
 import {
   useRetrospective,
@@ -30,7 +33,24 @@ import {
   useDeleteItem,
   useToggleVote,
   useUpdateItem,
+  useMoveItem,
 } from "@/hooks/use-retrospective";
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragStartEvent,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
+import { restrictToWindowEdges } from "@dnd-kit/modifiers";
 import { useRetrospectiveRealtime } from "@/hooks/use-realtime";
 import { Users } from "lucide-react";
 import { getCooldownTime } from "@/lib/utils/rate-limit";
@@ -92,6 +112,7 @@ export function RetrospectiveBoard({
   const [newItemText, setNewItemText] = useState("");
   const [activeColumn, setActiveColumn] = useState<string | null>(null);
   const [cooldowns, setCooldowns] = useState<Map<string, number>>(new Map());
+  const [activeItem, setActiveItem] = useState<RetroItemData | null>(null);
 
   // Use TanStack Query hooks
   const { isLoading: retroLoading } = useRetrospective(retrospectiveId);
@@ -104,9 +125,28 @@ export function RetrospectiveBoard({
   const deleteItemMutation = useDeleteItem();
   const toggleVoteMutation = useToggleVote();
   const updateItemMutation = useUpdateItem();
+  const moveItemMutation = useMoveItem();
 
   // Set up unified real-time subscriptions
   const realtime = useRetrospectiveRealtime(retrospectiveId, currentUser);
+
+  // Set up drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // Track cursor movement with throttling for better performance
   const throttledCursorUpdate = useMemo(
@@ -262,7 +302,11 @@ export function RetrospectiveBoard({
       return items
         .filter(item => item.column_id === columnId)
         .sort((a, b) => {
-          // Sort by votes first, then by date
+          // Sort by position first, then by votes, then by date
+          const posA = a.position ?? 999;
+          const posB = b.position ?? 999;
+          if (posA !== posB) return posA - posB;
+
           const aVotes = votes.filter(v => v.item_id === a.id).length;
           const bVotes = votes.filter(v => v.item_id === b.id).length;
           if (aVotes !== bVotes) return bVotes - aVotes;
@@ -271,6 +315,103 @@ export function RetrospectiveBoard({
     },
     [items, votes]
   );
+
+  // Drag and drop handlers
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    const activeData = active.data.current as { item: RetroItemData };
+    setActiveItem(activeData?.item || null);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+      setActiveItem(null);
+      return;
+    }
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    // Extract the actual item ID and column ID from the unique IDs
+    const [activeColumnId, activeItemId] = activeId.split("-item-");
+
+    // Check if we're dropping on a column or an item
+    let destinationColumnId: string;
+    let newPosition: number;
+
+    if (overId.includes("-item-")) {
+      // Dropping on an item
+      const [overColumnId, overItemId] = overId.split("-item-");
+      destinationColumnId = overColumnId;
+
+      const destItems = getColumnItems(destinationColumnId);
+      const overIndex = destItems.findIndex(item => item.id === overItemId);
+
+      if (overIndex === -1) {
+        setActiveItem(null);
+        return;
+      }
+
+      // Calculate position based on whether we're moving within same column
+      if (activeColumnId === destinationColumnId) {
+        const activeIndex = destItems.findIndex(item => item.id === activeItemId);
+        if (activeIndex === -1) {
+          setActiveItem(null);
+          return;
+        }
+
+        // If dragging down, insert after; if dragging up, insert before
+        newPosition = activeIndex < overIndex ? overIndex : overIndex;
+      } else {
+        // Moving to different column - insert at the dropped position
+        newPosition = overIndex;
+      }
+    } else {
+      // Dropping on a column (empty space or column header)
+      destinationColumnId = overId;
+      const destItems = getColumnItems(destinationColumnId);
+      newPosition = destItems.length; // Add to end
+    }
+
+    // Only update if there's an actual change
+    const activeItem = items.find(item => item.id === activeItemId);
+    if (!activeItem) {
+      setActiveItem(null);
+      return;
+    }
+
+    // Check if we need to update
+    const isSameColumn = activeItem.column_id === destinationColumnId;
+    const currentItems = getColumnItems(activeItem.column_id);
+    const currentIndex = currentItems.findIndex(item => item.id === activeItemId);
+
+    if (isSameColumn && currentIndex === newPosition) {
+      setActiveItem(null);
+      return; // No change needed
+    }
+
+    try {
+      await moveItemMutation.mutateAsync({
+        itemId: activeItemId,
+        sourceColumnId: activeItem.column_id,
+        destinationColumnId,
+        newPosition,
+        retrospectiveId,
+      });
+    } catch (error) {
+      console.error('Failed to move item:', error);
+      toast.error("Failed to move item. Please try again.");
+      // The optimistic update will be rolled back by the onError handler in useMoveItem
+    }
+
+    setActiveItem(null);
+  };
+
+  const handleDragCancel = () => {
+    setActiveItem(null);
+  };
 
   const isLoading = retroLoading || columnsLoading || itemsLoading;
 
@@ -286,7 +427,15 @@ export function RetrospectiveBoard({
   }
 
   return (
-    <div className="relative min-h-screen p-4 md:p-8" ref={boardRef}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+      modifiers={[restrictToWindowEdges]}
+    >
+      <div className="relative min-h-screen p-4 md:p-8" ref={boardRef}>
       {/* Header */}
       <div className="mb-6 flex justify-between items-center">
         <div>
@@ -427,9 +576,10 @@ export function RetrospectiveBoard({
       <div className={`grid grid-cols-1 md:grid-cols-2 ${columns.length > 3 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-6`}>
         {columns.sort((a, b) => (a.display_order || 0) - (b.display_order || 0)).map((column, index) => {
           const columnItems = getColumnItems(column.id);
+          const itemIds = columnItems.map(item => `${column.id}-item-${item.id}`);
 
           return (
-            <Card key={column.id} className={`${column.color || getColumnColor(index)} border`}>
+            <Card key={column.id} className={`${column.color || getColumnColor(index)} border relative`}>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   {getColumnIcon(column.column_type)}
@@ -486,36 +636,39 @@ export function RetrospectiveBoard({
                 )}
 
                 {/* Items */}
-                <div className="space-y-2">
-                  {columnItems.map((item) => {
-                    const itemVotes = votes.filter(v => v.item_id === item.id);
+                <DroppableColumn id={column.id} items={itemIds}>
+                  <div className="space-y-2">
+                    {columnItems.map((item) => {
+                      const itemVotes = votes.filter(v => v.item_id === item.id);
 
-                    // Check authorship for both authenticated and anonymous users
-                    const isAuthor = currentUser.id.startsWith("anon-")
-                      ? isAnonymousItemOwner(item.id, currentUser.id)
-                      : !!(item.author_id && item.author_id === currentUser.id);
+                      // Check authorship for both authenticated and anonymous users
+                      const isAuthor = currentUser.id.startsWith("anon-")
+                        ? isAnonymousItemOwner(item.id, currentUser.id)
+                        : !!(item.author_id && item.author_id === currentUser.id);
 
-                    const retroItem: RetroItemData = {
-                      id: item.id,
-                      text: item.text,
-                      author: item.author_name,
-                      votes: itemVotes.length,
-                      timestamp: new Date(item.created_at || Date.now()),
-                      color: item.color,
-                    };
+                      const retroItem: DraggableItem = {
+                        id: item.id,
+                        text: item.text,
+                        author: item.author_name,
+                        votes: itemVotes.length,
+                        timestamp: new Date(item.created_at || Date.now()),
+                        color: item.color,
+                        uniqueId: `${column.id}-item-${item.id}`,
+                      };
 
-                    return (
-                      <RetroItem
-                        key={item.id}
-                        item={retroItem}
-                        onRemove={() => handleDeleteItem(item.id)}
-                        onVote={() => handleToggleVote(item.id)}
-                        onEdit={isAuthor ? handleEditItem : undefined}
-                        isAuthor={isAuthor}
-                      />
-                    );
-                  })}
-                </div>
+                      return (
+                        <DraggableRetroItem
+                          key={item.id}
+                          item={retroItem}
+                          onRemove={() => handleDeleteItem(item.id)}
+                          onVote={() => handleToggleVote(item.id)}
+                          onEdit={isAuthor ? handleEditItem : undefined}
+                          isAuthor={isAuthor}
+                        />
+                      );
+                    })}
+                  </div>
+                </DroppableColumn>
               </CardContent>
             </Card>
           );
@@ -569,6 +722,30 @@ export function RetrospectiveBoard({
           </div>
         );
       })}
+
+      {/* Drag Overlay */}
+      <DragOverlay>
+        {activeItem && (
+          <div className="w-80 opacity-90">
+            <Card className="border-border/50 border bg-card/95 shadow-lg">
+              <CardContent className="p-4">
+                <div className="mb-2">
+                  <p className="text-sm">{activeItem.text}</p>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground text-xs">
+                    {activeItem.author}
+                  </span>
+                  <span className="text-xs">
+                    👍 {activeItem.votes}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </DragOverlay>
     </div>
+    </DndContext>
   );
 }
