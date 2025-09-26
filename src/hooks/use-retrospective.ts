@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import type { Database } from "@/lib/supabase/types-enhanced";
 import { sanitizeItemContent, sanitizeUsername } from "@/lib/utils/sanitize";
 import { canCreateItem, canDeleteItem, canVote } from "@/lib/utils/rate-limit";
+import { v4 as uuidv4 } from "uuid";
 
 // Types
 type RetrospectiveItem = Database["public"]["Tables"]["retrospective_items"]["Row"];
@@ -185,7 +186,7 @@ export function useCreateItem() {
 
       // Optimistically update
       const optimisticItem: RetrospectiveItem = {
-        id: `temp-${Date.now()}`,
+        id: uuidv4(),
         column_id: input.columnId,
         text: sanitizeItemContent(input.content),
         author_id: input.authorId,
@@ -356,7 +357,7 @@ export function useToggleVote() {
       } else {
         // Add vote
         const optimisticVote: Vote = {
-          id: `temp-${Date.now()}`,
+          id: uuidv4(),
           item_id: itemId,
           profile_id: userId,
           created_at: new Date().toISOString(),
