@@ -3,11 +3,12 @@
 import React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { RetroItem, type RetroItemData } from "./RetroItem";
+import { RetroItem } from "./RetroItem";
 import { GripVertical } from "lucide-react";
+import type { DraggableItem } from "@/types/drag-and-drop";
 
 interface DraggableRetroItemProps {
-  item: RetroItemData & { uniqueId: string };
+  item: DraggableItem;
   onRemove: (itemId: string) => void;
   onVote: (itemId: string) => void;
   onEdit?: (itemId: string, newText: string) => void;

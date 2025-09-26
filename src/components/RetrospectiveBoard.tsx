@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { DraggableRetroItem } from "@/components/retro/DraggableRetroItem";
 import type { RetroItemData } from "@/components/retro/RetroItem";
+import type { DraggableItem } from "@/types/drag-and-drop";
 import { DroppableColumn } from "@/components/retro/DroppableColumn";
 import { toast } from "sonner";
 import {
@@ -43,7 +44,6 @@ import {
   TouchSensor,
   useSensor,
   useSensors,
-  useDroppable,
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
@@ -402,6 +402,8 @@ export function RetrospectiveBoard({
       });
     } catch (error) {
       console.error('Failed to move item:', error);
+      toast.error("Failed to move item. Please try again.");
+      // The optimistic update will be rolled back by the onError handler in useMoveItem
     }
 
     setActiveItem(null);
@@ -644,7 +646,7 @@ export function RetrospectiveBoard({
                         ? isAnonymousItemOwner(item.id, currentUser.id)
                         : !!(item.author_id && item.author_id === currentUser.id);
 
-                      const retroItem: RetroItemData & { uniqueId: string } = {
+                      const retroItem: DraggableItem = {
                         id: item.id,
                         text: item.text,
                         author: item.author_name,

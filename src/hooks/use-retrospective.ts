@@ -13,6 +13,11 @@ import { sanitizeItemContent, sanitizeUsername } from "@/lib/utils/sanitize";
 import { canCreateItem, canDeleteItem, canVote } from "@/lib/utils/rate-limit";
 import { storeAnonymousItemOwnership } from "@/lib/boards/anonymous-items";
 import { v4 as uuidv4 } from "uuid";
+import {
+  calculateReorderPositions,
+  calculateCrossColumnPositions,
+  reindexPositions
+} from "@/lib/utils/position";
 
 // Types
 type RetrospectiveItem = Database["public"]["Tables"]["retrospective_items"]["Row"];
@@ -543,23 +548,20 @@ export function useMoveItem() {
 
         if (destError) throw destError;
 
-        // Update positions of items after the insertion point
-        if (destItems && destItems.length > 0) {
-          const updates = destItems
-            .filter(item => (item.position ?? 0) >= newPosition)
-            .map(item => ({
-              id: item.id,
-              position: (item.position ?? 0) + 1
-            }));
+        // Calculate position updates for destination column
+        const destUpdates = calculateCrossColumnPositions(destItems || [], newPosition);
 
-          if (updates.length > 0) {
-            for (const update of updates) {
-              await supabase
+        // Batch update positions in destination column
+        if (destUpdates.length > 0) {
+          // Use Promise.all for parallel updates
+          await Promise.all(
+            destUpdates.map(update =>
+              supabase
                 .from("retrospective_items")
                 .update({ position: update.position })
-                .eq("id", update.id);
-            }
-          }
+                .eq("id", update.id)
+            )
+          );
         }
 
         // Move the item to the new column with new position
@@ -586,15 +588,17 @@ export function useMoveItem() {
         if (sourceError) throw sourceError;
 
         // Re-index positions in source column
-        if (sourceItems && sourceItems.length > 0) {
-          for (let i = 0; i < sourceItems.length; i++) {
-            if (sourceItems[i].position !== i) {
-              await supabase
+        const sourceUpdates = reindexPositions(sourceItems || []);
+
+        if (sourceUpdates.length > 0) {
+          await Promise.all(
+            sourceUpdates.map(update =>
+              supabase
                 .from("retrospective_items")
-                .update({ position: i })
-                .eq("id", sourceItems[i].id);
-            }
-          }
+                .update({ position: update.position })
+                .eq("id", update.id)
+            )
+          );
         }
 
         return movedItem;
@@ -608,44 +612,26 @@ export function useMoveItem() {
 
         if (fetchError) throw fetchError;
 
-        const currentItem = items?.find(item => item.id === itemId);
-        if (!currentItem) throw new Error("Item not found");
+        // Calculate position updates for reordering within same column
+        const updates = calculateReorderPositions(items || [], itemId, newPosition);
 
-        const currentPosition = currentItem.position ?? 0;
-
-        // Calculate position updates
-        const updates: Array<{ id: string; position: number }> = [];
-
-        if (currentPosition < newPosition) {
-          // Moving down: shift items up
-          items?.forEach(item => {
-            if (item.id === itemId) {
-              updates.push({ id: item.id, position: newPosition });
-            } else if ((item.position ?? 0) > currentPosition && (item.position ?? 0) <= newPosition) {
-              updates.push({ id: item.id, position: (item.position ?? 0) - 1 });
-            }
-          });
-        } else if (currentPosition > newPosition) {
-          // Moving up: shift items down
-          items?.forEach(item => {
-            if (item.id === itemId) {
-              updates.push({ id: item.id, position: newPosition });
-            } else if ((item.position ?? 0) >= newPosition && (item.position ?? 0) < currentPosition) {
-              updates.push({ id: item.id, position: (item.position ?? 0) + 1 });
-            }
-          });
+        if (updates.length === 0) {
+          // No position change needed
+          return { id: itemId, position: newPosition };
         }
 
-        // Apply updates
-        for (const update of updates) {
-          await supabase
-            .from("retrospective_items")
-            .update({
-              position: update.position,
-              updated_at: new Date().toISOString()
-            })
-            .eq("id", update.id);
-        }
+        // Apply updates in parallel for better performance
+        await Promise.all(
+          updates.map(update =>
+            supabase
+              .from("retrospective_items")
+              .update({
+                position: update.position,
+                updated_at: new Date().toISOString()
+              })
+              .eq("id", update.id)
+          )
+        );
 
         return { id: itemId, position: newPosition };
       }
