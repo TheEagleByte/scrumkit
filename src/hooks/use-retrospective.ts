@@ -381,18 +381,27 @@ export function useUpdateItem() {
     mutationFn: async ({
       itemId,
       content,
+      color,
       retrospectiveId
     }: {
       itemId: string;
-      content: string;
+      content?: string;
+      color?: string;
       retrospectiveId: string;
     }) => {
       const supabase = createClient();
-      const sanitizedContent = sanitizeItemContent(content);
+      const updateData: { text?: string; color?: string } = {};
+
+      if (content !== undefined) {
+        updateData.text = sanitizeItemContent(content);
+      }
+      if (color !== undefined) {
+        updateData.color = color;
+      }
 
       const { data, error } = await supabase
         .from("retrospective_items")
-        .update({ text: sanitizedContent })
+        .update(updateData)
         .eq("id", itemId)
         .select()
         .single();
@@ -400,7 +409,7 @@ export function useUpdateItem() {
       if (error) throw error;
       return data;
     },
-    onMutate: async ({ itemId, content, retrospectiveId }) => {
+    onMutate: async ({ itemId, content, color, retrospectiveId }) => {
       await queryClient.cancelQueries({
         queryKey: retrospectiveKeys.items(retrospectiveId)
       });
@@ -414,7 +423,12 @@ export function useUpdateItem() {
         retrospectiveKeys.items(retrospectiveId),
         (old = []) => old.map(item =>
           item.id === itemId
-            ? { ...item, text: sanitizeItemContent(content), updated_at: new Date().toISOString() }
+            ? {
+                ...item,
+                ...(content !== undefined && { text: sanitizeItemContent(content) }),
+                ...(color !== undefined && { color }),
+                updated_at: new Date().toISOString()
+              }
             : item
         )
       );
@@ -437,6 +451,91 @@ export function useUpdateItem() {
       queryClient.invalidateQueries({
         queryKey: retrospectiveKeys.items(variables.retrospectiveId)
       });
+    },
+  });
+}
+
+export function useMergeItems() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      sourceItemIds,
+      targetColumnId,
+      retrospectiveId,
+      authorId,
+      authorName
+    }: {
+      sourceItemIds: string[];
+      targetColumnId: string;
+      retrospectiveId: string;
+      authorId: string;
+      authorName: string;
+    }) => {
+      const supabase = createClient();
+
+      const { data: itemsToMerge, error: fetchError } = await supabase
+        .from("retrospective_items")
+        .select("*")
+        .in("id", sourceItemIds);
+
+      if (fetchError) throw fetchError;
+      if (!itemsToMerge || itemsToMerge.length === 0) {
+        throw new Error("No items found to merge");
+      }
+
+      const mergedText = itemsToMerge.map(item => item.text).join(" • ");
+
+      const { data: newItem, error: createError } = await supabase
+        .from("retrospective_items")
+        .insert({
+          column_id: targetColumnId,
+          text: mergedText,
+          author_id: authorId,
+          author_name: `${authorName} (merged)`,
+        })
+        .select()
+        .single();
+
+      if (createError) throw createError;
+
+      const { data: votes, error: votesError } = await supabase
+        .from("votes")
+        .select("profile_id")
+        .in("item_id", sourceItemIds);
+
+      if (!votesError && votes && votes.length > 0) {
+        const uniqueVoters = Array.from(new Set(votes.map(v => v.profile_id)));
+        const newVotes = uniqueVoters.map(profileId => ({
+          item_id: newItem.id,
+          profile_id: profileId
+        }));
+
+        await supabase
+          .from("votes")
+          .insert(newVotes);
+      }
+
+      const { error: deleteError } = await supabase
+        .from("retrospective_items")
+        .delete()
+        .in("id", sourceItemIds);
+
+      if (deleteError) throw deleteError;
+
+      return newItem;
+    },
+    onSuccess: (data, variables) => {
+      toast.success("Items merged successfully");
+      queryClient.invalidateQueries({
+        queryKey: retrospectiveKeys.items(variables.retrospectiveId)
+      });
+      queryClient.invalidateQueries({
+        queryKey: retrospectiveKeys.votes(variables.retrospectiveId)
+      });
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Failed to merge items");
     },
   });
 }
