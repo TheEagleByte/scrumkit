@@ -19,8 +19,8 @@ export const PRESENCE_CONFIG = {
 
 // Cursor tracking configuration
 export const CURSOR_CONFIG = {
-  BROADCAST_THROTTLE: 100, // Increased from 50ms for better network performance
-  MIN_MOVEMENT_DISTANCE: 5, // Minimum pixels before broadcasting
+  BROADCAST_THROTTLE: 30,
+  MIN_MOVEMENT_DISTANCE: 3, // Minimum pixels before broadcasting
   CURSOR_HIDE_POSITION: -100,
 } as const;
 
