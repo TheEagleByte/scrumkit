@@ -4,8 +4,7 @@ import React, { memo, useState, useRef, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { X, Edit2, Check, XCircle, Palette } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { X, Edit2, Check, XCircle } from "lucide-react";
 
 export interface RetroItemData {
   id: string;
@@ -21,27 +20,14 @@ interface RetroItemProps {
   onRemove: (itemId: string) => void;
   onVote: (itemId: string) => void;
   onEdit?: (itemId: string, newText: string) => void;
-  onColorChange?: (itemId: string, color: string) => void;
   isAuthor?: boolean;
 }
-
-const PRESET_COLORS = [
-  'default', // use default theme color
-  '#fef3c7', // yellow
-  '#dbeafe', // blue
-  '#d1fae5', // green
-  '#fce7f3', // pink
-  '#e0e7ff', // indigo
-  '#fed7aa', // orange
-  '#f3e8ff', // purple
-];
 
 export const RetroItem = memo(function RetroItem({
   item,
   onRemove,
   onVote,
   onEdit,
-  onColorChange,
   isAuthor = false
 }: RetroItemProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -83,21 +69,9 @@ export const RetroItem = memo(function RetroItem({
     }
   };
 
-  const handleColorChange = (color: string) => {
-    if (onColorChange) {
-      // Pass empty string for default to clear the color
-      onColorChange(item.id, color);
-    }
-  };
-
-  // Use a default that works with both light and dark themes
-  const cardBgColor = item.color || 'transparent';
-  const hasCustomColor = item.color && item.color !== '#ffffff';
-
   return (
     <Card
-      className={`border-border/50 border transition-all ${!hasCustomColor ? 'bg-card/50' : ''}`}
-      style={hasCustomColor ? { backgroundColor: cardBgColor } : undefined}
+      className="border-border/50 border transition-all bg-card/50"
       onDoubleClick={handleStartEdit}
     >
       <CardContent className="p-4">
@@ -148,42 +122,6 @@ export const RetroItem = memo(function RetroItem({
                   >
                     <Edit2 className="h-3 w-3" />
                   </Button>
-                )}
-                {isAuthor && onColorChange && (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0"
-                        aria-label="Change color"
-                      >
-                        <Palette className="h-3 w-3" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-3">
-                      <div className="grid grid-cols-4 gap-2">
-                        {PRESET_COLORS.map((color) => (
-                          <button
-                            key={color}
-                            className={`h-8 w-8 rounded border-2 hover:scale-110 transition-transform ${
-                              color === 'default' ? 'bg-card/50 flex items-center justify-center text-xs' : ''
-                            }`}
-                            style={color !== 'default' ? {
-                              backgroundColor: color,
-                              borderColor: color === cardBgColor ? '#000' : '#ccc'
-                            } : {
-                              borderColor: (!hasCustomColor && color === 'default') ? '#000' : '#ccc'
-                            }}
-                            onClick={() => handleColorChange(color === 'default' ? '' : color)}
-                            aria-label={`Set color ${color}`}
-                          >
-                            {color === 'default' && '✓'}
-                          </button>
-                        ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
                 )}
                 {isAuthor && (
                   <Button

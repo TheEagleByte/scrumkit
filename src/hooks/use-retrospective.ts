@@ -160,7 +160,11 @@ export function useCreateItem() {
       const sanitizedName = sanitizeUsername(input.authorName);
 
       // For anonymous users (IDs starting with "anon-"), use null for author_id
+      // and encode the ID in the author_name for tracking ownership
       const authorId = input.authorId.startsWith("anon-") ? null : input.authorId;
+      const authorNameWithId = input.authorId.startsWith("anon-")
+        ? `${sanitizedName}|${input.authorId}`
+        : sanitizedName;
 
       const { data, error } = await supabase
         .from("retrospective_items")
@@ -168,7 +172,7 @@ export function useCreateItem() {
           column_id: input.columnId,
           text: sanitizedContent,
           author_id: authorId,
-          author_name: sanitizedName,
+          author_name: authorNameWithId,
         })
         .select()
         .single();
@@ -188,12 +192,16 @@ export function useCreateItem() {
       );
 
       // Optimistically update
+      const authorNameWithId = input.authorId.startsWith("anon-")
+        ? `${sanitizeUsername(input.authorName)}|${input.authorId}`
+        : sanitizeUsername(input.authorName);
+
       const optimisticItem: RetrospectiveItem = {
         id: uuidv4(),
         column_id: input.columnId,
         text: sanitizeItemContent(input.content),
         author_id: input.authorId.startsWith("anon-") ? null : input.authorId,
-        author_name: sanitizeUsername(input.authorName),
+        author_name: authorNameWithId,
         color: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -309,6 +317,11 @@ export function useToggleVote() {
       retrospectiveId: string;
       hasVoted: boolean;
     }) => {
+      // Anonymous users cannot vote (they don't have valid profile IDs)
+      if (userId.startsWith("anon-")) {
+        throw new Error("Anonymous users cannot vote. Please sign in to vote.");
+      }
+
       // Check rate limit
       if (!canVote(userId)) {
         throw new Error("Please wait before voting again");
@@ -342,6 +355,11 @@ export function useToggleVote() {
       }
     },
     onMutate: async ({ itemId, userId, retrospectiveId, hasVoted }) => {
+      // Don't perform optimistic updates for anonymous users
+      if (userId.startsWith("anon-")) {
+        return {};
+      }
+
       await queryClient.cancelQueries({
         queryKey: retrospectiveKeys.votes(retrospectiveId)
       });

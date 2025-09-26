@@ -158,13 +158,9 @@ export function RetrospectiveBoardWithQuery({
     }
   };
 
-  const handleDeleteItem = async (itemId: string, authorId: string) => {
-    // Check if user is author
-    if (authorId !== currentUser.id) {
-      toast.error("You can only delete your own items");
-      return;
-    }
-
+  const handleDeleteItem = async (itemId: string) => {
+    // Note: Authorization is now checked in the UI by only showing
+    // delete button to authors. The actual check happens when determining isAuthor.
     await deleteItemMutation.mutateAsync({
       itemId,
       retrospectiveId,
@@ -208,13 +204,6 @@ export function RetrospectiveBoardWithQuery({
     });
   };
 
-  const handleColorChange = async (itemId: string, color: string) => {
-    await updateItemMutation.mutateAsync({
-      itemId,
-      color,
-      retrospectiveId,
-    });
-  };
 
   const getColumnItems = (columnId: string) => {
     return items
@@ -338,12 +327,26 @@ export function RetrospectiveBoardWithQuery({
                 <div className="space-y-2">
                   {columnItems.map((item) => {
                     const itemVotes = votes.filter(v => v.item_id === item.id);
-                    const isAuthor = !!(item.author_id && item.author_id === currentUser.id);
+
+                    // Parse author name to extract ID for anonymous users
+                    let displayAuthorName = item.author_name;
+                    let anonymousAuthorId: string | null = null;
+
+                    if (item.author_id === null && item.author_name.includes('|')) {
+                      const parts = item.author_name.split('|');
+                      displayAuthorName = parts[0];
+                      anonymousAuthorId = parts[1];
+                    }
+
+                    // Check authorship for both authenticated and anonymous users
+                    const isAuthor = currentUser.id.startsWith("anon-")
+                      ? anonymousAuthorId === currentUser.id
+                      : !!(item.author_id && item.author_id === currentUser.id);
 
                     const retroItem: RetroItemData = {
                       id: item.id,
                       text: item.text,
-                      author: item.author_name,
+                      author: displayAuthorName,
                       votes: itemVotes.length,
                       timestamp: new Date(item.created_at || Date.now()),
                       color: item.color,
@@ -353,10 +356,9 @@ export function RetrospectiveBoardWithQuery({
                       <RetroItem
                         key={item.id}
                         item={retroItem}
-                        onRemove={() => handleDeleteItem(item.id, item.author_id || '')}
+                        onRemove={() => handleDeleteItem(item.id)}
                         onVote={() => handleToggleVote(item.id)}
                         onEdit={isAuthor ? handleEditItem : undefined}
-                        onColorChange={isAuthor ? handleColorChange : undefined}
                         isAuthor={isAuthor}
                       />
                     );
