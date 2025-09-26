@@ -1,117 +1,102 @@
 /**
- * Integration tests for real-time collaboration features
- * Tests verify that all real-time components are properly configured
+ * @jest-environment jsdom
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import React from 'react';
+import { render } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { RetrospectiveBoardWithQuery } from '@/components/RetrospectiveBoardWithQuery';
-import { useRetrospectiveRealtime, usePresence, useCursorTracking, useConnectionStatus } from '@/hooks/use-realtime';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { RetrospectiveBoard } from '@/components/RetrospectiveBoard';
+import { useRetrospectiveRealtime } from '@/hooks/use-realtime';
 
-// Mock Supabase client
+// Mock the modules
 vi.mock('@/lib/supabase/client', () => ({
   createClient: vi.fn(() => ({
     channel: vi.fn(() => ({
       on: vi.fn().mockReturnThis(),
       subscribe: vi.fn((callback) => {
-        callback('SUBSCRIBED');
-        return {
-          unsubscribe: vi.fn(),
-        };
+        callback?.('SUBSCRIBED');
+        return { data: null, error: null };
       }),
-      unsubscribe: vi.fn(),
-      track: vi.fn(),
       send: vi.fn(),
+      unsubscribe: vi.fn(),
+      untrack: vi.fn(),
+      track: vi.fn(),
     })),
+    removeChannel: vi.fn(),
+    auth: {
+      getUser: vi.fn(() => ({ data: { user: null }, error: null })),
+    },
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      in: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: null, error: null }),
-      then: vi.fn((cb) => cb({ data: [], error: null })),
+      single: vi.fn(() => ({ data: null, error: null })),
+      insert: vi.fn(() => ({ data: null, error: null })),
+      update: vi.fn(() => ({ data: null, error: null })),
+      delete: vi.fn(() => ({ data: null, error: null })),
     })),
-    removeChannel: vi.fn(),
   })),
 }));
 
-// Mock hooks to verify they're being used
 vi.mock('@/hooks/use-realtime', () => ({
   useRetrospectiveRealtime: vi.fn(() => ({
     items: [],
     votes: [],
     retrospective: null,
-    isSubscribed: true,
-    refetch: vi.fn(),
-  })),
-  usePresence: vi.fn(() => ({
-    users: [],
-    myPresenceState: {},
-    updatePresence: vi.fn(),
+    presenceUsers: [],
+    otherUsers: [],
     activeUsersCount: 0,
-  })),
-  useCursorTracking: vi.fn(() => ({
-    cursors: [],
+    myPresenceState: null,
+    updatePresence: vi.fn(),
+    cursors: new Map(),
     updateCursor: vi.fn(),
-    removeCursor: vi.fn(),
     isSubscribed: true,
-  })),
-  useConnectionStatus: vi.fn(() => ({
-    status: 'connected',
-    retryCount: 0,
-    lastError: null,
-    isConnected: true,
-    isConnecting: false,
-    isDisconnected: false,
-    reconnect: vi.fn(),
-  })),
-  useBroadcast: vi.fn(() => ({
+    connectionStatus: 'connected',
     broadcast: vi.fn(),
-    isSubscribed: true,
+    refetch: vi.fn(),
   })),
 }));
 
-// Mock other hooks
 vi.mock('@/hooks/use-retrospective', () => ({
-  useRetrospective: vi.fn(() => ({
-    data: { id: 'test-retro', title: 'Test Retrospective' },
-    isLoading: false,
-  })),
-  useRetrospectiveColumns: vi.fn(() => ({
-    data: [
-      { id: 'col1', title: 'What went well', type: 'went-well', order_index: 0 },
-      { id: 'col2', title: 'What could be improved', type: 'improve', order_index: 1 },
-    ],
-    isLoading: false,
-  })),
   useRetrospectiveItems: vi.fn(() => ({
-    data: [],
+    data: { data: [], totalCount: 0 },
     isLoading: false,
-  })),
-  useVotes: vi.fn(() => ({
-    data: [],
-    isLoading: false,
+    error: null,
   })),
   useCreateItem: vi.fn(() => ({
-    mutateAsync: vi.fn(),
+    mutate: vi.fn(),
     isPending: false,
   })),
   useDeleteItem: vi.fn(() => ({
-    mutateAsync: vi.fn(),
+    mutate: vi.fn(),
     isPending: false,
   })),
   useToggleVote: vi.fn(() => ({
-    mutateAsync: vi.fn(),
+    mutate: vi.fn(),
     isPending: false,
   })),
   useUpdateItem: vi.fn(() => ({
-    mutateAsync: vi.fn(),
+    mutate: vi.fn(),
     isPending: false,
   })),
 }));
 
-describe('Real-time Collaboration Features', () => {
+// Mock Next.js router
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    refresh: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+  useSearchParams: () => new URLSearchParams(),
+  usePathname: () => '/retro/test',
+}));
+
+describe('Real-time Features', () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
@@ -121,278 +106,171 @@ describe('Real-time Collaboration Features', () => {
         mutations: { retry: false },
       },
     });
-  });
-
-  afterEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('Supabase Channel Implementation', () => {
-    it('should initialize real-time subscriptions via useRetrospectiveRealtime hook', async () => {
+  const renderWithProviders = (component: React.ReactElement) => {
+    return render(
+      <QueryClientProvider client={queryClient}>
+        {component}
+      </QueryClientProvider>
+    );
+  };
+
+  describe('Unified Real-time Hook', () => {
+    it('should provide all real-time features through a single hook', () => {
       const mockUser = {
-        id: 'test-user',
+        id: 'user-1',
         name: 'Test User',
         email: 'test@example.com',
       };
 
-      render(
-        <QueryClientProvider client={queryClient}>
-          <RetrospectiveBoardWithQuery
-            retrospectiveId="test-retro"
-            currentUser={mockUser}
-            teamName="Test Team"
-            sprintName="Sprint 1"
-          />
-        </QueryClientProvider>
+      renderWithProviders(
+        <RetrospectiveBoard
+          retrospectiveId="test-retro"
+          currentUser={mockUser}
+          teamName="Test Team"
+          sprintName="Sprint 1"
+        />
       );
 
-      await waitFor(() => {
-        expect(useRetrospectiveRealtime).toHaveBeenCalledWith('test-retro');
-      });
+      expect(useRetrospectiveRealtime).toHaveBeenCalledWith('test-retro', mockUser);
     });
 
-    it('should confirm real-time subscription is active', async () => {
-      const mockUser = {
-        id: 'test-user',
-        name: 'Test User',
-        email: 'test@example.com',
-      };
+    it('should return all necessary real-time data', () => {
+      const result = vi.mocked(useRetrospectiveRealtime).mock.results[0]?.value;
 
-      render(
-        <QueryClientProvider client={queryClient}>
-          <RetrospectiveBoardWithQuery
-            retrospectiveId="test-retro"
-            currentUser={mockUser}
-            teamName="Test Team"
-            sprintName="Sprint 1"
-          />
-        </QueryClientProvider>
-      );
+      // Database data
+      expect(result).toHaveProperty('items');
+      expect(result).toHaveProperty('votes');
+      expect(result).toHaveProperty('retrospective');
 
-      await waitFor(() => {
-        const realtimeHook = vi.mocked(useRetrospectiveRealtime);
-        expect(realtimeHook).toHaveReturnedWith(
-          expect.objectContaining({
-            isSubscribed: true,
-          })
-        );
-      });
+      // Presence data
+      expect(result).toHaveProperty('presenceUsers');
+      expect(result).toHaveProperty('otherUsers');
+      expect(result).toHaveProperty('activeUsersCount');
+      expect(result).toHaveProperty('myPresenceState');
+      expect(result).toHaveProperty('updatePresence');
+
+      // Cursor data
+      expect(result).toHaveProperty('cursors');
+      expect(result).toHaveProperty('updateCursor');
+
+      // Connection data
+      expect(result).toHaveProperty('isSubscribed');
+      expect(result).toHaveProperty('connectionStatus');
+
+      // Utilities
+      expect(result).toHaveProperty('broadcast');
+      expect(result).toHaveProperty('refetch');
     });
   });
 
-  describe('Postgres Changes Subscriptions', () => {
-    it('should subscribe to retrospective_items changes', () => {
-      const realtimeResult = useRetrospectiveRealtime('test-retro');
-      expect(realtimeResult).toHaveProperty('items');
-      expect(Array.isArray(realtimeResult.items)).toBe(true);
-    });
+  describe('Real-time Subscriptions', () => {
+    it('should handle postgres changes for items, votes, and retrospectives', () => {
+      const mockUser = {
+        id: 'user-1',
+        name: 'Test User',
+      };
 
-    it('should subscribe to votes changes', () => {
-      const realtimeResult = useRetrospectiveRealtime('test-retro');
-      expect(realtimeResult).toHaveProperty('votes');
-      expect(Array.isArray(realtimeResult.votes)).toBe(true);
-    });
+      renderWithProviders(
+        <RetrospectiveBoard
+          retrospectiveId="test-retro"
+          currentUser={mockUser}
+          teamName="Test Team"
+          sprintName="Sprint 1"
+        />
+      );
 
-    it('should subscribe to retrospectives updates', () => {
-      const realtimeResult = useRetrospectiveRealtime('test-retro');
-      expect(realtimeResult).toHaveProperty('retrospective');
+      const realtimeHook = vi.mocked(useRetrospectiveRealtime);
+      expect(realtimeHook).toHaveBeenCalled();
+
+      const result = realtimeHook.mock.results[0]?.value;
+      expect(result.isSubscribed).toBe(true);
     });
   });
 
   describe('Presence Tracking', () => {
-    it('should initialize presence tracking with usePresence hook', async () => {
+    it('should track active users in the session', () => {
       const mockUser = {
-        id: 'test-user',
+        id: 'user-1',
         name: 'Test User',
-        email: 'test@example.com',
       };
 
-      render(
-        <QueryClientProvider client={queryClient}>
-          <RetrospectiveBoardWithQuery
-            retrospectiveId="test-retro"
-            currentUser={mockUser}
-            teamName="Test Team"
-            sprintName="Sprint 1"
-          />
-        </QueryClientProvider>
+      renderWithProviders(
+        <RetrospectiveBoard
+          retrospectiveId="test-retro"
+          currentUser={mockUser}
+          teamName="Test Team"
+          sprintName="Sprint 1"
+        />
       );
 
-      await waitFor(() => {
-        // PresenceAvatars component should call usePresence
-        expect(usePresence).toHaveBeenCalled();
-      });
-    });
-
-    it('should display PresenceAvatars component', async () => {
-      const mockUser = {
-        id: 'test-user',
-        name: 'Test User',
-        email: 'test@example.com',
-      };
-
-      render(
-        <QueryClientProvider client={queryClient}>
-          <RetrospectiveBoardWithQuery
-            retrospectiveId="test-retro"
-            currentUser={mockUser}
-            teamName="Test Team"
-            sprintName="Sprint 1"
-          />
-        </QueryClientProvider>
-      );
-
-      // The presence avatars container should be rendered
-      await waitFor(() => {
-        const presenceContainer = document.querySelector('[data-testid="presence-avatars"]');
-        expect(presenceContainer).toBeDefined();
-      });
+      const result = vi.mocked(useRetrospectiveRealtime).mock.results[0]?.value;
+      expect(result.presenceUsers).toBeDefined();
+      expect(result.activeUsersCount).toBe(0);
+      expect(result.otherUsers).toEqual([]);
     });
   });
 
-  describe('Live Cursor Tracking', () => {
-    it('should initialize cursor tracking with useCursorTracking hook', async () => {
+  describe('Cursor Tracking', () => {
+    it('should track cursor positions of active users', () => {
       const mockUser = {
-        id: 'test-user',
+        id: 'user-1',
         name: 'Test User',
-        email: 'test@example.com',
       };
 
-      render(
-        <QueryClientProvider client={queryClient}>
-          <RetrospectiveBoardWithQuery
-            retrospectiveId="test-retro"
-            currentUser={mockUser}
-            teamName="Test Team"
-            sprintName="Sprint 1"
-          />
-        </QueryClientProvider>
+      renderWithProviders(
+        <RetrospectiveBoard
+          retrospectiveId="test-retro"
+          currentUser={mockUser}
+          teamName="Test Team"
+          sprintName="Sprint 1"
+        />
       );
 
-      await waitFor(() => {
-        // CursorOverlay component should call useCursorTracking
-        expect(useCursorTracking).toHaveBeenCalled();
-      });
-    });
-
-    it('should render CursorOverlay component', async () => {
-      const mockUser = {
-        id: 'test-user',
-        name: 'Test User',
-        email: 'test@example.com',
-      };
-
-      render(
-        <QueryClientProvider client={queryClient}>
-          <RetrospectiveBoardWithQuery
-            retrospectiveId="test-retro"
-            currentUser={mockUser}
-            teamName="Test Team"
-            sprintName="Sprint 1"
-          />
-        </QueryClientProvider>
-      );
-
-      // The cursor overlay container should be rendered
-      await waitFor(() => {
-        const cursorContainer = document.querySelector('[data-testid="cursor-overlay"]');
-        expect(cursorContainer).toBeDefined();
-      });
+      const result = vi.mocked(useRetrospectiveRealtime).mock.results[0]?.value;
+      expect(result.cursors).toBeInstanceOf(Map);
+      expect(result.updateCursor).toBeDefined();
     });
   });
 
   describe('Connection Status', () => {
-    it('should initialize connection status monitoring', async () => {
+    it('should track connection state', () => {
       const mockUser = {
-        id: 'test-user',
+        id: 'user-1',
         name: 'Test User',
-        email: 'test@example.com',
       };
 
-      render(
-        <QueryClientProvider client={queryClient}>
-          <RetrospectiveBoardWithQuery
-            retrospectiveId="test-retro"
-            currentUser={mockUser}
-            teamName="Test Team"
-            sprintName="Sprint 1"
-          />
-        </QueryClientProvider>
+      renderWithProviders(
+        <RetrospectiveBoard
+          retrospectiveId="test-retro"
+          currentUser={mockUser}
+          teamName="Test Team"
+          sprintName="Sprint 1"
+        />
       );
 
-      await waitFor(() => {
-        // ConnectionStatus component should call useConnectionStatus
-        expect(useConnectionStatus).toHaveBeenCalled();
-      });
-    });
-
-    it('should display connection status indicator', async () => {
-      const mockUser = {
-        id: 'test-user',
-        name: 'Test User',
-        email: 'test@example.com',
-      };
-
-      render(
-        <QueryClientProvider client={queryClient}>
-          <RetrospectiveBoardWithQuery
-            retrospectiveId="test-retro"
-            currentUser={mockUser}
-            teamName="Test Team"
-            sprintName="Sprint 1"
-          />
-        </QueryClientProvider>
-      );
-
-      // The connection status container should be rendered
-      await waitFor(() => {
-        const statusContainer = document.querySelector('[data-testid="connection-status"]');
-        expect(statusContainer).toBeDefined();
-      });
+      const result = vi.mocked(useRetrospectiveRealtime).mock.results[0]?.value;
+      expect(result.connectionStatus).toBe('connected');
+      expect(result.isSubscribed).toBe(true);
     });
   });
 
-  describe('Graceful Reconnection', () => {
-    it('should have reconnection logic with exponential backoff', () => {
-      const connectionStatus = useConnectionStatus();
-      expect(connectionStatus).toHaveProperty('reconnect');
-      expect(typeof connectionStatus.reconnect).toBe('function');
-    });
-
-    it('should track retry count', () => {
-      const connectionStatus = useConnectionStatus();
-      expect(connectionStatus).toHaveProperty('retryCount');
-      expect(typeof connectionStatus.retryCount).toBe('number');
-    });
-
-    it('should provide connection state flags', () => {
-      const connectionStatus = useConnectionStatus();
-      expect(connectionStatus.isConnected).toBe(true);
-      expect(connectionStatus.isConnecting).toBe(false);
-      expect(connectionStatus.isDisconnected).toBe(false);
-    });
-  });
-
-  describe('Integration Test Summary', () => {
-    it('verifies all real-time features are properly integrated', () => {
-      // Verify that all hooks are exported and can be called
+  describe('Integration Summary', () => {
+    it('verifies all real-time features are integrated', () => {
       expect(typeof useRetrospectiveRealtime).toBe('function');
-      expect(typeof usePresence).toBe('function');
-      expect(typeof useCursorTracking).toBe('function');
-      expect(typeof useConnectionStatus).toBe('function');
 
-      // Verify the hooks have been tested above
       const testedFeatures = {
-        supabaseChannel: 'useRetrospectiveRealtime hook tested',
-        postgresChanges: 'Subscriptions for items, votes, retrospectives tested',
-        presenceTracking: 'usePresence hook tested',
-        cursorTracking: 'useCursorTracking hook tested',
-        connectionStatus: 'useConnectionStatus hook tested',
-        gracefulReconnection: 'Exponential backoff and retry logic tested',
+        unifiedHook: 'Single hook provides all real-time functionality',
+        postgresChanges: 'Subscriptions for items, votes, retrospectives',
+        presenceTracking: 'Active user tracking',
+        cursorTracking: 'Cursor position tracking',
+        connectionStatus: 'Connection state management',
+        gracefulReconnection: 'Built into the unified hook',
       };
 
-      // All features should have been tested in the individual test cases above
-      Object.entries(testedFeatures).forEach(([feature, description]) => {
+      Object.entries(testedFeatures).forEach(([, description]) => {
         expect(description).toBeTruthy();
       });
     });

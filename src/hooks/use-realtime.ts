@@ -10,7 +10,6 @@ import type {
 import type { Database } from "@/lib/supabase/types-enhanced";
 import { logger } from "@/lib/logger";
 import {
-  CONNECTION_CONFIG,
   PRESENCE_CONFIG,
   CURSOR_CONFIG,
   USER_COLORS,
@@ -30,24 +29,159 @@ interface PresenceUser {
   lastSeen: number;
 }
 
+interface CursorData {
+  x: number;
+  y: number;
+  color: string;
+  name?: string;
+}
+
 interface RealtimeEvent<T = unknown> {
   eventType: "INSERT" | "UPDATE" | "DELETE";
   new: T;
   old: T;
 }
 
-export function useRetrospectiveRealtime(retrospectiveId: string) {
+/**
+ * Unified real-time hook for retrospective boards
+ * Manages all real-time features through a single channel:
+ * - Database changes (items, votes, retrospective)
+ * - Presence tracking
+ * - Cursor tracking
+ * - Connection status
+ */
+export function useRetrospectiveRealtime(
+  retrospectiveId: string,
+  currentUser: {
+    id: string;
+    name: string;
+    email?: string;
+    avatar?: string;
+  }
+) {
+  // State for database data
   const [items, setItems] = useState<RetrospectiveItem[]>([]);
   const [votes, setVotes] = useState<Vote[]>([]);
   const [retrospective, setRetrospective] = useState<Retrospective | null>(null);
+
+  // State for presence
+  const [presenceUsers, setPresenceUsers] = useState<PresenceUser[]>([]);
+  const [myPresenceState, setMyPresenceState] = useState<PresenceUser | null>(null);
+
+  // State for cursors
+  const [cursors, setCursors] = useState<Map<string, CursorData>>(new Map());
+  const lastBroadcast = useRef<number>(0);
+
+  // State for connection
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
+
+  // Channel reference
   const channelRef = useRef<RealtimeChannel | null>(null);
 
-  useEffect(() => {
+  // Generate user color
+  const getUserColor = useCallback((userId: string): string => {
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+      const char = userId.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    const index = Math.abs(hash) % USER_COLORS.length;
+    return USER_COLORS[index];
+  }, []);
+
+  // Load initial data
+  const loadInitialData = useCallback(async () => {
     const supabase = createClient();
 
+    const [itemsResult, retroResult] = await Promise.all([
+      supabase
+        .from("retrospective_items")
+        .select("*")
+        .eq("retrospective_id", retrospectiveId),
+      supabase
+        .from("retrospectives")
+        .select("*")
+        .eq("id", retrospectiveId)
+        .single(),
+    ]);
+
+    if (itemsResult.data) {
+      setItems(itemsResult.data);
+
+      const itemIds = itemsResult.data.map(item => item.id);
+      if (itemIds.length > 0) {
+        const votesResult = await supabase
+          .from("votes")
+          .select("*")
+          .in("item_id", itemIds);
+
+        if (votesResult.data) setVotes(votesResult.data);
+      }
+    }
+
+    if (retroResult.data) setRetrospective(retroResult.data);
+  }, [retrospectiveId]);
+
+  // Update cursor position
+  const updateCursor = useCallback((x: number, y: number) => {
+    const now = Date.now();
+    if (channelRef.current && now - lastBroadcast.current > CURSOR_CONFIG.BROADCAST_THROTTLE) {
+      channelRef.current.send({
+        type: "broadcast",
+        event: "cursor_move",
+        payload: {
+          userId: currentUser.id,
+          x,
+          y,
+          color: getUserColor(currentUser.id),
+          name: currentUser.name,
+        },
+      });
+      lastBroadcast.current = now;
+    }
+  }, [currentUser.id, currentUser.name, getUserColor]);
+
+  // Update presence data
+  const updatePresence = useCallback(async (data: Partial<PresenceUser>) => {
+    if (channelRef.current && myPresenceState) {
+      const updatedState = { ...myPresenceState, ...data, lastSeen: Date.now() };
+      await channelRef.current.track(updatedState);
+      setMyPresenceState(updatedState);
+    }
+  }, [myPresenceState]);
+
+  // Broadcast custom event
+  const broadcast = useCallback(async (event: string, payload: unknown) => {
+    if (channelRef.current && isSubscribed) {
+      await channelRef.current.send({
+        type: "broadcast",
+        event,
+        payload,
+      });
+    }
+  }, [isSubscribed]);
+
+  // Main effect to set up the channel
+  useEffect(() => {
+    const supabase = createClient();
+    const channelName = `retrospective:${retrospectiveId}`;
+
+    // Prepare presence data
+    const presenceData: PresenceUser = {
+      id: currentUser.id,
+      name: currentUser.name,
+      email: currentUser.email,
+      avatar: currentUser.avatar,
+      color: getUserColor(currentUser.id),
+      lastSeen: Date.now(),
+    };
+
+    // Create single channel for everything
     const channel = supabase
-      .channel(`retrospective:${retrospectiveId}`)
+      .channel(channelName)
+      // Database changes - Items
       .on(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         "postgres_changes" as any,
@@ -78,6 +212,7 @@ export function useRetrospectiveRealtime(retrospectiveId: string) {
           }
         }
       )
+      // Database changes - Votes
       .on(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         "postgres_changes" as any,
@@ -99,6 +234,7 @@ export function useRetrospectiveRealtime(retrospectiveId: string) {
           }
         }
       )
+      // Database changes - Retrospective
       .on(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         "postgres_changes" as any,
@@ -113,101 +249,13 @@ export function useRetrospectiveRealtime(retrospectiveId: string) {
           logger.info("Retrospective updated", { retrospective: payload.new });
         }
       )
-      .subscribe((status) => {
-        setIsSubscribed(status === "SUBSCRIBED");
-        logger.info(`Retrospective channel status: ${status}`);
-      });
-
-    channelRef.current = channel;
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
-    };
-  }, [retrospectiveId]);
-
-  const loadInitialData = useCallback(async () => {
-    const supabase = createClient();
-
-    // First load items and retrospective
-    const [itemsResult, retroResult] = await Promise.all([
-      supabase
-        .from("retrospective_items")
-        .select("*")
-        .eq("retrospective_id", retrospectiveId),
-      supabase
-        .from("retrospectives")
-        .select("*")
-        .eq("id", retrospectiveId)
-        .single(),
-    ]);
-
-    if (itemsResult.data) {
-      setItems(itemsResult.data);
-
-      // Load votes based on fetched items, not state
-      const itemIds = itemsResult.data.map(item => item.id);
-      if (itemIds.length > 0) {
-        const votesResult = await supabase
-          .from("votes")
-          .select("*")
-          .in("item_id", itemIds);
-
-        if (votesResult.data) setVotes(votesResult.data);
-      }
-    }
-
-    if (retroResult.data) setRetrospective(retroResult.data);
-  }, [retrospectiveId]);
-
-  useEffect(() => {
-    if (isSubscribed) {
-      loadInitialData();
-    }
-  }, [isSubscribed, loadInitialData]);
-
-  return {
-    items,
-    votes,
-    retrospective,
-    isSubscribed,
-    refetch: loadInitialData,
-  };
-}
-
-export function usePresence(channelName: string, userData: Partial<PresenceUser>) {
-  const [users, setUsers] = useState<PresenceUser[]>([]);
-  const [myPresenceState, setMyPresenceState] = useState<PresenceUser | null>(null);
-  const channelRef = useRef<RealtimeChannel | null>(null);
-
-  // Destructure the specific values we need to avoid object reference issues
-  const { id: userDataId, name: userDataName, email: userDataEmail, avatar: userDataAvatar, color: userDataColor } = userData;
-
-  useEffect(() => {
-    const supabase = createClient();
-    const userId = userDataId || `user-${Date.now()}`;
-
-    const presenceData: PresenceUser = {
-      id: userId,
-      name: userDataName || "Anonymous",
-      email: userDataEmail,
-      avatar: userDataAvatar,
-      color: userDataColor || generateUserColor(userId),
-      lastSeen: Date.now(),
-    };
-
-    // Don't specify the key in config - Supabase will generate a UUID key
-    // The actual user data is in the tracked payload
-    const channel = supabase.channel(channelName);
-
-    channel
+      // Presence tracking
       .on("presence", { event: "sync" }, () => {
         const state = channel.presenceState<PresenceUser>();
         const usersList = Object.values(state).flatMap((presences) =>
           presences.map((p) => p as PresenceUser)
         );
-        setUsers(usersList);
+        setPresenceUsers(usersList);
         logger.debug("Presence sync", { users: usersList });
       })
       .on("presence", { event: "join" }, ({ key }: RealtimePresenceJoinPayload<PresenceUser>) => {
@@ -216,25 +264,58 @@ export function usePresence(channelName: string, userData: Partial<PresenceUser>
       .on("presence", { event: "leave" }, ({ key }: RealtimePresenceLeavePayload<PresenceUser>) => {
         logger.debug(`User left: ${key}`);
       })
+      // Cursor tracking
+      .on("broadcast", { event: "cursor_move" }, ({ payload }) => {
+        const data = payload as { userId: string; x: number; y: number; color: string; name?: string };
+        if (data.userId !== currentUser.id) {
+          setCursors((prev) => {
+            const next = new Map(prev);
+            next.set(data.userId, {
+              x: data.x,
+              y: data.y,
+              color: data.color,
+              name: data.name,
+            });
+            return next;
+          });
+        }
+      })
+      // Subscribe to channel
       .subscribe(async (status) => {
+        logger.info(`Channel status: ${status}`, { channel: channelName });
+        setIsSubscribed(status === "SUBSCRIBED");
+
+        // Update connection status
         if (status === "SUBSCRIBED") {
+          setConnectionStatus("connected");
+
+          // Track presence once subscribed
           await channel.track(presenceData);
           setMyPresenceState(presenceData);
-          logger.debug("Joined presence channel", { channel: channelName, userId });
+          logger.debug("Joined presence channel", { channel: channelName, userId: currentUser.id });
+
+          // Load initial data
+          loadInitialData();
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          setConnectionStatus("disconnected");
+        } else {
+          setConnectionStatus("connecting");
         }
       });
 
     channelRef.current = channel;
 
+    // Heartbeat for presence
     const heartbeatInterval = setInterval(() => {
-      if (channelRef.current) {
+      if (channelRef.current && myPresenceState) {
         channelRef.current.track({
-          ...presenceData,
+          ...myPresenceState,
           lastSeen: Date.now(),
         });
       }
     }, PRESENCE_CONFIG.HEARTBEAT_INTERVAL);
 
+    // Cleanup
     return () => {
       clearInterval(heartbeatInterval);
       if (channelRef.current) {
@@ -242,245 +323,35 @@ export function usePresence(channelName: string, userData: Partial<PresenceUser>
         supabase.removeChannel(channelRef.current);
       }
     };
-  }, [channelName, userDataId, userDataName, userDataEmail, userDataAvatar, userDataColor]);
+  }, [retrospectiveId, currentUser.id, currentUser.name, currentUser.email, currentUser.avatar, getUserColor, loadInitialData, myPresenceState]);
 
-  const updatePresence = useCallback(async (data: Partial<PresenceUser>) => {
-    if (channelRef.current && myPresenceState) {
-      const updatedState = { ...myPresenceState, ...data, lastSeen: Date.now() };
-      await channelRef.current.track(updatedState);
-      setMyPresenceState(updatedState);
-    }
-  }, [myPresenceState]);
+  // Compute derived values
+  const otherUsers = presenceUsers.filter(user => user.id !== currentUser.id);
+  const activeUsersCount = presenceUsers.length;
 
   return {
-    users,
+    // Database data
+    items,
+    votes,
+    retrospective,
+
+    // Presence
+    presenceUsers,
+    otherUsers,
+    activeUsersCount,
     myPresenceState,
     updatePresence,
-    activeUsersCount: users.length,
-  };
-}
 
-export function useBroadcast<T = unknown>(
-  channelName: string,
-  eventName: string,
-  onReceive?: (payload: T) => void
-) {
-  const channelRef = useRef<RealtimeChannel | null>(null);
-  const [isSubscribed, setIsSubscribed] = useState(false);
-
-  useEffect(() => {
-    const supabase = createClient();
-
-    const channel = supabase
-      .channel(channelName)
-      .on("broadcast", { event: eventName }, ({ payload }) => {
-        if (onReceive) {
-          onReceive(payload as T);
-        }
-      })
-      .subscribe((status) => {
-        setIsSubscribed(status === "SUBSCRIBED");
-        logger.debug(`Broadcast channel status: ${status}`, { channel: channelName });
-      });
-
-    channelRef.current = channel;
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
-    };
-  }, [channelName, eventName, onReceive]);
-
-  const broadcast = useCallback(async (payload: T) => {
-    if (channelRef.current && isSubscribed) {
-      await channelRef.current.send({
-        type: "broadcast",
-        event: eventName,
-        payload,
-      });
-    }
-  }, [eventName, isSubscribed]);
-
-  return {
-    broadcast,
-    isSubscribed,
-  };
-}
-
-export function useCursorTracking(channelName: string, userId: string) {
-  const [cursors, setCursors] = useState<Map<string, { x: number; y: number; color: string }>>(
-    new Map()
-  );
-  const lastBroadcast = useRef<number>(0);
-
-  const { broadcast, isSubscribed } = useBroadcast<{
-    userId: string;
-    x: number;
-    y: number;
-    color: string;
-  }>(channelName, "cursor_move", (payload) => {
-    if (payload.userId !== userId) {
-      setCursors((prev) => {
-        const next = new Map(prev);
-        next.set(payload.userId, {
-          x: payload.x,
-          y: payload.y,
-          color: payload.color,
-        });
-        return next;
-      });
-    }
-  });
-
-  // Use the same channel for presence to avoid splitting users across channels
-  const { updatePresence } = usePresence(channelName, {
-    id: userId,
-    color: generateUserColor(userId),
-  });
-
-  const updateCursor = useCallback(
-    (x: number, y: number) => {
-      const now = Date.now();
-      if (now - lastBroadcast.current > CURSOR_CONFIG.BROADCAST_THROTTLE) {
-        broadcast({
-          userId,
-          x,
-          y,
-          color: generateUserColor(userId),
-        });
-        updatePresence({ cursor: { x, y } });
-        lastBroadcast.current = now;
-      }
-    },
-    [broadcast, userId, updatePresence]
-  );
-
-  const removeCursor = useCallback((userId: string) => {
-    setCursors((prev) => {
-      const next = new Map(prev);
-      next.delete(userId);
-      return next;
-    });
-  }, []);
-
-  return {
+    // Cursors
     cursors,
     updateCursor,
-    removeCursor,
+
+    // Connection
     isSubscribed,
+    connectionStatus,
+
+    // Utilities
+    broadcast,
+    refetch: loadInitialData,
   };
-}
-
-export function useConnectionStatus() {
-  const [status, setStatus] = useState<"connected" | "connecting" | "disconnected">("connecting");
-  const [retryCount, setRetryCount] = useState(0);
-  const [lastError, setLastError] = useState<Error | null>(null);
-  const channelRef = useRef<RealtimeChannel | null>(null);
-
-  useEffect(() => {
-    const supabase = createClient();
-    let retryTimeout: NodeJS.Timeout;
-
-    // Simply use channel subscription status to determine connection
-    // This works for both authenticated and anonymous users
-    const channel = supabase
-      .channel("connection_check")
-      .subscribe((status) => {
-        logger.debug("Connection channel status", { status });
-
-        if (status === "SUBSCRIBED") {
-          setStatus("connected");
-          setRetryCount(0);
-          setLastError(null);
-          logger.info("Real-time connection established");
-        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-          const error = new Error(`Channel ${status}`);
-          setLastError(error);
-          setStatus("disconnected");
-
-          // Implement retry logic
-          if (retryCount < CONNECTION_CONFIG.MAX_RETRY_ATTEMPTS) {
-            const delay = Math.min(
-              CONNECTION_CONFIG.INITIAL_RETRY_DELAY * Math.pow(2, retryCount),
-              CONNECTION_CONFIG.MAX_RETRY_DELAY
-            );
-
-            logger.warn(`Connection failed, retrying in ${delay}ms`, {
-              attempt: retryCount + 1,
-              status,
-            });
-
-            setStatus("connecting");
-            setRetryCount((prev) => prev + 1);
-
-            retryTimeout = setTimeout(() => {
-              // Remove old channel and create new one
-              supabase.removeChannel(channel);
-              // Recursively call setup again by triggering useEffect
-              setRetryCount(0);
-            }, delay);
-          }
-        } else if (status === "CLOSED") {
-          setStatus("connecting");
-        }
-      });
-
-    channelRef.current = channel;
-
-    return () => {
-      clearTimeout(retryTimeout);
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
-    };
-  }, []);
-
-  const reconnect = useCallback(() => {
-    const supabase = createClient();
-
-    // Remove old channel if exists
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-    }
-
-    setRetryCount(0);
-    setStatus("connecting");
-
-    // Create new connection
-    const channel = supabase
-      .channel("connection_check")
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          setStatus("connected");
-          setRetryCount(0);
-          setLastError(null);
-        }
-      });
-
-    channelRef.current = channel;
-  }, []);
-
-  return {
-    status,
-    retryCount,
-    lastError,
-    isConnected: status === "connected",
-    isConnecting: status === "connecting",
-    isDisconnected: status === "disconnected",
-    reconnect,
-  };
-}
-
-function generateUserColor(userId: string): string {
-  // Improved hash function to reduce collisions
-  let hash = 0;
-  for (let i = 0; i < userId.length; i++) {
-    const char = userId.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-
-  const index = Math.abs(hash) % USER_COLORS.length;
-  return USER_COLORS[index];
 }
