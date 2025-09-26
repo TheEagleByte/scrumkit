@@ -161,7 +161,6 @@ export function useCreateItem() {
       const { data, error } = await supabase
         .from("retrospective_items")
         .insert({
-          retrospective_id: input.retrospectiveId,
           column_id: input.columnId,
           text: sanitizedContent,
           author_id: input.authorId,
