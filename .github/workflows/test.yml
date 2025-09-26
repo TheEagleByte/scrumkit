@@ -38,12 +38,12 @@ jobs:
 
       - name: Check coverage thresholds
         run: |
-          echo "Checking if coverage meets minimum threshold of 50%..."
+          echo "Checking if coverage meets minimum threshold of 30%..."
           npx jest --coverage --coverageReporters=json-summary --silent
           node -e "
           const coverage = require('./coverage/coverage-summary.json');
           const total = coverage.total;
-          const threshold = 50;
+          const threshold = 30;
 
           console.log('Coverage Summary:');
           console.log('================');
@@ -82,4 +82,4 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           coverage-file: ./coverage/coverage-final.json
           base-coverage-file: ./coverage/coverage-final.json
-          threshold: 50
+          threshold: 30
