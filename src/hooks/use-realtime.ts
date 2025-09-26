@@ -197,13 +197,9 @@ export function usePresence(channelName: string, userData: Partial<PresenceUser>
       lastSeen: Date.now(),
     };
 
-    const channel = supabase.channel(channelName, {
-      config: {
-        presence: {
-          key: userId,
-        },
-      },
-    });
+    // Don't specify the key in config - Supabase will generate a UUID key
+    // The actual user data is in the tracked payload
+    const channel = supabase.channel(channelName);
 
     channel
       .on("presence", { event: "sync" }, () => {
@@ -337,7 +333,8 @@ export function useCursorTracking(channelName: string, userId: string) {
     }
   });
 
-  const { updatePresence } = usePresence(`${channelName}_presence`, {
+  // Use the same channel for presence to avoid splitting users across channels
+  const { updatePresence } = usePresence(channelName, {
     id: userId,
     color: generateUserColor(userId),
   });
@@ -379,69 +376,89 @@ export function useConnectionStatus() {
   const [status, setStatus] = useState<"connected" | "connecting" | "disconnected">("connecting");
   const [retryCount, setRetryCount] = useState(0);
   const [lastError, setLastError] = useState<Error | null>(null);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
     let retryTimeout: NodeJS.Timeout;
 
-    const checkConnection = async () => {
-      try {
-        const { error } = await supabase.auth.getSession();
-
-        if (error) throw error;
-
-        setStatus("connected");
-        setRetryCount(0);
-        setLastError(null);
-      } catch (error) {
-        const err = error as Error;
-        setLastError(err);
-        setStatus("disconnected");
-
-        if (retryCount < CONNECTION_CONFIG.MAX_RETRY_ATTEMPTS) {
-          const delay = Math.min(
-            CONNECTION_CONFIG.INITIAL_RETRY_DELAY * Math.pow(2, retryCount),
-            CONNECTION_CONFIG.MAX_RETRY_DELAY
-          );
-          logger.warn(`Connection failed, retrying in ${delay}ms`, {
-            attempt: retryCount + 1,
-            error: err.message,
-          });
-
-          retryTimeout = setTimeout(() => {
-            setRetryCount((prev) => prev + 1);
-            setStatus("connecting");
-            checkConnection();
-          }, delay);
-        }
-      }
-    };
-
-    checkConnection();
-
-    const channel = supabase.channel("connection_check")
+    // Simply use channel subscription status to determine connection
+    // This works for both authenticated and anonymous users
+    const channel = supabase
+      .channel("connection_check")
       .subscribe((status) => {
+        logger.debug("Connection channel status", { status });
+
         if (status === "SUBSCRIBED") {
           setStatus("connected");
+          setRetryCount(0);
+          setLastError(null);
+          logger.info("Real-time connection established");
         } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          const error = new Error(`Channel ${status}`);
+          setLastError(error);
           setStatus("disconnected");
+
+          // Implement retry logic
+          if (retryCount < CONNECTION_CONFIG.MAX_RETRY_ATTEMPTS) {
+            const delay = Math.min(
+              CONNECTION_CONFIG.INITIAL_RETRY_DELAY * Math.pow(2, retryCount),
+              CONNECTION_CONFIG.MAX_RETRY_DELAY
+            );
+
+            logger.warn(`Connection failed, retrying in ${delay}ms`, {
+              attempt: retryCount + 1,
+              status,
+            });
+
+            setStatus("connecting");
+            setRetryCount((prev) => prev + 1);
+
+            retryTimeout = setTimeout(() => {
+              // Remove old channel and create new one
+              supabase.removeChannel(channel);
+              // Recursively call setup again by triggering useEffect
+              setRetryCount(0);
+            }, delay);
+          }
         } else if (status === "CLOSED") {
           setStatus("connecting");
         }
       });
 
-    const interval = setInterval(checkConnection, CONNECTION_CONFIG.CONNECTION_CHECK_INTERVAL);
+    channelRef.current = channel;
 
     return () => {
-      clearInterval(interval);
       clearTimeout(retryTimeout);
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
     };
-  }, [retryCount]);
+  }, []);
 
   const reconnect = useCallback(() => {
+    const supabase = createClient();
+
+    // Remove old channel if exists
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
+
     setRetryCount(0);
     setStatus("connecting");
+
+    // Create new connection
+    const channel = supabase
+      .channel("connection_check")
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          setStatus("connected");
+          setRetryCount(0);
+          setLastError(null);
+        }
+      });
+
+    channelRef.current = channel;
   }, []);
 
   return {

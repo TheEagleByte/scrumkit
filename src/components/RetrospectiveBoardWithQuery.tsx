@@ -29,10 +29,8 @@ import {
   useToggleVote,
   useUpdateItem,
 } from "@/hooks/use-retrospective";
-import { useRetrospectiveRealtime } from "@/hooks/use-realtime";
-import { ConnectionStatus } from "@/components/ConnectionStatus";
-import { PresenceAvatars } from "@/components/PresenceAvatars";
-import { CursorOverlay } from "@/components/CursorOverlay";
+import { useUnifiedRetrospectiveRealtime } from "@/hooks/use-retrospective-realtime-unified";
+import { Users } from "lucide-react";
 import { getCooldownTime } from "@/lib/utils/rate-limit";
 import { debounce } from "@/lib/utils/debounce";
 import { isAnonymousItemOwner } from "@/lib/boards/anonymous-items";
@@ -103,8 +101,18 @@ export function RetrospectiveBoardWithQuery({
   const toggleVoteMutation = useToggleVote();
   const updateItemMutation = useUpdateItem();
 
-  // Set up real-time subscriptions for instant updates
-  const { isSubscribed } = useRetrospectiveRealtime(retrospectiveId);
+  // Set up unified real-time subscriptions
+  const realtime = useUnifiedRetrospectiveRealtime(retrospectiveId, currentUser);
+
+  // Track cursor movement
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      realtime.updateCursor(e.clientX, e.clientY);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    return () => document.removeEventListener("mousemove", handleMouseMove);
+  }, [realtime]);
 
   // Track cooldowns
   useEffect(() => {
@@ -248,16 +256,27 @@ export function RetrospectiveBoardWithQuery({
           <p className="text-muted-foreground">{teamName}</p>
         </div>
         <div className="flex items-center gap-4">
-          <ConnectionStatus />
-          <PresenceAvatars channelName={`retrospective:${retrospectiveId}`} currentUser={currentUser} />
+          <Badge variant={realtime.connectionStatus === "connected" ? "default" : "secondary"}>
+            {realtime.connectionStatus === "connected" ? "Connected" : "Connecting..."}
+          </Badge>
+          <div className="flex items-center gap-2">
+            {realtime.otherUsers.length === 0 ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Users className="h-4 w-4" />
+                <span>Just you</span>
+              </div>
+            ) : (
+              <Badge variant="secondary" className="gap-1 px-2 py-0.5">
+                <Users className="h-3 w-3" />
+                {realtime.activeUsersCount} {realtime.activeUsersCount === 1 ? "user" : "users"}
+              </Badge>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Status badges */}
+      {/* Cooldown badges */}
       <div className="mb-4 flex gap-2">
-        <Badge variant={isSubscribed ? "default" : "secondary"}>
-          {isSubscribed ? "Connected" : "Connecting..."}
-        </Badge>
         {cooldowns.has(`create-${currentUser.id}`) && (
           <Badge variant="outline" className="text-orange-500">
             Create cooldown: {Math.ceil((cooldowns.get(`create-${currentUser.id}`)! - Date.now()) / 1000)}s
@@ -370,11 +389,33 @@ export function RetrospectiveBoardWithQuery({
       </div>
 
       {/* Cursor tracking overlay */}
-      <CursorOverlay
-        channelName={`retrospective:${retrospectiveId}`}
-        userId={currentUser.id}
-        containerRef={boardRef}
-      />
+      {Array.from(realtime.cursors.entries()).map(([userId, cursor]) => (
+        <div
+          key={userId}
+          className="pointer-events-none fixed z-50"
+          style={{
+            left: cursor.x,
+            top: cursor.y,
+            transform: "translate(-4px, -4px)",
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            className="drop-shadow-md"
+          >
+            <path
+              d="M5.65376 12.3673H5.46026L5.31717 12.4976L0.500002 16.8829L0.500002 1.19841L11.7841 12.3673H5.65376Z"
+              fill={cursor.color}
+              stroke="white"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+      ))}
     </div>
   );
 }
