@@ -172,6 +172,7 @@ export function useCreateItem() {
         text: sanitizeItemContent(input.content),
         author_id: input.authorId,
         author_name: sanitizeUsername(input.authorName),
+        color: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };

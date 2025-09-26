@@ -348,7 +348,7 @@ export function RetrospectiveBoardWithQuery({
                 <div className="space-y-2">
                   {columnItems.map((item) => {
                     const itemVotes = votes.filter(v => v.item_id === item.id);
-                    const isAuthor = item.author_id && item.author_id === currentUser.id;
+                    const isAuthor = !!(item.author_id && item.author_id === currentUser.id);
 
                     const retroItem: RetroItemData = {
                       id: item.id,
