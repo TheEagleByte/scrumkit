@@ -181,16 +181,19 @@ export function usePresence(channelName: string, userData: Partial<PresenceUser>
   const [myPresenceState, setMyPresenceState] = useState<PresenceUser | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
+  // Destructure the specific values we need to avoid object reference issues
+  const { id: userDataId, name: userDataName, email: userDataEmail, avatar: userDataAvatar, color: userDataColor } = userData;
+
   useEffect(() => {
     const supabase = createClient();
-    const userId = userData.id || `user-${Date.now()}`;
+    const userId = userDataId || `user-${Date.now()}`;
 
     const presenceData: PresenceUser = {
       id: userId,
-      name: userData.name || "Anonymous",
-      email: userData.email,
-      avatar: userData.avatar,
-      color: userData.color || generateUserColor(userId),
+      name: userDataName || "Anonymous",
+      email: userDataEmail,
+      avatar: userDataAvatar,
+      color: userDataColor || generateUserColor(userId),
       lastSeen: Date.now(),
     };
 
@@ -221,6 +224,7 @@ export function usePresence(channelName: string, userData: Partial<PresenceUser>
         if (status === "SUBSCRIBED") {
           await channel.track(presenceData);
           setMyPresenceState(presenceData);
+          logger.debug("Joined presence channel", { channel: channelName, userId });
         }
       });
 
@@ -242,7 +246,7 @@ export function usePresence(channelName: string, userData: Partial<PresenceUser>
         supabase.removeChannel(channelRef.current);
       }
     };
-  }, [channelName, userData]);
+  }, [channelName, userDataId, userDataName, userDataEmail, userDataAvatar, userDataColor]);
 
   const updatePresence = useCallback(async (data: Partial<PresenceUser>) => {
     if (channelRef.current && myPresenceState) {
