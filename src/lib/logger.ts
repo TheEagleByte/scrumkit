@@ -31,7 +31,7 @@ class Logger {
     if (context && Object.keys(context).length > 0) {
       try {
         log += `\nContext: ${JSON.stringify(context, null, 2)}`;
-      } catch (e) {
+      } catch {
         log += `\nContext: [Circular Reference]`;
       }
     }
