@@ -183,6 +183,7 @@ export type Database = {
           author_id: string | null
           author_name: string
           column_id: string
+          color: string | null
           created_at: string | null
           id: string
           text: string
@@ -192,6 +193,7 @@ export type Database = {
           author_id?: string | null
           author_name: string
           column_id: string
+          color?: string | null
           created_at?: string | null
           id?: string
           text: string
@@ -201,6 +203,7 @@ export type Database = {
           author_id?: string | null
           author_name?: string
           column_id?: string
+          color?: string | null
           created_at?: string | null
           id?: string
           text?: string
