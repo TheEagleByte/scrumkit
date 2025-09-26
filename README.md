@@ -72,11 +72,51 @@ Deploy your own instance with one click:
 
 - **Framework:** [Next.js 15](https://nextjs.org/) with App Router
 - **UI Components:** [Radix UI](https://radix-ui.com/) + [Tailwind CSS](https://tailwindcss.com/)
-- **Database:** [PostgreSQL](https://www.postgresql.org/) with [Prisma ORM](https://www.prisma.io/)
-- **Real-time:** [Pusher](https://pusher.com/) or [Liveblocks](https://liveblocks.io/)
-- **State Management:** [Zustand](https://zustand-demo.pmnd.rs/) + [TanStack Query](https://tanstack.com/query)
-- **Authentication:** [NextAuth.js](https://next-auth.js.org/)
+- **Database:** [PostgreSQL](https://www.postgresql.org/) with [Supabase](https://supabase.com/)
+- **Real-time:** [Supabase Realtime](https://supabase.com/docs/guides/realtime) (Postgres Changes, Presence, Broadcast)
+- **State Management:** [TanStack Query](https://tanstack.com/query) + React Hooks
+- **Authentication:** [Supabase Auth](https://supabase.com/auth) with anonymous user support
 - **Type Safety:** [TypeScript](https://www.typescriptlang.org/) with strict mode
+
+## 🔄 Real-time Architecture
+
+ScrumKit provides a comprehensive real-time collaboration system built on Supabase Realtime:
+
+### Core Real-time Features
+
+- **📡 Postgres Changes Subscriptions**
+  - Automatic synchronization of retrospective items across all clients
+  - Real-time vote tracking and updates
+  - Live retrospective status changes
+
+- **👥 Presence Tracking**
+  - See who's currently viewing the board
+  - Color-coded user identification
+  - Active/away status detection
+  - User count display
+
+- **🖱️ Live Cursor Tracking**
+  - Real-time cursor position sharing
+  - Smooth animations with throttled updates
+  - User name labels on cursors
+  - Container-relative positioning
+
+- **🔌 Connection Management**
+  - Visual connection status indicator
+  - Automatic reconnection with exponential backoff
+  - Manual reconnection option
+  - Network quality monitoring
+
+### Technical Implementation
+
+The real-time system is implemented through custom React hooks:
+- `useRetrospectiveRealtime()` - Manages Postgres change subscriptions
+- `usePresence()` - Handles user presence state
+- `useCursorTracking()` - Tracks and broadcasts cursor positions
+- `useConnectionStatus()` - Monitors connection health
+- `useBroadcast()` - Generic message broadcasting
+
+All real-time features work seamlessly for both authenticated and anonymous users.
 
 ## 📦 Features
 
@@ -138,9 +178,12 @@ Monitor team health and morale:
 
 ### Phase 1: MVP ✅
 - [x] Project initialization
-- [ ] Core retrospective board
+- [x] Core retrospective board
+- [x] Real-time collaboration (Postgres changes, Presence, Cursor tracking)
+- [x] Connection status management
+- [x] Anonymous user support
 - [ ] Basic planning poker
-- [ ] Authentication system
+- [x] Authentication system
 
 ### Phase 2: Enhanced Features
 - [ ] Team management
