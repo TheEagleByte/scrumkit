@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Plus,
   ThumbsUp,
@@ -261,15 +263,111 @@ export function RetrospectiveBoard({
           </Badge>
           <div className="flex items-center gap-2">
             {realtime.otherUsers.length === 0 ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Users className="h-4 w-4" />
-                <span>Just you</span>
-              </div>
+              <HoverCard>
+                <HoverCardTrigger asChild>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                    <Users className="h-4 w-4" />
+                    <span>Just you</span>
+                  </div>
+                </HoverCardTrigger>
+                <HoverCardContent className="w-64">
+                  <div className="space-y-3">
+                    <div className="text-sm font-medium">Active Users</div>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="h-8 w-8 rounded-full flex items-center justify-center text-white font-semibold text-xs"
+                        style={{ backgroundColor: realtime.myPresenceState?.color || '#6B7280' }}
+                      >
+                        {currentUser.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="font-medium">{currentUser.name} (You)</div>
+                        {currentUser.email && (
+                          <div className="text-xs text-muted-foreground">{currentUser.email}</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </HoverCardContent>
+              </HoverCard>
             ) : (
-              <Badge variant="secondary" className="gap-1 px-2 py-0.5">
-                <Users className="h-3 w-3" />
-                {realtime.activeUsersCount} {realtime.activeUsersCount === 1 ? "user" : "users"}
-              </Badge>
+              <HoverCard>
+                <HoverCardTrigger asChild>
+                  <Badge variant="secondary" className="gap-1 px-2 py-0.5 cursor-pointer">
+                    <Users className="h-3 w-3" />
+                    {realtime.activeUsersCount} {realtime.activeUsersCount === 1 ? "user" : "users"}
+                  </Badge>
+                </HoverCardTrigger>
+                <HoverCardContent className="w-80">
+                  <div className="space-y-3">
+                    <div className="text-sm font-medium">Active Users ({realtime.activeUsersCount})</div>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {/* Current user */}
+                      <div className="flex items-center gap-3 pb-2 border-b">
+                        {currentUser.avatar ? (
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
+                            <AvatarFallback
+                              style={{ backgroundColor: realtime.myPresenceState?.color || '#6B7280' }}
+                            >
+                              {currentUser.name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                        ) : (
+                          <div
+                            className="h-8 w-8 rounded-full flex items-center justify-center text-white font-semibold text-xs"
+                            style={{ backgroundColor: realtime.myPresenceState?.color || '#6B7280' }}
+                          >
+                            {currentUser.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <div className="font-medium">{currentUser.name} (You)</div>
+                          {currentUser.email && (
+                            <div className="text-xs text-muted-foreground">{currentUser.email}</div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                          <span className="text-xs text-muted-foreground">Online</span>
+                        </div>
+                      </div>
+                      {/* Other users */}
+                      {realtime.otherUsers.map((user) => (
+                        <div key={user.id} className="flex items-center gap-3">
+                          {user.avatar ? (
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={user.avatar} alt={user.name} />
+                              <AvatarFallback
+                                style={{ backgroundColor: user.color || '#6B7280' }}
+                              >
+                                {user.name.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                          ) : (
+                            <div
+                              className="h-8 w-8 rounded-full flex items-center justify-center text-white font-semibold text-xs"
+                              style={{ backgroundColor: user.color || '#6B7280' }}
+                            >
+                              {user.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <div className="font-medium">{user.name}</div>
+                            {user.email && (
+                              <div className="text-xs text-muted-foreground">{user.email}</div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                            <span className="text-xs text-muted-foreground">Online</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </HoverCardContent>
+              </HoverCard>
             )}
           </div>
         </div>
