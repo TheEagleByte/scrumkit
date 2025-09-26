@@ -1,0 +1,53 @@
+{
+  "sampleItems": {
+    "wentWell": [
+      "Great collaboration between frontend and backend teams",
+      "Successfully delivered the auth feature ahead of schedule",
+      "Code reviews were thorough and constructive",
+      "Team morale was high throughout the sprint",
+      "Automated tests caught several bugs before production"
+    ],
+    "improvements": [
+      "Need better documentation for API endpoints",
+      "Sprint planning took longer than expected",
+      "Could improve communication with stakeholders",
+      "Tech debt is accumulating in the legacy modules",
+      "Need to reduce meeting time"
+    ],
+    "blockers": [
+      "Third-party API downtime affected development",
+      "Waiting for design approval delayed frontend work",
+      "Environment issues slowed down testing",
+      "Missing access to production logs",
+      "Dependencies between teams caused delays"
+    ],
+    "actionItems": [
+      "Set up automated code review reminders",
+      "Schedule tech debt reduction session",
+      "Create API documentation template",
+      "Implement monitoring dashboard",
+      "Define clearer sprint goals"
+    ]
+  },
+  "edgeCases": {
+    "longText": "This is an extremely long retrospective item that contains a lot of text to test how the application handles lengthy content. It includes multiple sentences and goes on and on to ensure that text wrapping, truncation, and overall layout remain functional when users input verbose feedback during their retrospective sessions. This helps identify any UI issues with overflow or text handling.",
+    "shortText": "Ok",
+    "specialCharacters": "Test with special chars: !@#$%^&*()_+-=[]{}|;':\",./<>?",
+    "emoji": "Great work team! 🎉🚀💪 We crushed it!",
+    "multiline": "First line of feedback\nSecond line with more details\nThird line concluding the thought",
+    "htmlInjection": "<script>alert('test')</script>Innocent text",
+    "sqlInjection": "'; DROP TABLE items; --",
+    "empty": "",
+    "whitespace": "   ",
+    "unicode": "Testing unicode: 你好 мир العالم 🌍"
+  },
+  "authorNames": [
+    "Anonymous",
+    "Team Member",
+    "Sarah Chen",
+    "Mike Johnson",
+    "Alex Rivera",
+    "Emma Davis",
+    "David Kim"
+  ]
+}
