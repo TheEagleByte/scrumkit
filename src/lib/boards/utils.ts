@@ -40,7 +40,8 @@ export function getBoardsFromCookie(): string[] {
 
   try {
     const value = boardsCookie.split("=")[1];
-    return JSON.parse(decodeURIComponent(value));
+    const parsed = JSON.parse(decodeURIComponent(value));
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
@@ -89,7 +90,7 @@ export function getCreatorCookie(): string | null {
 
   if (!creatorCookie) return null;
 
-  return creatorCookie.split("=")[1];
+  return creatorCookie.split("=")[1].trim();
 }
 
 export function setCreatorCookie(value: string) {

@@ -12,6 +12,14 @@
 
 # testing
 /coverage
+*.lcov
+coverage.json
+coverage-summary.json
+
+# cypress
+cypress/screenshots
+cypress/videos
+cypress/downloads
 
 # next.js
 /.next/

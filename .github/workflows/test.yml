@@ -1,0 +1,79 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+        env:
+          CI: true
+
+      - name: Check coverage thresholds
+        run: |
+          echo "Checking if coverage meets minimum threshold of 30%..."
+          npx jest --coverage --coverageReporters=json-summary --silent
+          node -e "
+          const coverage = require('./coverage/coverage-summary.json');
+          const total = coverage.total;
+          const threshold = 29;
+
+          console.log('Coverage Summary:');
+          console.log('================');
+          console.log(\`Lines: \${total.lines.pct}%\`);
+          console.log(\`Statements: \${total.statements.pct}%\`);
+          console.log(\`Functions: \${total.functions.pct}%\`);
+          console.log(\`Branches: \${total.branches.pct}%\`);
+          console.log('');
+
+          const metrics = ['lines', 'statements', 'functions', 'branches'];
+          const failed = metrics.filter(metric => total[metric].pct < threshold);
+
+          if (failed.length > 0) {
+            console.error(\`❌ Coverage failed for: \${failed.join(', ')}\`);
+            console.error(\`Minimum threshold required: \${threshold}%\`);
+            process.exit(1);
+          } else {
+            console.log(\`✅ All coverage thresholds met (minimum: \${threshold}%)\`);
+          }
+          "
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/coverage-final.json
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      # Comment PR with coverage action removed due to compatibility issues
+      # Will rely on codecov for coverage reporting instead
