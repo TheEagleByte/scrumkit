@@ -95,42 +95,57 @@ export function useRetrospectiveRealtime(
   const loadInitialData = useCallback(async () => {
     const supabase = createClient();
 
-    const [itemsResult, retroResult] = await Promise.all([
-      supabase
-        .from("retrospective_items")
-        .select("*")
-        .eq("retrospective_id", retrospectiveId),
-      supabase
-        .from("retrospectives")
-        .select("*")
-        .eq("id", retrospectiveId)
-        .single(),
-    ]);
+    // First get the retrospective
+    const retroResult = await supabase
+      .from("retrospectives")
+      .select("*")
+      .eq("id", retrospectiveId)
+      .single();
 
-    if (itemsResult.data) {
-      setItems(itemsResult.data);
+    if (retroResult.data) {
+      setRetrospective(retroResult.data);
 
-      const itemIds = itemsResult.data.map(item => item.id);
-      if (itemIds.length > 0) {
-        const votesResult = await supabase
-          .from("votes")
+      // Get all columns for this retrospective
+      const columnsResult = await supabase
+        .from("retrospective_columns")
+        .select("id")
+        .eq("retrospective_id", retrospectiveId);
+
+      if (columnsResult.data && columnsResult.data.length > 0) {
+        const columnIds = columnsResult.data.map(col => col.id);
+
+        // Get all items for these columns
+        const itemsResult = await supabase
+          .from("retrospective_items")
           .select("*")
-          .in("item_id", itemIds);
+          .in("column_id", columnIds);
 
-        if (votesResult.data) setVotes(votesResult.data);
+        if (itemsResult.data) {
+          setItems(itemsResult.data);
+
+          const itemIds = itemsResult.data.map(item => item.id);
+          if (itemIds.length > 0) {
+            const votesResult = await supabase
+              .from("votes")
+              .select("*")
+              .in("item_id", itemIds);
+
+            if (votesResult.data) setVotes(votesResult.data);
+          }
+        }
       }
     }
-
-    if (retroResult.data) setRetrospective(retroResult.data);
   }, [retrospectiveId]);
 
   // Update cursor position with validation
   const lastPosition = useRef({ x: 0, y: 0 });
   const updateCursor = useCallback((x: number, y: number) => {
     // Validate cursor position to prevent XSS
+    // Allow -100 for hidden cursor, otherwise 0-100 for percentages
     if (typeof x !== 'number' || typeof y !== 'number' ||
         !isFinite(x) || !isFinite(y) ||
-        x < -100 || x > 200 || y < -100 || y > 200) {
+        (x !== -100 && (x < 0 || x > 100)) ||
+        (y !== -100 && (y < 0 || y > 100))) {
       logger.warn('Invalid cursor position', { x, y });
       return;
     }
@@ -290,7 +305,8 @@ export function useRetrospectiveRealtime(
           // Validate cursor data before storing
           if (typeof data.x === 'number' && typeof data.y === 'number' &&
               isFinite(data.x) && isFinite(data.y) &&
-              data.x >= -100 && data.x <= 200 && data.y >= -100 && data.y <= 200) {
+              ((data.x === -100 && data.y === -100) ||
+               (data.x >= 0 && data.x <= 100 && data.y >= 0 && data.y <= 100))) {
             setCursors((prev) => {
               const next = new Map(prev);
               const validatedCursor: ValidatedCursorData = {

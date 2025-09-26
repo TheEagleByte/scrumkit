@@ -118,7 +118,10 @@ export function RetrospectiveBoard({
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      throttledCursorUpdate(e.clientX, e.clientY);
+      // Convert pixel coordinates to percentages of viewport
+      const x = (e.clientX / window.innerWidth) * 100;
+      const y = (e.clientY / window.innerHeight) * 100;
+      throttledCursorUpdate(x, y);
     };
 
     const handleMouseLeave = () => {
@@ -520,15 +523,21 @@ export function RetrospectiveBoard({
       </div>
 
       {/* Cursor tracking overlay */}
-      {Array.from(realtime.cursors.entries()).map(([userId, cursor]) => (
-        <div
-          key={userId}
-          className="pointer-events-none fixed z-50 transition-all duration-75 ease-out"
-          style={{
-            left: cursor.x,
-            top: cursor.y,
-            transform: "translate(-4px, -4px)",
-          }}
+      {Array.from(realtime.cursors.entries()).map(([userId, cursor]) => {
+        // Convert percentage coordinates back to pixels
+        const pixelX = cursor.x < 0 ? -100 : (cursor.x * window.innerWidth) / 100;
+        const pixelY = cursor.y < 0 ? -100 : (cursor.y * window.innerHeight) / 100;
+
+        return (
+          <div
+            key={userId}
+            className="pointer-events-none fixed z-50 transition-all duration-150 ease-out"
+            style={{
+              left: pixelX,
+              top: pixelY,
+              transform: "translate(-4px, -4px)",
+              opacity: cursor.x < 0 || cursor.y < 0 ? 0 : 1,
+            }}
         >
           <div className="flex items-start gap-1">
             <svg
@@ -556,9 +565,10 @@ export function RetrospectiveBoard({
                 {cursor.name}
               </span>
             )}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
