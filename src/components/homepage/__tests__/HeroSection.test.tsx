@@ -12,11 +12,13 @@ jest.mock('motion/react', () => ({
 
 // Mock Next.js Link
 jest.mock('next/link', () => {
-  return ({ children, href, className, onClick }: any) => (
+  const Link = ({ children, href, className, onClick }: any) => (
     <a href={href} className={className} onClick={onClick}>
       {children}
     </a>
   );
+  Link.displayName = 'Link';
+  return Link;
 });
 
 // Mock AnimatedText component

@@ -3,11 +3,13 @@ import { Footer } from '../Footer';
 
 // Mock Next.js Link
 jest.mock('next/link', () => {
-  return ({ children, href, className }: any) => (
+  const Link = ({ children, href, className }: any) => (
     <a href={href} className={className}>
       {children}
     </a>
   );
+  Link.displayName = 'Link';
+  return Link;
 });
 
 // Mock Lucide React Users icon
