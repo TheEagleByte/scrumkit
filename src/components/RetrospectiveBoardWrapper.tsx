@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RetrospectiveBoardWithQuery } from "./RetrospectiveBoardWithQuery";
+import { RetrospectiveBoard } from "./RetrospectiveBoard";
 import { getOrCreateAnonymousUser } from "@/lib/boards/anonymous";
 
 interface RetrospectiveBoardWrapperProps {
@@ -62,7 +62,7 @@ export function RetrospectiveBoardWrapper({
   }, [authenticatedUser]);
 
   return (
-    <RetrospectiveBoardWithQuery
+    <RetrospectiveBoard
       retrospectiveId={retrospectiveId}
       currentUser={boardUser}
       teamName={teamName}

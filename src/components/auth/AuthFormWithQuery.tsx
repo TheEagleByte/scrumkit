@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { useSignIn, useSignUp, useSignInWithProvider } from "@/hooks/use-auth-query";
 import { createClient } from "@/lib/supabase/client";
-import { Mail, Loader2, ArrowRight, KeyRound, Github } from "lucide-react";
+import { Mail, Loader2, ArrowRight, Github } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface AuthFormWithQueryProps {
