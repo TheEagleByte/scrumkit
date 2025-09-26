@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { DraggableRetroItem } from "@/components/retro/DraggableRetroItem";
 import type { RetroItemData } from "@/components/retro/RetroItem";
+import { DroppableColumn } from "@/components/retro/DroppableColumn";
 import { toast } from "sonner";
 import {
   useRetrospective,
@@ -42,13 +43,12 @@ import {
   TouchSensor,
   useSensor,
   useSensors,
+  useDroppable,
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
 import {
-  SortableContext,
   sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { restrictToWindowEdges } from "@dnd-kit/modifiers";
 import { useRetrospectiveRealtime } from "@/hooks/use-realtime";
@@ -326,7 +326,7 @@ export function RetrospectiveBoard({
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
 
-    if (!over) {
+    if (!over || active.id === over.id) {
       setActiveItem(null);
       return;
     }
@@ -336,64 +336,72 @@ export function RetrospectiveBoard({
 
     // Extract the actual item ID and column ID from the unique IDs
     const [activeColumnId, activeItemId] = activeId.split("-item-");
-    const overParts = overId.split("-item-");
-    const overColumnId = overParts[0];
-    const overItemId = overParts[1];
 
-    // Find the active item
-    const activeItemData = items.find(item => item.id === activeItemId);
-    if (!activeItemData) {
-      setActiveItem(null);
-      return;
-    }
+    // Check if we're dropping on a column or an item
+    let destinationColumnId: string;
+    let newPosition: number;
 
-    // If dropping on a column (not an item)
-    if (!overItemId && overColumnId) {
-      // Moving to an empty column or end of column
-      const destColumnItems = getColumnItems(overColumnId);
-      const newPosition = destColumnItems.length;
+    if (overId.includes("-item-")) {
+      // Dropping on an item
+      const [overColumnId, overItemId] = overId.split("-item-");
+      destinationColumnId = overColumnId;
 
-      if (activeColumnId !== overColumnId || activeItemData.position !== newPosition) {
-        await moveItemMutation.mutateAsync({
-          itemId: activeItemId,
-          sourceColumnId: activeColumnId,
-          destinationColumnId: overColumnId,
-          newPosition,
-          retrospectiveId,
-        });
-      }
-    } else if (overItemId) {
-      // Dropping on another item
-      const overItem = items.find(item => item.id === overItemId);
-      if (!overItem) {
+      const destItems = getColumnItems(destinationColumnId);
+      const overIndex = destItems.findIndex(item => item.id === overItemId);
+
+      if (overIndex === -1) {
         setActiveItem(null);
         return;
       }
 
-      const destinationColumnId = overItem.column_id;
-      const destinationItems = getColumnItems(destinationColumnId);
-      const overIndex = destinationItems.findIndex(item => item.id === overItemId);
-
-      // Calculate new position based on where the item was dropped
-      let newPosition = overItem.position ?? overIndex;
-
-      // If moving within the same column and moving down, adjust position
+      // Calculate position based on whether we're moving within same column
       if (activeColumnId === destinationColumnId) {
-        const activeIndex = destinationItems.findIndex(item => item.id === activeItemId);
-        if (activeIndex < overIndex) {
-          newPosition = Math.max(0, newPosition - 1);
+        const activeIndex = destItems.findIndex(item => item.id === activeItemId);
+        if (activeIndex === -1) {
+          setActiveItem(null);
+          return;
         }
-      }
 
-      if (activeColumnId !== destinationColumnId || activeItemData.position !== newPosition) {
-        await moveItemMutation.mutateAsync({
-          itemId: activeItemId,
-          sourceColumnId: activeColumnId,
-          destinationColumnId,
-          newPosition,
-          retrospectiveId,
-        });
+        // If dragging down, insert after; if dragging up, insert before
+        newPosition = activeIndex < overIndex ? overIndex : overIndex;
+      } else {
+        // Moving to different column - insert at the dropped position
+        newPosition = overIndex;
       }
+    } else {
+      // Dropping on a column (empty space or column header)
+      destinationColumnId = overId;
+      const destItems = getColumnItems(destinationColumnId);
+      newPosition = destItems.length; // Add to end
+    }
+
+    // Only update if there's an actual change
+    const activeItem = items.find(item => item.id === activeItemId);
+    if (!activeItem) {
+      setActiveItem(null);
+      return;
+    }
+
+    // Check if we need to update
+    const isSameColumn = activeItem.column_id === destinationColumnId;
+    const currentItems = getColumnItems(activeItem.column_id);
+    const currentIndex = currentItems.findIndex(item => item.id === activeItemId);
+
+    if (isSameColumn && currentIndex === newPosition) {
+      setActiveItem(null);
+      return; // No change needed
+    }
+
+    try {
+      await moveItemMutation.mutateAsync({
+        itemId: activeItemId,
+        sourceColumnId: activeItem.column_id,
+        destinationColumnId,
+        newPosition,
+        retrospectiveId,
+      });
+    } catch (error) {
+      console.error('Failed to move item:', error);
     }
 
     setActiveItem(null);
@@ -626,12 +634,8 @@ export function RetrospectiveBoard({
                 )}
 
                 {/* Items */}
-                <SortableContext
-                  items={itemIds}
-                  strategy={verticalListSortingStrategy}
-                  id={column.id}
-                >
-                  <div className="space-y-2 min-h-[50px]">
+                <DroppableColumn id={column.id} items={itemIds}>
+                  <div className="space-y-2">
                     {columnItems.map((item) => {
                       const itemVotes = votes.filter(v => v.item_id === item.id);
 
@@ -662,7 +666,7 @@ export function RetrospectiveBoard({
                       );
                     })}
                   </div>
-                </SortableContext>
+                </DroppableColumn>
               </CardContent>
             </Card>
           );
