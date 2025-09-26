@@ -157,6 +157,7 @@ describe('use-retrospective', () => {
       in: jest.fn(),
       order: jest.fn(),
       single: jest.fn(),
+      limit: jest.fn(),
     };
 
     // Set up method chaining - all methods return the same builder by default
@@ -167,6 +168,7 @@ describe('use-retrospective', () => {
     mockQueryBuilder.eq.mockReturnValue(mockQueryBuilder);
     mockQueryBuilder.in.mockReturnValue(mockQueryBuilder);
     mockQueryBuilder.order.mockReturnValue(mockQueryBuilder);
+    mockQueryBuilder.limit.mockReturnValue(mockQueryBuilder);
     mockQueryBuilder.single.mockReturnValue(mockQueryBuilder);
 
     // Individual tests will override the terminal method they need
@@ -460,8 +462,12 @@ describe('use-retrospective', () => {
 
   describe('useCreateItem', () => {
     it('creates item successfully', async () => {
-      const newItem = { ...mockItems[0], id: 'item-3' };
-      mockQueryBuilder.single.mockResolvedValue({ data: newItem, error: null });
+      const newItem = { ...mockItems[0], id: 'item-3', position: 2 };
+
+      // First call to fetch position
+      mockQueryBuilder.limit.mockResolvedValueOnce({ data: [{ position: 1 }], error: null });
+      // Second call to insert
+      mockQueryBuilder.single.mockResolvedValueOnce({ data: newItem, error: null });
 
       const { result } = renderHook(() => useCreateItem(), { wrapper: createWrapper() });
 
@@ -510,7 +516,10 @@ describe('use-retrospective', () => {
     });
 
     it('handles create item error', async () => {
-      mockQueryBuilder.single.mockResolvedValue({
+      // First call to fetch position succeeds
+      mockQueryBuilder.limit.mockResolvedValueOnce({ data: [], error: null });
+      // Second call to insert fails
+      mockQueryBuilder.single.mockResolvedValueOnce({
         data: null,
         error: { message: 'Creation failed' }
       });
@@ -535,7 +544,10 @@ describe('use-retrospective', () => {
     });
 
     it('performs optimistic update', async () => {
-      mockQueryBuilder.single.mockResolvedValue({ data: mockItems[0], error: null });
+      // First call to fetch position
+      mockQueryBuilder.limit.mockResolvedValueOnce({ data: [{ position: 1 }], error: null });
+      // Second call to insert
+      mockQueryBuilder.single.mockResolvedValueOnce({ data: mockItems[0], error: null });
 
       const { result } = renderHook(() => useCreateItem(), { wrapper: createWrapper() });
 
