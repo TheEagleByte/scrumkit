@@ -84,10 +84,11 @@ const rateLimiter = new RateLimiter();
  * @returns true if allowed, false if rate limited
  */
 export function canVote(userId: string): boolean {
+  // Use a 1-second cooldown between votes
   return rateLimiter.checkLimit(
     `vote-${userId}`,
-    10, // 10 votes
-    60000 // per minute
+    1, // 1 vote
+    1000 // per second
   );
 }
 
@@ -97,10 +98,11 @@ export function canVote(userId: string): boolean {
  * @returns true if allowed, false if rate limited
  */
 export function canCreateItem(userId: string): boolean {
+  // Use a 5-second cooldown between item creations instead of per-minute limit
   return rateLimiter.checkLimit(
     `create-${userId}`,
-    RATE_LIMIT_CONFIG.MAX_ACTIONS_PER_MINUTE,
-    60000 // per minute
+    1, // 1 action
+    5000 // per 5 seconds
   );
 }
 
@@ -110,10 +112,11 @@ export function canCreateItem(userId: string): boolean {
  * @returns true if allowed, false if rate limited
  */
 export function canDeleteItem(userId: string): boolean {
+  // Use a 3-second cooldown between deletions
   return rateLimiter.checkLimit(
     `delete-${userId}`,
-    10, // 10 deletions
-    60000 // per minute
+    1, // 1 deletion
+    3000 // per 3 seconds
   );
 }
 
