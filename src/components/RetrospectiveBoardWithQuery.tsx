@@ -8,12 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   Plus,
-  X,
   ThumbsUp,
   Lightbulb,
   AlertTriangle,
   Target,
 } from "lucide-react";
+import { RetroItem, type RetroItemData } from "@/components/retro/RetroItem";
 import { toast } from "sonner";
 import {
   useRetrospective,
@@ -23,6 +23,8 @@ import {
   useCreateItem,
   useDeleteItem,
   useToggleVote,
+  useUpdateItem,
+  useMergeItems,
 } from "@/hooks/use-retrospective";
 import { useRetrospectiveRealtime } from "@/hooks/use-realtime";
 import { ConnectionStatus } from "@/components/ConnectionStatus";
@@ -110,6 +112,8 @@ export function RetrospectiveBoardWithQuery({
   const createItemMutation = useCreateItem();
   const deleteItemMutation = useDeleteItem();
   const toggleVoteMutation = useToggleVote();
+  const updateItemMutation = useUpdateItem();
+  const mergeItemsMutation = useMergeItems();
 
   // Set up real-time subscriptions for instant updates
   const { isSubscribed } = useRetrospectiveRealtime(retrospectiveId);
@@ -206,6 +210,22 @@ export function RetrospectiveBoardWithQuery({
     } catch (error) {
       // Error is handled by the mutation
     }
+  };
+
+  const handleEditItem = async (itemId: string, newText: string) => {
+    await updateItemMutation.mutateAsync({
+      itemId,
+      content: newText,
+      retrospectiveId,
+    });
+  };
+
+  const handleColorChange = async (itemId: string, color: string) => {
+    await updateItemMutation.mutateAsync({
+      itemId,
+      color,
+      retrospectiveId,
+    });
   };
 
   const getColumnItems = (columnId: string) => {
@@ -331,44 +351,27 @@ export function RetrospectiveBoardWithQuery({
                 <div className="space-y-2">
                   {columnItems.map((item) => {
                     const itemVotes = votes.filter(v => v.item_id === item.id);
-                    const hasVoted = itemVotes.some(v => v.profile_id === currentUser.id);
                     const isAuthor = item.author_id && item.author_id === currentUser.id;
 
+                    const retroItem: RetroItemData = {
+                      id: item.id,
+                      text: item.text,
+                      author: item.author_name,
+                      votes: itemVotes.length,
+                      timestamp: new Date(item.created_at || Date.now()),
+                      color: item.color,
+                    };
+
                     return (
-                      <div
+                      <RetroItem
                         key={item.id}
-                        className="p-3 rounded-lg bg-background/50 hover:bg-background/80 transition-colors"
-                      >
-                        <div className="flex justify-between items-start gap-2 mb-2">
-                          <p className="text-sm flex-1">{item.text}</p>
-                          {isAuthor && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => handleDeleteItem(item.id, item.author_id || '')}
-                              disabled={deleteItemMutation.isPending}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          )}
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">
-                            {item.author_name}
-                          </span>
-                          <Button
-                            variant={hasVoted ? "default" : "outline"}
-                            size="sm"
-                            className="h-7 px-2"
-                            onClick={() => handleToggleVote(item.id)}
-                            disabled={toggleVoteMutation.isPending || cooldowns.has(`vote-${currentUser.id}`)}
-                          >
-                            <ThumbsUp className="h-3 w-3 mr-1" />
-                            {itemVotes.length}
-                          </Button>
-                        </div>
-                      </div>
+                        item={retroItem}
+                        onRemove={() => handleDeleteItem(item.id, item.author_id || '')}
+                        onVote={() => handleToggleVote(item.id)}
+                        onEdit={isAuthor ? handleEditItem : undefined}
+                        onColorChange={isAuthor ? handleColorChange : undefined}
+                        isAuthor={isAuthor}
+                      />
                     );
                   })}
                 </div>
