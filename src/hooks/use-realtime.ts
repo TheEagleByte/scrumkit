@@ -150,7 +150,7 @@ export function useRetrospectiveRealtime(
       return;
     }
 
-    // Calculate movement distance (increased threshold from 5px to 10px)
+    // Calculate movement distance
     const distance = Math.sqrt(
       Math.pow(x - lastPosition.current.x, 2) +
       Math.pow(y - lastPosition.current.y, 2)
@@ -159,7 +159,7 @@ export function useRetrospectiveRealtime(
     const now = Date.now();
     // Only broadcast if moved enough distance AND throttle time passed
     if (channelRef.current &&
-        distance >= 10 && // Increased from 5px to 10px
+        distance >= 3 &&
         now - lastBroadcast.current > CURSOR_CONFIG.BROADCAST_THROTTLE) {
       channelRef.current.send({
         type: "broadcast",
