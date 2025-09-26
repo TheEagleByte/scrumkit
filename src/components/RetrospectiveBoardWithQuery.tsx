@@ -12,6 +12,10 @@ import {
   Lightbulb,
   AlertTriangle,
   Target,
+  Heart,
+  Frown,
+  Smile,
+  MessageSquare,
 } from "lucide-react";
 import { RetroItem, type RetroItemData } from "@/components/retro/RetroItem";
 import { toast } from "sonner";
@@ -45,49 +49,36 @@ interface RetrospectiveBoardWithQueryProps {
   sprintName?: string;
 }
 
-interface ColumnConfig {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  color: string;
-  type: "went-well" | "improve" | "blockers" | "action-items";
-}
+// Icon mapping for different column types
+const getColumnIcon = (columnType: string): React.ReactNode => {
+  const iconMap: Record<string, React.ReactNode> = {
+    'went-well': <ThumbsUp className="h-5 w-5" />,
+    'improve': <Lightbulb className="h-5 w-5" />,
+    'blockers': <AlertTriangle className="h-5 w-5" />,
+    'action-items': <Target className="h-5 w-5" />,
+    'glad': <Smile className="h-5 w-5" />,
+    'sad': <Frown className="h-5 w-5" />,
+    'mad': <AlertTriangle className="h-5 w-5" />,
+    'liked': <Heart className="h-5 w-5" />,
+    'learned': <Lightbulb className="h-5 w-5" />,
+    'lacked': <AlertTriangle className="h-5 w-5" />,
+    'longed-for': <Target className="h-5 w-5" />,
+  };
+  return iconMap[columnType] || <MessageSquare className="h-5 w-5" />;
+};
 
-const columnConfigs: ColumnConfig[] = [
-  {
-    id: "went-well",
-    type: "went-well",
-    title: "What went well?",
-    description: "Celebrate successes and positive outcomes",
-    icon: <ThumbsUp className="h-5 w-5" />,
-    color: "bg-green-500/10 border-green-500/20",
-  },
-  {
-    id: "improve",
-    type: "improve",
-    title: "What could be improved?",
-    description: "Identify areas for enhancement",
-    icon: <Lightbulb className="h-5 w-5" />,
-    color: "bg-yellow-500/10 border-yellow-500/20",
-  },
-  {
-    id: "blockers",
-    type: "blockers",
-    title: "What blocked us?",
-    description: "Obstacles and impediments faced",
-    icon: <AlertTriangle className="h-5 w-5" />,
-    color: "bg-red-500/10 border-red-500/20",
-  },
-  {
-    id: "action-items",
-    type: "action-items",
-    title: "Action items",
-    description: "Next steps and commitments",
-    icon: <Target className="h-5 w-5" />,
-    color: "bg-blue-500/10 border-blue-500/20",
-  },
-];
+// Default colors for columns based on index
+const getColumnColor = (index: number): string => {
+  const colors = [
+    "bg-green-500/10 border-green-500/20",
+    "bg-yellow-500/10 border-yellow-500/20",
+    "bg-red-500/10 border-red-500/20",
+    "bg-blue-500/10 border-blue-500/20",
+    "bg-purple-500/10 border-purple-500/20",
+    "bg-pink-500/10 border-pink-500/20",
+  ];
+  return colors[index % colors.length];
+};
 
 export function RetrospectiveBoardWithQuery({
   retrospectiveId,
@@ -282,23 +273,22 @@ export function RetrospectiveBoardWithQuery({
       </div>
 
       {/* Columns */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {columnConfigs.map((config) => {
-          const column = columns.find(c => c.column_type === config.type);
-          if (!column) return null;
-
+      <div className={`grid grid-cols-1 md:grid-cols-2 ${columns.length > 3 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-6`}>
+        {columns.sort((a, b) => (a.display_order || 0) - (b.display_order || 0)).map((column, index) => {
           const columnItems = getColumnItems(column.id);
 
           return (
-            <Card key={config.id} className={`${config.color} border`}>
+            <Card key={column.id} className={`${column.color || getColumnColor(index)} border`}>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  {config.icon}
-                  {config.title}
+                  {getColumnIcon(column.column_type)}
+                  {column.title}
                 </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  {config.description}
-                </p>
+                {column.description && (
+                  <p className="text-sm text-muted-foreground">
+                    {column.description}
+                  </p>
+                )}
               </CardHeader>
               <CardContent>
                 {/* Add button */}
