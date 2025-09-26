@@ -33,6 +33,7 @@ interface CursorData {
   x: number;
   y: number;
   color: string;
+  name?: string;
 }
 
 interface RealtimeEvent<T = unknown> {
@@ -135,11 +136,12 @@ export function useUnifiedRetrospectiveRealtime(
           x,
           y,
           color: getUserColor(currentUser.id),
+          name: currentUser.name,
         },
       });
       lastBroadcast.current = now;
     }
-  }, [currentUser.id, getUserColor]);
+  }, [currentUser.id, currentUser.name, getUserColor]);
 
   // Update presence data
   const updatePresence = useCallback(async (data: Partial<PresenceUser>) => {
@@ -181,6 +183,7 @@ export function useUnifiedRetrospectiveRealtime(
       .channel(channelName)
       // Database changes - Items
       .on(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         "postgres_changes" as any,
         {
           event: "*",
@@ -211,6 +214,7 @@ export function useUnifiedRetrospectiveRealtime(
       )
       // Database changes - Votes
       .on(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         "postgres_changes" as any,
         {
           event: "*",
@@ -232,6 +236,7 @@ export function useUnifiedRetrospectiveRealtime(
       )
       // Database changes - Retrospective
       .on(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         "postgres_changes" as any,
         {
           event: "UPDATE",
@@ -261,7 +266,7 @@ export function useUnifiedRetrospectiveRealtime(
       })
       // Cursor tracking
       .on("broadcast", { event: "cursor_move" }, ({ payload }) => {
-        const data = payload as { userId: string; x: number; y: number; color: string };
+        const data = payload as { userId: string; x: number; y: number; color: string; name?: string };
         if (data.userId !== currentUser.id) {
           setCursors((prev) => {
             const next = new Map(prev);
@@ -269,6 +274,7 @@ export function useUnifiedRetrospectiveRealtime(
               x: data.x,
               y: data.y,
               color: data.color,
+              name: data.name,
             });
             return next;
           });
@@ -317,7 +323,7 @@ export function useUnifiedRetrospectiveRealtime(
         supabase.removeChannel(channelRef.current);
       }
     };
-  }, [retrospectiveId, currentUser.id, currentUser.name, currentUser.email, currentUser.avatar, getUserColor, loadInitialData]);
+  }, [retrospectiveId, currentUser.id, currentUser.name, currentUser.email, currentUser.avatar, getUserColor, loadInitialData, myPresenceState]);
 
   // Compute derived values
   const otherUsers = presenceUsers.filter(user => user.id !== currentUser.id);

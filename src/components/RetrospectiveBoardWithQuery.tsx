@@ -399,21 +399,33 @@ export function RetrospectiveBoardWithQuery({
             transform: "translate(-4px, -4px)",
           }}
         >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            className="drop-shadow-md"
-          >
-            <path
-              d="M5.65376 12.3673H5.46026L5.31717 12.4976L0.500002 16.8829L0.500002 1.19841L11.7841 12.3673H5.65376Z"
-              fill={cursor.color}
-              stroke="white"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <div className="flex items-start gap-1">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              className="drop-shadow-md"
+            >
+              <path
+                d="M5.65376 12.3673H5.46026L5.31717 12.4976L0.500002 16.8829L0.500002 1.19841L11.7841 12.3673H5.65376Z"
+                fill={cursor.color}
+                stroke="white"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            {cursor.name && (
+              <span
+                className="mt-3 rounded-sm px-1 py-0.5 text-xs font-medium text-white shadow-sm"
+                style={{
+                  backgroundColor: cursor.color,
+                }}
+              >
+                {cursor.name}
+              </span>
+            )}
+          </div>
         </div>
       ))}
     </div>
