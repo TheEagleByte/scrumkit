@@ -23,6 +23,9 @@ import { DraggableRetroItem } from "@/components/retro/DraggableRetroItem";
 import type { RetroItemData } from "@/components/retro/RetroItem";
 import type { DraggableItem } from "@/types/drag-and-drop";
 import { DroppableColumn } from "@/components/retro/DroppableColumn";
+import { VoteCounter } from "@/components/retro/VoteIndicator";
+import { Toggle } from "@/components/ui/toggle";
+import { ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
 import {
   useRetrospective,
@@ -34,6 +37,7 @@ import {
   useToggleVote,
   useUpdateItem,
   useMoveItem,
+  useUserVoteStats,
 } from "@/hooks/use-retrospective";
 import {
   DndContext,
@@ -113,12 +117,14 @@ export function RetrospectiveBoard({
   const [activeColumn, setActiveColumn] = useState<string | null>(null);
   const [cooldowns, setCooldowns] = useState<Map<string, number>>(new Map());
   const [activeItem, setActiveItem] = useState<RetroItemData | null>(null);
+  const [sortByVotes, setSortByVotes] = useState(false);
 
   // Use TanStack Query hooks
   const { isLoading: retroLoading } = useRetrospective(retrospectiveId);
   const { data: columns = [], isLoading: columnsLoading } = useRetrospectiveColumns(retrospectiveId);
   const { data: items = [], isLoading: itemsLoading } = useRetrospectiveItems(retrospectiveId);
   const { data: votes = [] } = useVotes(retrospectiveId, items.map(i => i.id));
+  const { data: voteStats } = useUserVoteStats(retrospectiveId, currentUser.id);
 
   // Mutations
   const createItemMutation = useCreateItem();
@@ -302,18 +308,28 @@ export function RetrospectiveBoard({
       return items
         .filter(item => item.column_id === columnId)
         .sort((a, b) => {
-          // Sort by position first, then by votes, then by date
-          const posA = a.position ?? 999;
-          const posB = b.position ?? 999;
-          if (posA !== posB) return posA - posB;
-
           const aVotes = votes.filter(v => v.item_id === a.id).length;
           const bVotes = votes.filter(v => v.item_id === b.id).length;
-          if (aVotes !== bVotes) return bVotes - aVotes;
+
+          if (sortByVotes) {
+            // Sort by votes first when toggle is on
+            if (aVotes !== bVotes) return bVotes - aVotes;
+            // Then by position as secondary sort
+            const posA = a.position ?? 999;
+            const posB = b.position ?? 999;
+            if (posA !== posB) return posA - posB;
+          } else {
+            // Sort by position first, then by votes, then by date
+            const posA = a.position ?? 999;
+            const posB = b.position ?? 999;
+            if (posA !== posB) return posA - posB;
+            if (aVotes !== bVotes) return bVotes - aVotes;
+          }
+
           return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
         });
     },
-    [items, votes]
+    [items, votes, sortByVotes]
   );
 
   // Drag and drop handlers
@@ -443,6 +459,27 @@ export function RetrospectiveBoard({
           <p className="text-muted-foreground">{teamName}</p>
         </div>
         <div className="flex items-center gap-4">
+          {/* Vote Counter */}
+          {voteStats && !currentUser.id.startsWith("anon-") && (
+            <div className="w-32">
+              <VoteCounter
+                votesUsed={voteStats.votesUsed}
+                maxVotes={voteStats.maxVotes}
+              />
+            </div>
+          )}
+
+          {/* Sort Toggle */}
+          <Toggle
+            pressed={sortByVotes}
+            onPressedChange={setSortByVotes}
+            aria-label="Toggle vote sorting"
+            size="sm"
+            className="gap-1"
+          >
+            <ArrowUpDown className="h-4 w-4" />
+            Sort by votes
+          </Toggle>
           <Badge variant={realtime.connectionStatus === "connected" ? "default" : "secondary"}>
             {realtime.connectionStatus === "connected" ? "Connected" : "Connecting..."}
           </Badge>
@@ -640,13 +677,24 @@ export function RetrospectiveBoard({
                   <div className="space-y-2">
                     {columnItems.map((item) => {
                       const itemVotes = votes.filter(v => v.item_id === item.id);
+                      const hasVoted = itemVotes.some(v => v.profile_id === currentUser.id);
 
                       // Check authorship for both authenticated and anonymous users
                       const isAuthor = currentUser.id.startsWith("anon-")
                         ? isAnonymousItemOwner(item.id, currentUser.id)
                         : !!(item.author_id && item.author_id === currentUser.id);
 
-                      const retroItem: DraggableItem = {
+                      // Check if user can vote
+                      let canVote = false;
+                      if (!currentUser.id.startsWith("anon-")) {
+                        if (hasVoted) {
+                          canVote = true; // Can always remove vote
+                        } else {
+                          canVote = voteStats ? voteStats.votesRemaining > 0 : false;
+                        }
+                      }
+
+                      const retroItem: DraggableItem & { hasVoted?: boolean; canVote?: boolean } = {
                         id: item.id,
                         text: item.text,
                         author: item.author_name,
@@ -654,6 +702,8 @@ export function RetrospectiveBoard({
                         timestamp: new Date(item.created_at || Date.now()),
                         color: item.color,
                         uniqueId: `${column.id}-item-${item.id}`,
+                        hasVoted,
+                        canVote,
                       };
 
                       return (

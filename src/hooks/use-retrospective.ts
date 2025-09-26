@@ -40,6 +40,7 @@ export const retrospectiveKeys = {
   items: (retrospectiveId: string) => [...retrospectiveKeys.detail(retrospectiveId), "items"] as const,
   columns: (retrospectiveId: string) => [...retrospectiveKeys.detail(retrospectiveId), "columns"] as const,
   votes: (retrospectiveId: string) => [...retrospectiveKeys.detail(retrospectiveId), "votes"] as const,
+  voteStats: (retrospectiveId: string, userId: string) => [...retrospectiveKeys.detail(retrospectiveId), "voteStats", userId] as const,
 };
 
 // Fetch retrospective details
@@ -367,6 +368,49 @@ export function useToggleVote() {
         if (error) throw error;
         return { action: "removed" as const };
       } else {
+        // Check vote limit before adding
+        // Get retrospective max votes
+        const { data: retro, error: retroError } = await supabase
+          .from("retrospectives")
+          .select("max_votes_per_user")
+          .eq("id", retrospectiveId)
+          .single();
+
+        if (retroError) throw retroError;
+
+        const maxVotes = retro?.max_votes_per_user || 5;
+
+        // Count current votes for this user in this retrospective
+        const { data: columns } = await supabase
+          .from("retrospective_columns")
+          .select("id")
+          .eq("retrospective_id", retrospectiveId);
+
+        if (columns && columns.length > 0) {
+          const columnIds = columns.map(col => col.id);
+
+          const { data: items } = await supabase
+            .from("retrospective_items")
+            .select("id")
+            .in("column_id", columnIds);
+
+          if (items && items.length > 0) {
+            const itemIds = items.map(item => item.id);
+
+            const { count, error: countError } = await supabase
+              .from("votes")
+              .select("*", { count: "exact", head: true })
+              .in("item_id", itemIds)
+              .eq("profile_id", userId);
+
+            if (countError) throw countError;
+
+            if (count && count >= maxVotes) {
+              throw new Error(`You've reached the maximum of ${maxVotes} votes for this retrospective`);
+            }
+          }
+        }
+
         // Add vote
         const { data, error } = await supabase
           .from("votes")
@@ -431,6 +475,12 @@ export function useToggleVote() {
       queryClient.invalidateQueries({
         queryKey: retrospectiveKeys.votes(variables.retrospectiveId)
       });
+      // Also invalidate vote stats for the user
+      if (!variables.userId.startsWith("anon-")) {
+        queryClient.invalidateQueries({
+          queryKey: retrospectiveKeys.voteStats(variables.retrospectiveId, variables.userId)
+        });
+      }
     },
   });
 }
@@ -813,4 +863,95 @@ export function useMergeItems() {
       toast.error(err instanceof Error ? err.message : "Failed to merge items");
     },
   });
+}
+
+// Fetch user's vote statistics for a retrospective
+export function useUserVoteStats(retrospectiveId: string, userId: string) {
+  return useQuery({
+    queryKey: retrospectiveKeys.voteStats(retrospectiveId, userId),
+    queryFn: async () => {
+      const supabase = createClient();
+
+      // Get retrospective max votes
+      const { data: retro, error: retroError } = await supabase
+        .from("retrospectives")
+        .select("max_votes_per_user")
+        .eq("id", retrospectiveId)
+        .single();
+
+      if (retroError) {
+        console.error("Error fetching retrospective:", retroError);
+        return { votesUsed: 0, maxVotes: 5, votesRemaining: 5 };
+      }
+
+      const maxVotes = retro?.max_votes_per_user || 5;
+
+      // Get all column IDs for this retrospective
+      const { data: columns, error: columnsError } = await supabase
+        .from("retrospective_columns")
+        .select("id")
+        .eq("retrospective_id", retrospectiveId);
+
+      if (columnsError || !columns || columns.length === 0) {
+        return { votesUsed: 0, maxVotes, votesRemaining: maxVotes };
+      }
+
+      const columnIds = columns.map(col => col.id);
+
+      // Get items in these columns
+      const { data: items, error: itemsError } = await supabase
+        .from("retrospective_items")
+        .select("id")
+        .in("column_id", columnIds);
+
+      if (itemsError || !items || items.length === 0) {
+        return { votesUsed: 0, maxVotes, votesRemaining: maxVotes };
+      }
+
+      const itemIds = items.map(item => item.id);
+
+      // Count user's votes
+      const { data: votes, error: votesError } = await supabase
+        .from("votes")
+        .select("id")
+        .in("item_id", itemIds)
+        .eq("profile_id", userId);
+
+      if (votesError) {
+        console.error("Error fetching votes:", votesError);
+        return { votesUsed: 0, maxVotes, votesRemaining: maxVotes };
+      }
+
+      const votesUsed = votes?.length || 0;
+      const votesRemaining = Math.max(0, maxVotes - votesUsed);
+
+      return {
+        votesUsed,
+        maxVotes,
+        votesRemaining,
+      };
+    },
+    enabled: !!userId && !userId.startsWith("anon-"), // Don't fetch for anonymous users
+    refetchInterval: 5000, // Poll every 5 seconds
+  });
+}
+
+// Check if user can vote on an item (considering vote limits)
+export function useCanVote(retrospectiveId: string, userId: string, itemId: string) {
+  const { data: voteStats } = useUserVoteStats(retrospectiveId, userId);
+  const { data: votes = [] } = useVotes(retrospectiveId, [itemId]);
+
+  const hasVoted = votes.some(v => v.item_id === itemId && v.profile_id === userId);
+
+  // If already voted, they can toggle it off
+  if (hasVoted) {
+    return { canVote: true, reason: "toggle" };
+  }
+
+  // Check if they have votes remaining
+  if (!voteStats || voteStats.votesRemaining <= 0) {
+    return { canVote: false, reason: "no_votes_remaining" };
+  }
+
+  return { canVote: true, reason: "can_vote" };
 }

@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { X, Edit2, Check, XCircle } from "lucide-react";
+import { VoteIndicator } from "./VoteIndicator";
 import type { Database } from "@/lib/supabase/types-enhanced";
 
 type RetrospectiveItem = Database["public"]["Tables"]["retrospective_items"]["Row"];
@@ -13,6 +14,9 @@ export interface RetroItemData extends Pick<RetrospectiveItem, "id" | "text" | "
   author: string;
   votes: number;
   timestamp: Date;
+  hasVoted?: boolean;
+  canVote?: boolean;
+  voters?: string[];
 }
 
 interface RetroItemProps {
@@ -140,14 +144,14 @@ export const RetroItem = memo(function RetroItem({
               <span className="text-muted-foreground text-xs">
                 {item.author}
               </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-xs"
-                onClick={() => onVote(item.id)}
-              >
-                👍 {item.votes}
-              </Button>
+              <VoteIndicator
+                voteCount={item.votes}
+                hasVoted={item.hasVoted || false}
+                canVote={item.canVote !== false}
+                onVote={() => onVote(item.id)}
+                voters={item.voters}
+                showTooltip={true}
+              />
             </div>
           </>
         )}
