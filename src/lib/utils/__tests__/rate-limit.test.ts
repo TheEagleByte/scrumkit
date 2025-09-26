@@ -161,43 +161,41 @@ describe('Rate Limiting Utility', () => {
   });
 
   describe('Voting Rate Limits', () => {
-    it('should allow voting within limit', () => {
+    it('should allow voting with 1-second cooldown', () => {
       const userId = 'user123';
 
-      // Should allow up to 10 votes
-      for (let i = 0; i < 10; i++) {
-        expect(canVote(userId)).toBe(true);
-      }
+      // First vote should succeed
+      expect(canVote(userId)).toBe(true);
 
-      // 11th vote should be blocked
+      // Second vote immediately should be blocked
       expect(canVote(userId)).toBe(false);
+
+      // After 1 second, should be able to vote again
+      mockDateNow.mockReturnValue(MOCK_TIME + 1001);
+      expect(canVote(userId)).toBe(true);
     });
 
     it('should have separate limits per user', () => {
       const user1 = 'user1';
       const user2 = 'user2';
 
-      // User1 uses up their votes
-      for (let i = 0; i < 10; i++) {
-        expect(canVote(user1)).toBe(true);
-      }
-      expect(canVote(user1)).toBe(false);
+      // User1 votes
+      expect(canVote(user1)).toBe(true);
+      expect(canVote(user1)).toBe(false); // Blocked by cooldown
 
       // User2 should still be able to vote
       expect(canVote(user2)).toBe(true);
     });
 
-    it('should reset voting limit after time window', () => {
+    it('should reset voting limit after cooldown', () => {
       const userId = 'user123';
 
-      // Use up votes
-      for (let i = 0; i < 10; i++) {
-        canVote(userId);
-      }
-      expect(canVote(userId)).toBe(false);
+      // First vote
+      expect(canVote(userId)).toBe(true);
+      expect(canVote(userId)).toBe(false); // Blocked
 
-      // Advance time past 1 minute window
-      mockDateNow.mockReturnValue(MOCK_TIME + 60001);
+      // Advance time past 1 second cooldown
+      mockDateNow.mockReturnValue(MOCK_TIME + 1001);
 
       // Should be able to vote again
       expect(canVote(userId)).toBe(true);
@@ -205,43 +203,41 @@ describe('Rate Limiting Utility', () => {
   });
 
   describe('Item Creation Rate Limits', () => {
-    it('should allow creating items within limit', () => {
+    it('should allow creating items with 5-second cooldown', () => {
       const userId = 'user123';
 
-      // Should allow up to 20 items (from mocked MAX_ACTIONS_PER_MINUTE)
-      for (let i = 0; i < 20; i++) {
-        expect(canCreateItem(userId)).toBe(true);
-      }
+      // First item should succeed
+      expect(canCreateItem(userId)).toBe(true);
 
-      // 21st item should be blocked
+      // Second item immediately should be blocked
       expect(canCreateItem(userId)).toBe(false);
+
+      // After 5 seconds, should be able to create again
+      mockDateNow.mockReturnValue(MOCK_TIME + 5001);
+      expect(canCreateItem(userId)).toBe(true);
     });
 
     it('should have separate creation limits per user', () => {
       const user1 = 'user1';
       const user2 = 'user2';
 
-      // User1 uses up their limit
-      for (let i = 0; i < 20; i++) {
-        canCreateItem(user1);
-      }
-      expect(canCreateItem(user1)).toBe(false);
+      // User1 creates an item
+      expect(canCreateItem(user1)).toBe(true);
+      expect(canCreateItem(user1)).toBe(false); // Blocked by cooldown
 
       // User2 should still be able to create items
       expect(canCreateItem(user2)).toBe(true);
     });
 
-    it('should reset creation limit after time window', () => {
+    it('should reset creation limit after cooldown', () => {
       const userId = 'user123';
 
-      // Use up creation limit
-      for (let i = 0; i < 20; i++) {
-        canCreateItem(userId);
-      }
-      expect(canCreateItem(userId)).toBe(false);
+      // First item
+      expect(canCreateItem(userId)).toBe(true);
+      expect(canCreateItem(userId)).toBe(false); // Blocked
 
-      // Advance time past 1 minute window
-      mockDateNow.mockReturnValue(MOCK_TIME + 60001);
+      // Advance time past 5 second cooldown
+      mockDateNow.mockReturnValue(MOCK_TIME + 5001);
 
       // Should be able to create items again
       expect(canCreateItem(userId)).toBe(true);
@@ -249,43 +245,41 @@ describe('Rate Limiting Utility', () => {
   });
 
   describe('Item Deletion Rate Limits', () => {
-    it('should allow deleting items within limit', () => {
+    it('should allow deleting items with 3-second cooldown', () => {
       const userId = 'user123';
 
-      // Should allow up to 10 deletions
-      for (let i = 0; i < 10; i++) {
-        expect(canDeleteItem(userId)).toBe(true);
-      }
+      // First deletion should succeed
+      expect(canDeleteItem(userId)).toBe(true);
 
-      // 11th deletion should be blocked
+      // Second deletion immediately should be blocked
       expect(canDeleteItem(userId)).toBe(false);
+
+      // After 3 seconds, should be able to delete again
+      mockDateNow.mockReturnValue(MOCK_TIME + 3001);
+      expect(canDeleteItem(userId)).toBe(true);
     });
 
     it('should have separate deletion limits per user', () => {
       const user1 = 'user1';
       const user2 = 'user2';
 
-      // User1 uses up their deletions
-      for (let i = 0; i < 10; i++) {
-        canDeleteItem(user1);
-      }
-      expect(canDeleteItem(user1)).toBe(false);
+      // User1 deletes an item
+      expect(canDeleteItem(user1)).toBe(true);
+      expect(canDeleteItem(user1)).toBe(false); // Blocked by cooldown
 
       // User2 should still be able to delete
       expect(canDeleteItem(user2)).toBe(true);
     });
 
-    it('should reset deletion limit after time window', () => {
+    it('should reset deletion limit after cooldown', () => {
       const userId = 'user123';
 
-      // Use up deletion limit
-      for (let i = 0; i < 10; i++) {
-        canDeleteItem(userId);
-      }
-      expect(canDeleteItem(userId)).toBe(false);
+      // First deletion
+      expect(canDeleteItem(userId)).toBe(true);
+      expect(canDeleteItem(userId)).toBe(false); // Blocked
 
-      // Advance time past 1 minute window
-      mockDateNow.mockReturnValue(MOCK_TIME + 60001);
+      // Advance time past 3 second cooldown
+      mockDateNow.mockReturnValue(MOCK_TIME + 3001);
 
       // Should be able to delete again
       expect(canDeleteItem(userId)).toBe(true);
@@ -296,52 +290,44 @@ describe('Rate Limiting Utility', () => {
     it('should return correct cooldown time for vote action', () => {
       const userId = 'user123';
 
-      // Use up votes
-      for (let i = 0; i < 10; i++) {
-        canVote(userId);
-      }
+      // Vote once to trigger cooldown
+      canVote(userId);
 
       const cooldown = getCooldownTime('vote', userId);
-      expect(cooldown).toBe(60000); // Full minute remaining
+      expect(cooldown).toBe(1000); // 1 second cooldown
     });
 
     it('should return correct cooldown time for create action', () => {
       const userId = 'user123';
 
-      // Use up creation limit
-      for (let i = 0; i < 20; i++) {
-        canCreateItem(userId);
-      }
+      // Create once to trigger cooldown
+      canCreateItem(userId);
 
       const cooldown = getCooldownTime('create', userId);
-      expect(cooldown).toBe(60000); // Full minute remaining
+      expect(cooldown).toBe(5000); // 5 second cooldown
     });
 
     it('should return correct cooldown time for delete action', () => {
       const userId = 'user123';
 
-      // Use up deletion limit
-      for (let i = 0; i < 10; i++) {
-        canDeleteItem(userId);
-      }
+      // Delete once to trigger cooldown
+      canDeleteItem(userId);
 
       const cooldown = getCooldownTime('delete', userId);
-      expect(cooldown).toBe(60000); // Full minute remaining
+      expect(cooldown).toBe(3000); // 3 second cooldown
     });
 
     it('should return decreasing cooldown time', () => {
       const userId = 'user123';
 
-      // Use up votes
-      for (let i = 0; i < 10; i++) {
-        canVote(userId);
-      }
+      // Vote once
+      canVote(userId);
 
-      // Advance time partially
-      mockDateNow.mockReturnValue(MOCK_TIME + 30000);
+      // Advance time partially (500ms into 1 second cooldown)
+      mockDateNow.mockReturnValue(MOCK_TIME + 500);
 
       const cooldown = getCooldownTime('vote', userId);
-      expect(cooldown).toBe(30000); // Half minute remaining
+      expect(cooldown).toBe(500); // 500ms remaining
     });
 
     it('should return 0 cooldown for non-rate-limited actions', () => {
@@ -391,13 +377,13 @@ describe('Rate Limiting Utility', () => {
       const results = [];
 
       // Simulate multiple concurrent requests
-      for (let i = 0; i < 15; i++) {
+      for (let i = 0; i < 3; i++) {
         results.push(canVote(userId));
       }
 
-      // First 10 should succeed, rest should fail
-      expect(results.slice(0, 10).every(r => r === true)).toBe(true);
-      expect(results.slice(10).every(r => r === false)).toBe(true);
+      // First should succeed, rest should fail (cooldown)
+      expect(results[0]).toBe(true);
+      expect(results.slice(1).every(r => r === false)).toBe(true);
     });
 
     it('should handle empty string keys', () => {
@@ -461,19 +447,23 @@ describe('Rate Limiting Utility', () => {
     it('should maintain accurate counts across time boundary', () => {
       const userId = 'boundary-user';
 
-      // Make 9 votes (just under limit)
-      for (let i = 0; i < 9; i++) {
-        canVote(userId);
-      }
+      // First vote
+      expect(canVote(userId)).toBe(true);
 
-      // Advance to just before reset
-      mockDateNow.mockReturnValue(MOCK_TIME + 59999);
-      expect(canVote(userId)).toBe(true); // 10th vote
-      expect(canVote(userId)).toBe(false); // Over limit
+      // Still within 1-second cooldown
+      mockDateNow.mockReturnValue(MOCK_TIME + 500);
+      expect(canVote(userId)).toBe(false);
 
-      // Advance just past reset
-      mockDateNow.mockReturnValue(MOCK_TIME + 60001);
+      // Just before cooldown expires
+      mockDateNow.mockReturnValue(MOCK_TIME + 999);
+      expect(canVote(userId)).toBe(false);
+
+      // Just after cooldown expires (1 second)
+      mockDateNow.mockReturnValue(MOCK_TIME + 1001);
       expect(canVote(userId)).toBe(true); // Should work again
+
+      // And it starts a new cooldown
+      expect(canVote(userId)).toBe(false);
     });
   });
 

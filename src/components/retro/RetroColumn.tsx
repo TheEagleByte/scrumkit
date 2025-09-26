@@ -23,7 +23,6 @@ interface RetroColumnProps {
   onRemoveItem: (columnId: string, itemId: string) => void;
   onVoteItem: (columnId: string, itemId: string) => void;
   onEditItem?: (columnId: string, itemId: string, newText: string) => void;
-  onColorChange?: (columnId: string, itemId: string, color: string) => void;
   currentUserId?: string;
 }
 
@@ -36,7 +35,6 @@ export const RetroColumn = memo(function RetroColumn({
   onRemoveItem,
   onVoteItem,
   onEditItem,
-  onColorChange,
   currentUserId
 }: RetroColumnProps) {
   // Memoize sorted items
@@ -58,12 +56,6 @@ export const RetroColumn = memo(function RetroColumn({
       onEditItem(column.id, itemId, newText);
     }
   }, [column.id, onEditItem]);
-
-  const handleColorChange = useCallback((itemId: string, color: string) => {
-    if (onColorChange) {
-      onColorChange(column.id, itemId, color);
-    }
-  }, [column.id, onColorChange]);
 
   const handleAddItem = useCallback((text: string, author: string) => {
     onAddItem(column.id, text, author);
@@ -92,7 +84,6 @@ export const RetroColumn = memo(function RetroColumn({
             onRemove={handleRemoveItem}
             onVote={handleVoteItem}
             onEdit={onEditItem ? handleEditItem : undefined}
-            onColorChange={onColorChange ? handleColorChange : undefined}
             isAuthor={currentUserId ? item.author === currentUserId : false}
           />
         ))}

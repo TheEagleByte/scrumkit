@@ -54,7 +54,7 @@ const mockColumns = [
     title: 'What went well?',
     description: 'Positive outcomes',
     color: 'bg-green-500/10',
-    order_index: 0,
+    display_order: 0,
   },
   {
     id: 'col-2',
@@ -63,7 +63,7 @@ const mockColumns = [
     title: 'What could be improved?',
     description: 'Areas for enhancement',
     color: 'bg-yellow-500/10',
-    order_index: 1,
+    display_order: 1,
   },
 ];
 
@@ -256,7 +256,7 @@ describe('use-retrospective', () => {
       expect(mockSupabase.from).toHaveBeenCalledWith('retrospective_columns');
       expect(mockQueryBuilder.select).toHaveBeenCalledWith('*');
       expect(mockQueryBuilder.eq).toHaveBeenCalledWith('retrospective_id', 'retro-1');
-      expect(mockQueryBuilder.order).toHaveBeenCalledWith('order_index', { ascending: true });
+      expect(mockQueryBuilder.order).toHaveBeenCalledWith('display_order', { ascending: true });
     });
 
     it('handles columns fetch error', async () => {
@@ -277,7 +277,7 @@ describe('use-retrospective', () => {
       expect(result.current.data).toEqual([]);
     });
 
-    it('orders columns by order_index ascending', async () => {
+    it('orders columns by display_order ascending', async () => {
       mockQueryBuilder.order.mockResolvedValue({ data: mockColumns, error: null });
 
       renderHook(
@@ -286,14 +286,29 @@ describe('use-retrospective', () => {
       );
 
       await waitFor(() => {
-        expect(mockQueryBuilder.order).toHaveBeenCalledWith('order_index', { ascending: true });
+        expect(mockQueryBuilder.order).toHaveBeenCalledWith('display_order', { ascending: true });
       });
     });
   });
 
   describe('useRetrospectiveItems', () => {
     it('fetches items data successfully', async () => {
-      mockQueryBuilder.order.mockResolvedValue({ data: mockItems, error: null });
+      // Mock the first call for columns
+      const mockColumnsResponse = { data: [{ id: 'col-1' }, { id: 'col-2' }], error: null };
+
+      // Setup different responses for different from() calls
+      let callCount = 0;
+      mockSupabase.from.mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          // First call for columns
+          mockQueryBuilder.eq.mockResolvedValueOnce(mockColumnsResponse);
+        } else {
+          // Second call for items
+          mockQueryBuilder.order.mockResolvedValueOnce({ data: mockItems, error: null });
+        }
+        return mockQueryBuilder;
+      });
 
       const { result } = renderHook(
         () => useRetrospectiveItems('retro-1'),
@@ -305,16 +320,17 @@ describe('use-retrospective', () => {
       });
 
       expect(result.current.data).toEqual(mockItems);
+      expect(mockSupabase.from).toHaveBeenCalledWith('retrospective_columns');
       expect(mockSupabase.from).toHaveBeenCalledWith('retrospective_items');
-      expect(mockQueryBuilder.select).toHaveBeenCalledWith('*');
-      expect(mockQueryBuilder.eq).toHaveBeenCalledWith('retrospective_id', 'retro-1');
+      expect(mockQueryBuilder.in).toHaveBeenCalledWith('column_id', ['col-1', 'col-2']);
       expect(mockQueryBuilder.order).toHaveBeenCalledWith('created_at', { ascending: false });
     });
 
     it('handles items fetch error', async () => {
-      mockQueryBuilder.order.mockResolvedValue({
+      // Mock the first call for columns with error
+      mockQueryBuilder.eq.mockResolvedValueOnce({
         data: null,
-        error: { message: 'Items not found' }
+        error: { message: 'Columns not found' }
       });
 
       const { result } = renderHook(
@@ -330,6 +346,13 @@ describe('use-retrospective', () => {
     });
 
     it('polls for updates every 5 seconds', () => {
+      // Mock the columns response
+      mockQueryBuilder.eq.mockResolvedValueOnce({
+        data: [{ id: 'col-1' }, { id: 'col-2' }],
+        error: null
+      });
+
+      // Mock the items response
       mockQueryBuilder.order.mockResolvedValue({ data: mockItems, error: null });
 
       renderHook(
@@ -339,10 +362,17 @@ describe('use-retrospective', () => {
 
       // The hook should be configured with refetchInterval: 5000
       // This is tested implicitly through the hook configuration
-      expect(mockSupabase.from).toHaveBeenCalledWith('retrospective_items');
+      expect(mockSupabase.from).toHaveBeenCalledWith('retrospective_columns');
     });
 
     it('orders items by created_at descending', async () => {
+      // Mock the columns response
+      mockQueryBuilder.eq.mockResolvedValueOnce({
+        data: [{ id: 'col-1' }, { id: 'col-2' }],
+        error: null
+      });
+
+      // Mock the items response
       mockQueryBuilder.order.mockResolvedValue({ data: mockItems, error: null });
 
       renderHook(

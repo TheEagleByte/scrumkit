@@ -14,6 +14,7 @@ describe('RetroItem', () => {
     item: mockItem,
     onRemove: jest.fn(),
     onVote: jest.fn(),
+    isAuthor: true, // Set to true to test author features
   };
 
   beforeEach(() => {

@@ -9,7 +9,7 @@ export function createClient() {
       auth: {
         // Use a no-op lock function to suppress LockManager warnings
         // This is safe for our use case as we handle auth state properly
-        lock: async (_name: string, acquireTimeout: number, fn: () => Promise<any>) => {
+        lock: async <T>(_name: string, _acquireTimeout: number, fn: () => Promise<T>): Promise<T> => {
           // Simply execute the function without any locking
           return await fn();
         }
