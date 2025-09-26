@@ -323,7 +323,7 @@ export function useRetrospectiveRealtime(
         supabase.removeChannel(channelRef.current);
       }
     };
-  }, [retrospectiveId, currentUser.id, currentUser.name, currentUser.email, currentUser.avatar, getUserColor, loadInitialData, myPresenceState]);
+  }, [retrospectiveId, currentUser.id, currentUser.name, currentUser.email, currentUser.avatar, getUserColor, loadInitialData]);
 
   // Compute derived values
   const otherUsers = presenceUsers.filter(user => user.id !== currentUser.id);
