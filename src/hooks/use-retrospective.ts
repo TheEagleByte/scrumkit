@@ -67,7 +67,7 @@ export function useRetrospectiveColumns(retrospectiveId: string) {
         .from("retrospective_columns")
         .select("*")
         .eq("retrospective_id", retrospectiveId)
-        .order("order_index", { ascending: true });
+        .order("display_order", { ascending: true });
 
       if (error) {
         console.error("Error fetching columns:", error);
@@ -84,10 +84,29 @@ export function useRetrospectiveItems(retrospectiveId: string) {
     queryKey: retrospectiveKeys.items(retrospectiveId),
     queryFn: async () => {
       const supabase = createClient();
+
+      // First get all column IDs for this retrospective
+      const { data: columns, error: columnsError } = await supabase
+        .from("retrospective_columns")
+        .select("id")
+        .eq("retrospective_id", retrospectiveId);
+
+      if (columnsError) {
+        console.error("Error fetching columns for items:", columnsError);
+        return [];
+      }
+
+      if (!columns || columns.length === 0) {
+        return [];
+      }
+
+      const columnIds = columns.map(col => col.id);
+
+      // Now fetch items for these columns
       const { data, error } = await supabase
         .from("retrospective_items")
         .select("*")
-        .eq("retrospective_id", retrospectiveId)
+        .in("column_id", columnIds)
         .order("created_at", { ascending: false });
 
       if (error) {
