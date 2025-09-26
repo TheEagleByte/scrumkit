@@ -7,11 +7,11 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       auth: {
-        lock: {
-          // Disable Navigator LockManager to suppress the warning
-          // This is safe for our use case as we're not using multiple tabs
-          // with the same session concurrently
-          enabled: false
+        // Use a no-op lock function to suppress LockManager warnings
+        // This is safe for our use case as we handle auth state properly
+        lock: async (_name: string, acquireTimeout: number, fn: () => Promise<any>) => {
+          // Simply execute the function without any locking
+          return await fn();
         }
       }
     }
