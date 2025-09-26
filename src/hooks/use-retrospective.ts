@@ -11,10 +11,11 @@ import { toast } from "sonner";
 import type { Database } from "@/lib/supabase/types-enhanced";
 import { sanitizeItemContent, sanitizeUsername } from "@/lib/utils/sanitize";
 import { canCreateItem, canDeleteItem, canVote } from "@/lib/utils/rate-limit";
+import { storeAnonymousItemOwnership } from "@/lib/boards/anonymous-items";
+import { v4 as uuidv4 } from "uuid";
 
 // Types
 type RetrospectiveItem = Database["public"]["Tables"]["retrospective_items"]["Row"];
-type RetrospectiveColumn = Database["public"]["Tables"]["retrospective_columns"]["Row"];
 type Vote = Database["public"]["Tables"]["votes"]["Row"];
 type Retrospective = Database["public"]["Tables"]["retrospectives"]["Row"];
 
@@ -24,11 +25,6 @@ interface CreateItemInput {
   content: string;
   authorId: string;
   authorName: string;
-}
-
-interface CreateVoteInput {
-  itemId: string;
-  userId: string;
 }
 
 // Query keys factory
@@ -73,7 +69,7 @@ export function useRetrospectiveColumns(retrospectiveId: string) {
         .from("retrospective_columns")
         .select("*")
         .eq("retrospective_id", retrospectiveId)
-        .order("order_index", { ascending: true });
+        .order("display_order", { ascending: true });
 
       if (error) {
         console.error("Error fetching columns:", error);
@@ -90,10 +86,29 @@ export function useRetrospectiveItems(retrospectiveId: string) {
     queryKey: retrospectiveKeys.items(retrospectiveId),
     queryFn: async () => {
       const supabase = createClient();
+
+      // First get all column IDs for this retrospective
+      const { data: columns, error: columnsError } = await supabase
+        .from("retrospective_columns")
+        .select("id")
+        .eq("retrospective_id", retrospectiveId);
+
+      if (columnsError) {
+        console.error("Error fetching columns for items:", columnsError);
+        return [];
+      }
+
+      if (!columns || columns.length === 0) {
+        return [];
+      }
+
+      const columnIds = columns.map(col => col.id);
+
+      // Now fetch items for these columns
       const { data, error } = await supabase
         .from("retrospective_items")
         .select("*")
-        .eq("retrospective_id", retrospectiveId)
+        .in("column_id", columnIds)
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -145,19 +160,28 @@ export function useCreateItem() {
       const sanitizedContent = sanitizeItemContent(input.content);
       const sanitizedName = sanitizeUsername(input.authorName);
 
+      // For anonymous users (IDs starting with "anon-"), use null for author_id
+      const isAnonymous = input.authorId.startsWith("anon-");
+      const authorId = isAnonymous ? null : input.authorId;
+
       const { data, error } = await supabase
         .from("retrospective_items")
         .insert({
-          retrospective_id: input.retrospectiveId,
           column_id: input.columnId,
           text: sanitizedContent,
-          author_id: input.authorId,
+          author_id: authorId,
           author_name: sanitizedName,
         })
         .select()
         .single();
 
       if (error) throw error;
+
+      // Store anonymous item ownership locally
+      if (isAnonymous && data) {
+        storeAnonymousItemOwnership(data.id, input.authorId);
+      }
+
       return data;
     },
     onMutate: async (input) => {
@@ -173,11 +197,12 @@ export function useCreateItem() {
 
       // Optimistically update
       const optimisticItem: RetrospectiveItem = {
-        id: `temp-${Date.now()}`,
+        id: uuidv4(),
         column_id: input.columnId,
         text: sanitizeItemContent(input.content),
-        author_id: input.authorId,
+        author_id: input.authorId.startsWith("anon-") ? null : input.authorId,
         author_name: sanitizeUsername(input.authorName),
+        color: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -199,10 +224,10 @@ export function useCreateItem() {
       }
       toast.error(err instanceof Error ? err.message : "Failed to add item");
     },
-    onSuccess: (data, input) => {
+    onSuccess: () => {
       toast.success("Item added successfully");
     },
-    onSettled: (data, error, input) => {
+    onSettled: (_data, _error, input) => {
       // Refetch to ensure consistency
       queryClient.invalidateQueries({
         queryKey: retrospectiveKeys.items(input.retrospectiveId)
@@ -265,10 +290,10 @@ export function useDeleteItem() {
       }
       toast.error(err instanceof Error ? err.message : "Failed to delete item");
     },
-    onSuccess: (data, variables) => {
+    onSuccess: () => {
       toast.success("Item deleted");
     },
-    onSettled: (data, error, variables) => {
+    onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({
         queryKey: retrospectiveKeys.items(variables.retrospectiveId)
       });
@@ -292,6 +317,11 @@ export function useToggleVote() {
       retrospectiveId: string;
       hasVoted: boolean;
     }) => {
+      // Anonymous users cannot vote (they don't have valid profile IDs)
+      if (userId.startsWith("anon-")) {
+        throw new Error("Anonymous users cannot vote. Please sign in to vote.");
+      }
+
       // Check rate limit
       if (!canVote(userId)) {
         throw new Error("Please wait before voting again");
@@ -325,6 +355,11 @@ export function useToggleVote() {
       }
     },
     onMutate: async ({ itemId, userId, retrospectiveId, hasVoted }) => {
+      // Don't perform optimistic updates for anonymous users
+      if (userId.startsWith("anon-")) {
+        return {};
+      }
+
       await queryClient.cancelQueries({
         queryKey: retrospectiveKeys.votes(retrospectiveId)
       });
@@ -343,7 +378,7 @@ export function useToggleVote() {
       } else {
         // Add vote
         const optimisticVote: Vote = {
-          id: `temp-${Date.now()}`,
+          id: uuidv4(),
           item_id: itemId,
           profile_id: userId,
           created_at: new Date().toISOString(),
@@ -365,7 +400,7 @@ export function useToggleVote() {
       }
       toast.error(err instanceof Error ? err.message : "Failed to update vote");
     },
-    onSettled: (data, error, variables) => {
+    onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({
         queryKey: retrospectiveKeys.votes(variables.retrospectiveId)
       });
@@ -381,18 +416,27 @@ export function useUpdateItem() {
     mutationFn: async ({
       itemId,
       content,
+      color,
       retrospectiveId
     }: {
       itemId: string;
-      content: string;
+      content?: string;
+      color?: string;
       retrospectiveId: string;
     }) => {
       const supabase = createClient();
-      const sanitizedContent = sanitizeItemContent(content);
+      const updateData: { text?: string; color?: string } = {};
+
+      if (content !== undefined) {
+        updateData.text = sanitizeItemContent(content);
+      }
+      if (color !== undefined) {
+        updateData.color = color;
+      }
 
       const { data, error } = await supabase
         .from("retrospective_items")
-        .update({ text: sanitizedContent })
+        .update(updateData)
         .eq("id", itemId)
         .select()
         .single();
@@ -400,7 +444,7 @@ export function useUpdateItem() {
       if (error) throw error;
       return data;
     },
-    onMutate: async ({ itemId, content, retrospectiveId }) => {
+    onMutate: async ({ itemId, content, color, retrospectiveId }) => {
       await queryClient.cancelQueries({
         queryKey: retrospectiveKeys.items(retrospectiveId)
       });
@@ -414,7 +458,12 @@ export function useUpdateItem() {
         retrospectiveKeys.items(retrospectiveId),
         (old = []) => old.map(item =>
           item.id === itemId
-            ? { ...item, text: sanitizeItemContent(content), updated_at: new Date().toISOString() }
+            ? {
+                ...item,
+                ...(content !== undefined && { text: sanitizeItemContent(content) }),
+                ...(color !== undefined && { color }),
+                updated_at: new Date().toISOString()
+              }
             : item
         )
       );
@@ -433,10 +482,95 @@ export function useUpdateItem() {
     onSuccess: () => {
       toast.success("Item updated");
     },
-    onSettled: (data, error, variables) => {
+    onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({
         queryKey: retrospectiveKeys.items(variables.retrospectiveId)
       });
+    },
+  });
+}
+
+export function useMergeItems() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      sourceItemIds,
+      targetColumnId,
+      retrospectiveId,
+      authorId,
+      authorName
+    }: {
+      sourceItemIds: string[];
+      targetColumnId: string;
+      retrospectiveId: string;
+      authorId: string;
+      authorName: string;
+    }) => {
+      const supabase = createClient();
+
+      const { data: itemsToMerge, error: fetchError } = await supabase
+        .from("retrospective_items")
+        .select("*")
+        .in("id", sourceItemIds);
+
+      if (fetchError) throw fetchError;
+      if (!itemsToMerge || itemsToMerge.length === 0) {
+        throw new Error("No items found to merge");
+      }
+
+      const mergedText = itemsToMerge.map(item => item.text).join(" • ");
+
+      const { data: newItem, error: createError } = await supabase
+        .from("retrospective_items")
+        .insert({
+          column_id: targetColumnId,
+          text: mergedText,
+          author_id: authorId.startsWith("anon-") ? null : authorId,
+          author_name: `${authorName} (merged)`,
+        })
+        .select()
+        .single();
+
+      if (createError) throw createError;
+
+      const { data: votes, error: votesError } = await supabase
+        .from("votes")
+        .select("profile_id")
+        .in("item_id", sourceItemIds);
+
+      if (!votesError && votes && votes.length > 0) {
+        const uniqueVoters = Array.from(new Set(votes.map(v => v.profile_id)));
+        const newVotes = uniqueVoters.map(profileId => ({
+          item_id: newItem.id,
+          profile_id: profileId
+        }));
+
+        await supabase
+          .from("votes")
+          .insert(newVotes);
+      }
+
+      const { error: deleteError } = await supabase
+        .from("retrospective_items")
+        .delete()
+        .in("id", sourceItemIds);
+
+      if (deleteError) throw deleteError;
+
+      return newItem;
+    },
+    onSuccess: (data, variables) => {
+      toast.success("Items merged successfully");
+      queryClient.invalidateQueries({
+        queryKey: retrospectiveKeys.items(variables.retrospectiveId)
+      });
+      queryClient.invalidateQueries({
+        queryKey: retrospectiveKeys.votes(variables.retrospectiveId)
+      });
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Failed to merge items");
     },
   });
 }

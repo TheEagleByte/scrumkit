@@ -22,6 +22,8 @@ interface RetroColumnProps {
   onAddItem: (columnId: string, text: string, author: string) => void;
   onRemoveItem: (columnId: string, itemId: string) => void;
   onVoteItem: (columnId: string, itemId: string) => void;
+  onEditItem?: (columnId: string, itemId: string, newText: string) => void;
+  currentUserId?: string;
 }
 
 export const RetroColumn = memo(function RetroColumn({
@@ -31,7 +33,9 @@ export const RetroColumn = memo(function RetroColumn({
   onCancelAdd,
   onAddItem,
   onRemoveItem,
-  onVoteItem
+  onVoteItem,
+  onEditItem,
+  currentUserId
 }: RetroColumnProps) {
   // Memoize sorted items
   const sortedItems = useMemo(() =>
@@ -46,6 +50,12 @@ export const RetroColumn = memo(function RetroColumn({
   const handleVoteItem = useCallback((itemId: string) => {
     onVoteItem(column.id, itemId);
   }, [column.id, onVoteItem]);
+
+  const handleEditItem = useCallback((itemId: string, newText: string) => {
+    if (onEditItem) {
+      onEditItem(column.id, itemId, newText);
+    }
+  }, [column.id, onEditItem]);
 
   const handleAddItem = useCallback((text: string, author: string) => {
     onAddItem(column.id, text, author);
@@ -73,6 +83,8 @@ export const RetroColumn = memo(function RetroColumn({
             item={item}
             onRemove={handleRemoveItem}
             onVote={handleVoteItem}
+            onEdit={onEditItem ? handleEditItem : undefined}
+            isAuthor={currentUserId ? item.author === currentUserId : false}
           />
         ))}
 

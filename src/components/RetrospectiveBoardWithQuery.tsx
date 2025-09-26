@@ -1,19 +1,23 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   Plus,
-  X,
   ThumbsUp,
   Lightbulb,
   AlertTriangle,
   Target,
+  Heart,
+  Frown,
+  Smile,
+  MessageSquare,
 } from "lucide-react";
+import { RetroItem, type RetroItemData } from "@/components/retro/RetroItem";
 import { toast } from "sonner";
 import {
   useRetrospective,
@@ -23,15 +27,15 @@ import {
   useCreateItem,
   useDeleteItem,
   useToggleVote,
+  useUpdateItem,
 } from "@/hooks/use-retrospective";
 import { useRetrospectiveRealtime } from "@/hooks/use-realtime";
 import { ConnectionStatus } from "@/components/ConnectionStatus";
 import { PresenceAvatars } from "@/components/PresenceAvatars";
 import { CursorOverlay } from "@/components/CursorOverlay";
 import { getCooldownTime } from "@/lib/utils/rate-limit";
-import type { Database } from "@/lib/supabase/types-enhanced";
-
-type RetrospectiveColumn = Database["public"]["Tables"]["retrospective_columns"]["Row"];
+import { debounce } from "@/lib/utils/debounce";
+import { isAnonymousItemOwner } from "@/lib/boards/anonymous-items";
 
 interface RetrospectiveBoardWithQueryProps {
   retrospectiveId: string;
@@ -45,49 +49,36 @@ interface RetrospectiveBoardWithQueryProps {
   sprintName?: string;
 }
 
-interface ColumnConfig {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  color: string;
-  type: "went-well" | "improve" | "blockers" | "action-items";
-}
+// Icon mapping for different column types
+const getColumnIcon = (columnType: string): React.ReactNode => {
+  const iconMap: Record<string, React.ReactNode> = {
+    'went-well': <ThumbsUp className="h-5 w-5" />,
+    'improve': <Lightbulb className="h-5 w-5" />,
+    'blockers': <AlertTriangle className="h-5 w-5" />,
+    'action-items': <Target className="h-5 w-5" />,
+    'glad': <Smile className="h-5 w-5" />,
+    'sad': <Frown className="h-5 w-5" />,
+    'mad': <AlertTriangle className="h-5 w-5" />,
+    'liked': <Heart className="h-5 w-5" />,
+    'learned': <Lightbulb className="h-5 w-5" />,
+    'lacked': <AlertTriangle className="h-5 w-5" />,
+    'longed-for': <Target className="h-5 w-5" />,
+  };
+  return iconMap[columnType] || <MessageSquare className="h-5 w-5" />;
+};
 
-const columnConfigs: ColumnConfig[] = [
-  {
-    id: "went-well",
-    type: "went-well",
-    title: "What went well?",
-    description: "Celebrate successes and positive outcomes",
-    icon: <ThumbsUp className="h-5 w-5" />,
-    color: "bg-green-500/10 border-green-500/20",
-  },
-  {
-    id: "improve",
-    type: "improve",
-    title: "What could be improved?",
-    description: "Identify areas for enhancement",
-    icon: <Lightbulb className="h-5 w-5" />,
-    color: "bg-yellow-500/10 border-yellow-500/20",
-  },
-  {
-    id: "blockers",
-    type: "blockers",
-    title: "What blocked us?",
-    description: "Obstacles and impediments faced",
-    icon: <AlertTriangle className="h-5 w-5" />,
-    color: "bg-red-500/10 border-red-500/20",
-  },
-  {
-    id: "action-items",
-    type: "action-items",
-    title: "Action items",
-    description: "Next steps and commitments",
-    icon: <Target className="h-5 w-5" />,
-    color: "bg-blue-500/10 border-blue-500/20",
-  },
-];
+// Default colors for columns based on index
+const getColumnColor = (index: number): string => {
+  const colors = [
+    "bg-green-500/10 border-green-500/20",
+    "bg-yellow-500/10 border-yellow-500/20",
+    "bg-red-500/10 border-red-500/20",
+    "bg-blue-500/10 border-blue-500/20",
+    "bg-purple-500/10 border-purple-500/20",
+    "bg-pink-500/10 border-pink-500/20",
+  ];
+  return colors[index % colors.length];
+};
 
 export function RetrospectiveBoardWithQuery({
   retrospectiveId,
@@ -101,7 +92,7 @@ export function RetrospectiveBoardWithQuery({
   const [cooldowns, setCooldowns] = useState<Map<string, number>>(new Map());
 
   // Use TanStack Query hooks
-  const { data: retrospective, isLoading: retroLoading } = useRetrospective(retrospectiveId);
+  const { isLoading: retroLoading } = useRetrospective(retrospectiveId);
   const { data: columns = [], isLoading: columnsLoading } = useRetrospectiveColumns(retrospectiveId);
   const { data: items = [], isLoading: itemsLoading } = useRetrospectiveItems(retrospectiveId);
   const { data: votes = [] } = useVotes(retrospectiveId, items.map(i => i.id));
@@ -110,6 +101,7 @@ export function RetrospectiveBoardWithQuery({
   const createItemMutation = useCreateItem();
   const deleteItemMutation = useDeleteItem();
   const toggleVoteMutation = useToggleVote();
+  const updateItemMutation = useUpdateItem();
 
   // Set up real-time subscriptions for instant updates
   const { isSubscribed } = useRetrospectiveRealtime(retrospectiveId);
@@ -162,17 +154,14 @@ export function RetrospectiveBoardWithQuery({
         setCooldowns(prev => new Map(prev).set(`create-${currentUser.id}`, Date.now() + newCooldown));
       }
     } catch (error) {
-      // Error is handled by the mutation
+      console.error('Failed to add item:', error);
+      // Error toast is handled by the mutation
     }
   };
 
-  const handleDeleteItem = async (itemId: string, authorId: string) => {
-    // Check if user is author
-    if (authorId !== currentUser.id) {
-      toast.error("You can only delete your own items");
-      return;
-    }
-
+  const handleDeleteItem = async (itemId: string) => {
+    // Note: Authorization is now checked in the UI by only showing
+    // delete button to authors. The actual check happens when determining isAuthor.
     await deleteItemMutation.mutateAsync({
       itemId,
       retrospectiveId,
@@ -204,21 +193,38 @@ export function RetrospectiveBoardWithQuery({
         setCooldowns(prev => new Map(prev).set(`vote-${currentUser.id}`, Date.now() + newCooldown));
       }
     } catch (error) {
-      // Error is handled by the mutation
+      console.error('Failed to toggle vote:', error);
+      // Error toast is handled by the mutation
     }
   };
 
-  const getColumnItems = (columnId: string) => {
-    return items
-      .filter(item => item.column_id === columnId)
-      .sort((a, b) => {
-        // Sort by votes first, then by date
-        const aVotes = votes.filter(v => v.item_id === a.id).length;
-        const bVotes = votes.filter(v => v.item_id === b.id).length;
-        if (aVotes !== bVotes) return bVotes - aVotes;
-        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-      });
-  };
+  const handleEditItem = useMemo(
+    () =>
+      debounce(async (itemId: string, newText: string) => {
+        await updateItemMutation.mutateAsync({
+          itemId,
+          content: newText,
+          retrospectiveId,
+        });
+      }, 500),
+    [updateItemMutation, retrospectiveId]
+  );
+
+
+  const getColumnItems = useMemo(
+    () => (columnId: string) => {
+      return items
+        .filter(item => item.column_id === columnId)
+        .sort((a, b) => {
+          // Sort by votes first, then by date
+          const aVotes = votes.filter(v => v.item_id === a.id).length;
+          const bVotes = votes.filter(v => v.item_id === b.id).length;
+          if (aVotes !== bVotes) return bVotes - aVotes;
+          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+        });
+    },
+    [items, votes]
+  );
 
   const isLoading = retroLoading || columnsLoading || itemsLoading;
 
@@ -265,23 +271,22 @@ export function RetrospectiveBoardWithQuery({
       </div>
 
       {/* Columns */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {columnConfigs.map((config) => {
-          const column = columns.find(c => c.column_type === config.type);
-          if (!column) return null;
-
+      <div className={`grid grid-cols-1 md:grid-cols-2 ${columns.length > 3 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-6`}>
+        {columns.sort((a, b) => (a.display_order || 0) - (b.display_order || 0)).map((column, index) => {
           const columnItems = getColumnItems(column.id);
 
           return (
-            <Card key={config.id} className={`${config.color} border`}>
+            <Card key={column.id} className={`${column.color || getColumnColor(index)} border`}>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  {config.icon}
-                  {config.title}
+                  {getColumnIcon(column.column_type)}
+                  {column.title}
                 </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  {config.description}
-                </p>
+                {column.description && (
+                  <p className="text-sm text-muted-foreground">
+                    {column.description}
+                  </p>
+                )}
               </CardHeader>
               <CardContent>
                 {/* Add button */}
@@ -331,44 +336,30 @@ export function RetrospectiveBoardWithQuery({
                 <div className="space-y-2">
                   {columnItems.map((item) => {
                     const itemVotes = votes.filter(v => v.item_id === item.id);
-                    const hasVoted = itemVotes.some(v => v.profile_id === currentUser.id);
-                    const isAuthor = item.author_id && item.author_id === currentUser.id;
+
+                    // Check authorship for both authenticated and anonymous users
+                    const isAuthor = currentUser.id.startsWith("anon-")
+                      ? isAnonymousItemOwner(item.id, currentUser.id)
+                      : !!(item.author_id && item.author_id === currentUser.id);
+
+                    const retroItem: RetroItemData = {
+                      id: item.id,
+                      text: item.text,
+                      author: item.author_name,
+                      votes: itemVotes.length,
+                      timestamp: new Date(item.created_at || Date.now()),
+                      color: item.color,
+                    };
 
                     return (
-                      <div
+                      <RetroItem
                         key={item.id}
-                        className="p-3 rounded-lg bg-background/50 hover:bg-background/80 transition-colors"
-                      >
-                        <div className="flex justify-between items-start gap-2 mb-2">
-                          <p className="text-sm flex-1">{item.text}</p>
-                          {isAuthor && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => handleDeleteItem(item.id, item.author_id || '')}
-                              disabled={deleteItemMutation.isPending}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          )}
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">
-                            {item.author_name}
-                          </span>
-                          <Button
-                            variant={hasVoted ? "default" : "outline"}
-                            size="sm"
-                            className="h-7 px-2"
-                            onClick={() => handleToggleVote(item.id)}
-                            disabled={toggleVoteMutation.isPending || cooldowns.has(`vote-${currentUser.id}`)}
-                          >
-                            <ThumbsUp className="h-3 w-3 mr-1" />
-                            {itemVotes.length}
-                          </Button>
-                        </div>
-                      </div>
+                        item={retroItem}
+                        onRemove={() => handleDeleteItem(item.id)}
+                        onVote={() => handleToggleVote(item.id)}
+                        onEdit={isAuthor ? handleEditItem : undefined}
+                        isAuthor={isAuthor}
+                      />
                     );
                   })}
                 </div>
