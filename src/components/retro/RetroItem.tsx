@@ -5,14 +5,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { X, Edit2, Check, XCircle } from "lucide-react";
+import type { Database } from "@/lib/supabase/types-enhanced";
 
-export interface RetroItemData {
-  id: string;
-  text: string;
+type RetrospectiveItem = Database["public"]["Tables"]["retrospective_items"]["Row"];
+
+export interface RetroItemData extends Pick<RetrospectiveItem, "id" | "text" | "color"> {
   author: string;
   votes: number;
   timestamp: Date;
-  color?: string | null;
 }
 
 interface RetroItemProps {

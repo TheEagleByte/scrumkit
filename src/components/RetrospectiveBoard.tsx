@@ -22,6 +22,7 @@ export function RetrospectiveBoard() {
           author: "Sarah Chen",
           votes: 5,
           timestamp: new Date(),
+          color: null,
         },
         {
           id: "2",
@@ -29,6 +30,7 @@ export function RetrospectiveBoard() {
           author: "Mike Johnson",
           votes: 3,
           timestamp: new Date(),
+          color: null,
         },
       ],
     },
@@ -45,6 +47,7 @@ export function RetrospectiveBoard() {
           author: "Alex Rivera",
           votes: 4,
           timestamp: new Date(),
+          color: null,
         },
         {
           id: "4",
@@ -52,6 +55,7 @@ export function RetrospectiveBoard() {
           author: "Emma Davis",
           votes: 2,
           timestamp: new Date(),
+          color: null,
         },
       ],
     },
@@ -68,6 +72,7 @@ export function RetrospectiveBoard() {
           author: "David Kim",
           votes: 6,
           timestamp: new Date(),
+          color: null,
         },
       ],
     },
@@ -84,6 +89,7 @@ export function RetrospectiveBoard() {
           author: "Team Decision",
           votes: 0,
           timestamp: new Date(),
+          color: null,
         },
       ],
     },
@@ -98,6 +104,7 @@ export function RetrospectiveBoard() {
       author,
       votes: 0,
       timestamp: new Date(),
+      color: null,
     };
 
     setColumns((prev) =>

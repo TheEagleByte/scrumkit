@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,14 +28,14 @@ import {
   useDeleteItem,
   useToggleVote,
   useUpdateItem,
-  useMergeItems,
 } from "@/hooks/use-retrospective";
 import { useRetrospectiveRealtime } from "@/hooks/use-realtime";
 import { ConnectionStatus } from "@/components/ConnectionStatus";
 import { PresenceAvatars } from "@/components/PresenceAvatars";
 import { CursorOverlay } from "@/components/CursorOverlay";
 import { getCooldownTime } from "@/lib/utils/rate-limit";
-import type { Database } from "@/lib/supabase/types-enhanced";
+import { debounce } from "@/lib/utils/debounce";
+import { isAnonymousItemOwner } from "@/lib/boards/anonymous-items";
 
 interface RetrospectiveBoardWithQueryProps {
   retrospectiveId: string;
@@ -153,8 +153,9 @@ export function RetrospectiveBoardWithQuery({
       if (newCooldown > 0) {
         setCooldowns(prev => new Map(prev).set(`create-${currentUser.id}`, Date.now() + newCooldown));
       }
-    } catch {
-      // Error is handled by the mutation
+    } catch (error) {
+      console.error('Failed to add item:', error);
+      // Error toast is handled by the mutation
     }
   };
 
@@ -191,31 +192,39 @@ export function RetrospectiveBoardWithQuery({
       if (newCooldown > 0) {
         setCooldowns(prev => new Map(prev).set(`vote-${currentUser.id}`, Date.now() + newCooldown));
       }
-    } catch {
-      // Error is handled by the mutation
+    } catch (error) {
+      console.error('Failed to toggle vote:', error);
+      // Error toast is handled by the mutation
     }
   };
 
-  const handleEditItem = async (itemId: string, newText: string) => {
-    await updateItemMutation.mutateAsync({
-      itemId,
-      content: newText,
-      retrospectiveId,
-    });
-  };
+  const handleEditItem = useMemo(
+    () =>
+      debounce(async (itemId: string, newText: string) => {
+        await updateItemMutation.mutateAsync({
+          itemId,
+          content: newText,
+          retrospectiveId,
+        });
+      }, 500),
+    [updateItemMutation, retrospectiveId]
+  );
 
 
-  const getColumnItems = (columnId: string) => {
-    return items
-      .filter(item => item.column_id === columnId)
-      .sort((a, b) => {
-        // Sort by votes first, then by date
-        const aVotes = votes.filter(v => v.item_id === a.id).length;
-        const bVotes = votes.filter(v => v.item_id === b.id).length;
-        if (aVotes !== bVotes) return bVotes - aVotes;
-        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-      });
-  };
+  const getColumnItems = useMemo(
+    () => (columnId: string) => {
+      return items
+        .filter(item => item.column_id === columnId)
+        .sort((a, b) => {
+          // Sort by votes first, then by date
+          const aVotes = votes.filter(v => v.item_id === a.id).length;
+          const bVotes = votes.filter(v => v.item_id === b.id).length;
+          if (aVotes !== bVotes) return bVotes - aVotes;
+          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+        });
+    },
+    [items, votes]
+  );
 
   const isLoading = retroLoading || columnsLoading || itemsLoading;
 
@@ -328,25 +337,15 @@ export function RetrospectiveBoardWithQuery({
                   {columnItems.map((item) => {
                     const itemVotes = votes.filter(v => v.item_id === item.id);
 
-                    // Parse author name to extract ID for anonymous users
-                    let displayAuthorName = item.author_name;
-                    let anonymousAuthorId: string | null = null;
-
-                    if (item.author_id === null && item.author_name.includes('|')) {
-                      const parts = item.author_name.split('|');
-                      displayAuthorName = parts[0];
-                      anonymousAuthorId = parts[1];
-                    }
-
                     // Check authorship for both authenticated and anonymous users
                     const isAuthor = currentUser.id.startsWith("anon-")
-                      ? anonymousAuthorId === currentUser.id
+                      ? isAnonymousItemOwner(item.id, currentUser.id)
                       : !!(item.author_id && item.author_id === currentUser.id);
 
                     const retroItem: RetroItemData = {
                       id: item.id,
                       text: item.text,
-                      author: displayAuthorName,
+                      author: item.author_name,
                       votes: itemVotes.length,
                       timestamp: new Date(item.created_at || Date.now()),
                       color: item.color,

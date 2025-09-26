@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import type { Database } from "@/lib/supabase/types-enhanced";
 import { sanitizeItemContent, sanitizeUsername } from "@/lib/utils/sanitize";
 import { canCreateItem, canDeleteItem, canVote } from "@/lib/utils/rate-limit";
+import { storeAnonymousItemOwnership } from "@/lib/boards/anonymous-items";
 import { v4 as uuidv4 } from "uuid";
 
 // Types
@@ -160,11 +161,8 @@ export function useCreateItem() {
       const sanitizedName = sanitizeUsername(input.authorName);
 
       // For anonymous users (IDs starting with "anon-"), use null for author_id
-      // and encode the ID in the author_name for tracking ownership
-      const authorId = input.authorId.startsWith("anon-") ? null : input.authorId;
-      const authorNameWithId = input.authorId.startsWith("anon-")
-        ? `${sanitizedName}|${input.authorId}`
-        : sanitizedName;
+      const isAnonymous = input.authorId.startsWith("anon-");
+      const authorId = isAnonymous ? null : input.authorId;
 
       const { data, error } = await supabase
         .from("retrospective_items")
@@ -172,12 +170,18 @@ export function useCreateItem() {
           column_id: input.columnId,
           text: sanitizedContent,
           author_id: authorId,
-          author_name: authorNameWithId,
+          author_name: sanitizedName,
         })
         .select()
         .single();
 
       if (error) throw error;
+
+      // Store anonymous item ownership locally
+      if (isAnonymous && data) {
+        storeAnonymousItemOwnership(data.id, input.authorId);
+      }
+
       return data;
     },
     onMutate: async (input) => {
@@ -192,16 +196,12 @@ export function useCreateItem() {
       );
 
       // Optimistically update
-      const authorNameWithId = input.authorId.startsWith("anon-")
-        ? `${sanitizeUsername(input.authorName)}|${input.authorId}`
-        : sanitizeUsername(input.authorName);
-
       const optimisticItem: RetrospectiveItem = {
         id: uuidv4(),
         column_id: input.columnId,
         text: sanitizeItemContent(input.content),
         author_id: input.authorId.startsWith("anon-") ? null : input.authorId,
-        author_name: authorNameWithId,
+        author_name: sanitizeUsername(input.authorName),
         color: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),

@@ -21,11 +21,13 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { sanitizeItemContent, sanitizeUsername } from '@/lib/utils/sanitize';
 import { canCreateItem, canDeleteItem, canVote } from '@/lib/utils/rate-limit';
+import { storeAnonymousItemOwnership } from '@/lib/boards/anonymous-items';
 
 // Mock dependencies
 jest.mock('@/lib/supabase/client');
 jest.mock('@/lib/utils/sanitize');
 jest.mock('@/lib/utils/rate-limit');
+jest.mock('@/lib/boards/anonymous-items');
 jest.mock('sonner');
 
 const mockCreateClient = createClient as jest.MockedFunction<typeof createClient>;
