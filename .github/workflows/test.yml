@@ -75,11 +75,5 @@ jobs:
           name: codecov-umbrella
           fail_ci_if_error: false
 
-      - name: Comment PR with coverage
-        uses: ArtiomTr/jest-coverage-report-action@v2
-        if: github.event_name == 'pull_request'
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          coverage-file: ./coverage/coverage-final.json
-          base-coverage-file: ./coverage/coverage-final.json
-          threshold: 30
+      # Comment PR with coverage action removed due to compatibility issues
+      # Will rely on codecov for coverage reporting instead
