@@ -33,8 +33,6 @@ import { CursorOverlay } from "@/components/CursorOverlay";
 import { getCooldownTime } from "@/lib/utils/rate-limit";
 import type { Database } from "@/lib/supabase/types-enhanced";
 
-type RetrospectiveColumn = Database["public"]["Tables"]["retrospective_columns"]["Row"];
-
 interface RetrospectiveBoardWithQueryProps {
   retrospectiveId: string;
   currentUser: {
@@ -103,7 +101,7 @@ export function RetrospectiveBoardWithQuery({
   const [cooldowns, setCooldowns] = useState<Map<string, number>>(new Map());
 
   // Use TanStack Query hooks
-  const { data: retrospective, isLoading: retroLoading } = useRetrospective(retrospectiveId);
+  const { isLoading: retroLoading } = useRetrospective(retrospectiveId);
   const { data: columns = [], isLoading: columnsLoading } = useRetrospectiveColumns(retrospectiveId);
   const { data: items = [], isLoading: itemsLoading } = useRetrospectiveItems(retrospectiveId);
   const { data: votes = [] } = useVotes(retrospectiveId, items.map(i => i.id));
@@ -113,7 +111,6 @@ export function RetrospectiveBoardWithQuery({
   const deleteItemMutation = useDeleteItem();
   const toggleVoteMutation = useToggleVote();
   const updateItemMutation = useUpdateItem();
-  const mergeItemsMutation = useMergeItems();
 
   // Set up real-time subscriptions for instant updates
   const { isSubscribed } = useRetrospectiveRealtime(retrospectiveId);
@@ -165,7 +162,7 @@ export function RetrospectiveBoardWithQuery({
       if (newCooldown > 0) {
         setCooldowns(prev => new Map(prev).set(`create-${currentUser.id}`, Date.now() + newCooldown));
       }
-    } catch (error) {
+    } catch {
       // Error is handled by the mutation
     }
   };
@@ -207,7 +204,7 @@ export function RetrospectiveBoardWithQuery({
       if (newCooldown > 0) {
         setCooldowns(prev => new Map(prev).set(`vote-${currentUser.id}`, Date.now() + newCooldown));
       }
-    } catch (error) {
+    } catch {
       // Error is handled by the mutation
     }
   };

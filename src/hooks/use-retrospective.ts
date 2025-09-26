@@ -14,7 +14,6 @@ import { canCreateItem, canDeleteItem, canVote } from "@/lib/utils/rate-limit";
 
 // Types
 type RetrospectiveItem = Database["public"]["Tables"]["retrospective_items"]["Row"];
-type RetrospectiveColumn = Database["public"]["Tables"]["retrospective_columns"]["Row"];
 type Vote = Database["public"]["Tables"]["votes"]["Row"];
 type Retrospective = Database["public"]["Tables"]["retrospectives"]["Row"];
 
@@ -24,11 +23,6 @@ interface CreateItemInput {
   content: string;
   authorId: string;
   authorName: string;
-}
-
-interface CreateVoteInput {
-  itemId: string;
-  userId: string;
 }
 
 // Query keys factory
@@ -199,10 +193,10 @@ export function useCreateItem() {
       }
       toast.error(err instanceof Error ? err.message : "Failed to add item");
     },
-    onSuccess: (data, input) => {
+    onSuccess: () => {
       toast.success("Item added successfully");
     },
-    onSettled: (data, error, input) => {
+    onSettled: (_data, _error, input) => {
       // Refetch to ensure consistency
       queryClient.invalidateQueries({
         queryKey: retrospectiveKeys.items(input.retrospectiveId)
@@ -265,10 +259,10 @@ export function useDeleteItem() {
       }
       toast.error(err instanceof Error ? err.message : "Failed to delete item");
     },
-    onSuccess: (data, variables) => {
+    onSuccess: () => {
       toast.success("Item deleted");
     },
-    onSettled: (data, error, variables) => {
+    onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({
         queryKey: retrospectiveKeys.items(variables.retrospectiveId)
       });
@@ -365,7 +359,7 @@ export function useToggleVote() {
       }
       toast.error(err instanceof Error ? err.message : "Failed to update vote");
     },
-    onSettled: (data, error, variables) => {
+    onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({
         queryKey: retrospectiveKeys.votes(variables.retrospectiveId)
       });
@@ -447,7 +441,7 @@ export function useUpdateItem() {
     onSuccess: () => {
       toast.success("Item updated");
     },
-    onSettled: (data, error, variables) => {
+    onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({
         queryKey: retrospectiveKeys.items(variables.retrospectiveId)
       });
