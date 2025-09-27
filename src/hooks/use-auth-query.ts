@@ -12,6 +12,7 @@ import type { User, AuthError } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types-enhanced";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+type ProfileInsert = Database["public"]["Tables"]["profiles"]["Insert"];
 
 // Query keys factory
 export const authKeys = {
@@ -200,7 +201,7 @@ export function useUpdateProfile() {
 
       const supabase = createClient();
 
-      const updates = {
+      const updates: ProfileInsert = {
         id: user.id,
         email: user.email!,
         updated_at: new Date().toISOString(),
@@ -208,8 +209,10 @@ export function useUpdateProfile() {
         ...(avatarUrl !== undefined && { avatar_url: avatarUrl }),
       };
 
-      const { data, error } = await supabase
-        .from("profiles")
+      // TypeScript has issues with type inference on upsert, use any as a workaround
+      const { data, error } = await (supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from("profiles") as any)
         .upsert(updates)
         .select()
         .single();

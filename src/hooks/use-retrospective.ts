@@ -21,6 +21,7 @@ import {
 
 // Types
 type RetrospectiveItem = Database["public"]["Tables"]["retrospective_items"]["Row"];
+type RetrospectiveColumn = Database["public"]["Tables"]["retrospective_columns"]["Row"];
 type Vote = Database["public"]["Tables"]["votes"]["Row"];
 type Retrospective = Database["public"]["Tables"]["retrospectives"]["Row"];
 
@@ -67,9 +68,9 @@ export function useRetrospective(retrospectiveId: string, options?: UseQueryOpti
 
 // Fetch retrospective columns
 export function useRetrospectiveColumns(retrospectiveId: string) {
-  return useQuery({
+  return useQuery<RetrospectiveColumn[]>({
     queryKey: retrospectiveKeys.columns(retrospectiveId),
-    queryFn: async () => {
+    queryFn: async (): Promise<RetrospectiveColumn[]> => {
       const supabase = createClient();
       const { data, error } = await supabase
         .from("retrospective_columns")
@@ -88,9 +89,9 @@ export function useRetrospectiveColumns(retrospectiveId: string) {
 
 // Fetch retrospective items
 export function useRetrospectiveItems(retrospectiveId: string) {
-  return useQuery({
+  return useQuery<RetrospectiveItem[]>({
     queryKey: retrospectiveKeys.items(retrospectiveId),
-    queryFn: async () => {
+    queryFn: async (): Promise<RetrospectiveItem[]> => {
       const supabase = createClient();
 
       // First get all column IDs for this retrospective
@@ -129,9 +130,9 @@ export function useRetrospectiveItems(retrospectiveId: string) {
 
 // Fetch votes for items
 export function useVotes(retrospectiveId: string, itemIds: string[]) {
-  return useQuery({
+  return useQuery<Vote[]>({
     queryKey: retrospectiveKeys.votes(retrospectiveId),
-    queryFn: async () => {
+    queryFn: async (): Promise<Vote[]> => {
       if (itemIds.length === 0) return [];
 
       const supabase = createClient();

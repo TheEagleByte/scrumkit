@@ -82,8 +82,9 @@ export function useAuth() {
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!user) throw new Error("No user logged in");
 
-    const { data, error } = await supabase
-      .from("profiles")
+    const { data, error } = await (supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .from("profiles") as any)
       .update(updates)
       .eq("id", user.id)
       .select()
