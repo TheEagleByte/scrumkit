@@ -11,13 +11,10 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Plus, Layout, Star, Users, Globe } from "lucide-react";
 import { boardTemplates, type BoardTemplate } from "@/lib/boards/templates";
 import type { Tables } from "@/lib/supabase/types";
@@ -43,8 +40,6 @@ export function TemplateSelector({
   userPreferences,
 }: TemplateSelectorProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [customTemplateName, setCustomTemplateName] = useState("");
-  const [customTemplateDescription, setCustomTemplateDescription] = useState("");
 
   const allTemplates = [
     ...boardTemplates,
@@ -100,68 +95,26 @@ export function TemplateSelector({
               <DialogHeader>
                 <DialogTitle>Create Custom Template</DialogTitle>
                 <DialogDescription>
-                  Create a reusable template based on the current board configuration
+                  Custom templates can be created from an existing retrospective board.
+                  Start a retrospective session, configure your columns, and then save it as a template for future use.
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="template-name">Template Name</Label>
-                  <Input
-                    id="template-name"
-                    value={customTemplateName}
-                    onChange={(e) => setCustomTemplateName(e.target.value)}
-                    placeholder="e.g., Team Health Check"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="template-description">Description</Label>
-                  <Textarea
-                    id="template-description"
-                    value={customTemplateDescription}
-                    onChange={(e) => setCustomTemplateDescription(e.target.value)}
-                    placeholder="Describe when and how to use this template..."
-                    rows={3}
-                  />
-                </div>
+              <div className="py-4 text-sm text-muted-foreground">
+                <p className="mb-2">To create a custom template:</p>
+                <ol className="list-decimal list-inside space-y-1 ml-2">
+                  <li>Start a new retrospective or open an existing one</li>
+                  <li>Configure the columns as needed</li>
+                  <li>Use the "Save as Template" option in the board menu</li>
+                </ol>
               </div>
-              <DialogFooter>
+              <div className="flex justify-end">
                 <Button
                   variant="outline"
                   onClick={() => setIsCreateDialogOpen(false)}
                 >
-                  Cancel
+                  Got it
                 </Button>
-                <Button
-                  onClick={async () => {
-                    if (!onCreateCustomTemplate || !customTemplateName.trim()) return;
-
-                    try {
-                      // Call the template creation function
-                      await onCreateCustomTemplate({
-                        name: customTemplateName.trim(),
-                        description: customTemplateDescription.trim(),
-                        columns: [], // This would need to be properly configured
-                        is_public: false,
-                        team_id: null,
-                        organization_id: null,
-                        created_by: null,
-                      } as any);
-
-                      // Clear the form and close dialog on success
-                      setCustomTemplateName("");
-                      setCustomTemplateDescription("");
-                      setIsCreateDialogOpen(false);
-                    } catch (error) {
-                      // Log the error but keep dialog open
-                      console.error("Failed to create template:", error);
-                      // Could also show a toast notification here
-                    }
-                  }}
-                  disabled={!customTemplateName.trim() || !onCreateCustomTemplate}
-                >
-                  Create Template
-                </Button>
-              </DialogFooter>
+              </div>
             </DialogContent>
           </Dialog>
         )}
