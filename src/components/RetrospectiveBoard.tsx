@@ -91,12 +91,12 @@ const getColumnIcon = (columnType: string): React.ReactNode => {
     'blockers': <AlertTriangle className="h-5 w-5" />,
     'action-items': <Target className="h-5 w-5" />,
     'glad': <Smile className="h-5 w-5" />,
-    'sad': <Meh className="h-5 w-5" />,  // Fixed: was Frown, should be Meh
-    'mad': <Frown className="h-5 w-5" />,  // Fixed: was AlertTriangle, should be Frown
+    'sad': <Meh className="h-5 w-5" />,
+    'mad': <Frown className="h-5 w-5" />,
     'liked': <Heart className="h-5 w-5" />,
     'learned': <Lightbulb className="h-5 w-5" />,
     'lacked': <AlertTriangle className="h-5 w-5" />,
-    'longed-for': <Star className="h-5 w-5" />,  // Fixed: was Target, should be Star
+    'longed-for': <Star className="h-5 w-5" />,
     'drop': <X className="h-5 w-5" />,
     'add': <Plus className="h-5 w-5" />,
     'keep': <Check className="h-5 w-5" />,
