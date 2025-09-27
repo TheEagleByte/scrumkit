@@ -130,7 +130,22 @@ export async function createBoard(input: CreateBoardInput) {
   };
 }
 
-export async function getBoard(uniqueUrl: string) {
+type BoardWithRelations = Database["public"]["Tables"]["retrospectives"]["Row"] & {
+  retrospective_columns: Array<{
+    id: string;
+    column_type: string;
+    title: string;
+    description: string | null;
+    color: string | null;
+    display_order: number | null;
+  }>;
+  team: {
+    id: string;
+    name: string;
+  } | null;
+};
+
+export async function getBoard(uniqueUrl: string): Promise<BoardWithRelations | null> {
   const supabase = await createClient();
 
   const { data: board, error } = await supabase

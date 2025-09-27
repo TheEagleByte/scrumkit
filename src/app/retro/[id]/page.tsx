@@ -17,10 +17,6 @@ export default async function RetroPage({
     notFound();
   }
 
-  // Use a non-null assertion since we know board exists after the check above
-  // TypeScript has issues with control flow analysis after notFound()
-  const validBoard = board!;
-
   // Get user info
   const user = await getUserFromServer();
   const profile = user ? await getProfileFromServer() : null;
@@ -38,10 +34,10 @@ export default async function RetroPage({
   return (
     <main className="bg-background grid-pattern min-h-screen">
       <RetrospectiveBoardWrapper
-        retrospectiveId={validBoard.id}
+        retrospectiveId={board.id}
         authenticatedUser={authenticatedUser}
-        teamName={validBoard.team?.name || "Anonymous Board"}
-        sprintName={validBoard.title || "Untitled Retrospective"}
+        teamName={board.team?.name || "Anonymous Board"}
+        sprintName={board.title || "Untitled Retrospective"}
       />
     </main>
   );
