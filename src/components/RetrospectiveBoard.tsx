@@ -18,6 +18,14 @@ import {
   Frown,
   Smile,
   MessageSquare,
+  X,
+  Check,
+  PlayCircle,
+  PauseCircle,
+  TrendingUp,
+  TrendingDown,
+  Meh,
+  Star,
 } from "lucide-react";
 import { DraggableRetroItem } from "@/components/retro/DraggableRetroItem";
 import type { RetroItemData } from "@/components/retro/RetroItem";
@@ -83,12 +91,24 @@ const getColumnIcon = (columnType: string): React.ReactNode => {
     'blockers': <AlertTriangle className="h-5 w-5" />,
     'action-items': <Target className="h-5 w-5" />,
     'glad': <Smile className="h-5 w-5" />,
-    'sad': <Frown className="h-5 w-5" />,
-    'mad': <AlertTriangle className="h-5 w-5" />,
+    'sad': <Meh className="h-5 w-5" />,
+    'mad': <Frown className="h-5 w-5" />,
     'liked': <Heart className="h-5 w-5" />,
     'learned': <Lightbulb className="h-5 w-5" />,
     'lacked': <AlertTriangle className="h-5 w-5" />,
-    'longed-for': <Target className="h-5 w-5" />,
+    'longed-for': <Star className="h-5 w-5" />,
+    'drop': <X className="h-5 w-5" />,
+    'add': <Plus className="h-5 w-5" />,
+    'keep': <Check className="h-5 w-5" />,
+    'start': <PlayCircle className="h-5 w-5" />,
+    'stop': <PauseCircle className="h-5 w-5" />,
+    'continue': <TrendingUp className="h-5 w-5" />,
+    'wind': <TrendingUp className="h-5 w-5" />,
+    'anchor': <TrendingDown className="h-5 w-5" />,
+    'rocks': <AlertTriangle className="h-5 w-5" />,
+    'island': <Target className="h-5 w-5" />,
+    'plus': <ThumbsUp className="h-5 w-5" />,
+    'delta': <TrendingUp className="h-5 w-5" />,
   };
   return iconMap[columnType] || <MessageSquare className="h-5 w-5" />;
 };
