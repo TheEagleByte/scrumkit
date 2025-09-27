@@ -17,6 +17,9 @@ export function useTemplates(teamId?: string, organizationId?: string) {
     const supabase = createClient();
 
     async function fetchTemplates() {
+      setLoading(true);
+      setError(null);
+
       try {
         let query = supabase
           .from('custom_templates')
@@ -157,6 +160,9 @@ export function useTemplatePreferences(userId: string) {
     const supabase = createClient();
 
     async function fetchPreferences() {
+      setLoading(true);
+      setError(null);
+
       try {
         const { data, error } = await supabase
           .from('profiles')

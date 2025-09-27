@@ -132,11 +132,32 @@ export function TemplateSelector({
                   Cancel
                 </Button>
                 <Button
-                  onClick={() => {
-                    // TODO: Implement custom template creation
-                    setIsCreateDialogOpen(false);
+                  onClick={async () => {
+                    if (!onCreateCustomTemplate || !customTemplateName.trim()) return;
+
+                    try {
+                      // Call the template creation function
+                      await onCreateCustomTemplate({
+                        name: customTemplateName.trim(),
+                        description: customTemplateDescription.trim(),
+                        columns: [], // This would need to be properly configured
+                        is_public: false,
+                        team_id: null,
+                        organization_id: null,
+                        created_by: null,
+                      } as any);
+
+                      // Clear the form and close dialog on success
+                      setCustomTemplateName("");
+                      setCustomTemplateDescription("");
+                      setIsCreateDialogOpen(false);
+                    } catch (error) {
+                      // Log the error but keep dialog open
+                      console.error("Failed to create template:", error);
+                      // Could also show a toast notification here
+                    }
                   }}
-                  disabled={!customTemplateName.trim()}
+                  disabled={!customTemplateName.trim() || !onCreateCustomTemplate}
                 >
                   Create Template
                 </Button>

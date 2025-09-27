@@ -55,11 +55,37 @@ CREATE POLICY "Users can create templates for their teams" ON public.custom_temp
     team_id IN (
       SELECT team_id FROM public.team_members
       WHERE profile_id = auth.uid()
+    ) AND
+    (
+      organization_id IS NULL OR
+      organization_id IN (
+        SELECT t.organization_id
+        FROM public.teams t
+        JOIN public.team_members tm ON t.id = tm.team_id
+        WHERE tm.profile_id = auth.uid()
+      )
     )
   );
 
 CREATE POLICY "Users can update their own templates" ON public.custom_templates
-  FOR UPDATE USING (created_by = auth.uid());
+  FOR UPDATE
+  USING (created_by = auth.uid())
+  WITH CHECK (
+    created_by = auth.uid() AND
+    team_id IN (
+      SELECT team_id FROM public.team_members
+      WHERE profile_id = auth.uid()
+    ) AND
+    (
+      organization_id IS NULL OR
+      organization_id IN (
+        SELECT t.organization_id
+        FROM public.teams t
+        JOIN public.team_members tm ON t.id = tm.team_id
+        WHERE tm.profile_id = auth.uid()
+      )
+    )
+  );
 
 CREATE POLICY "Users can delete their own templates" ON public.custom_templates
   FOR DELETE USING (created_by = auth.uid());
