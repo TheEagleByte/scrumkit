@@ -218,6 +218,45 @@ export const boardTemplates: BoardTemplate[] = [
       },
     ],
   },
+  {
+    id: "daki",
+    name: "DAKI (Drop, Add, Keep, Improve)",
+    description: "Focus on what to drop, add, keep, and improve in your process",
+    columns: [
+      {
+        column_type: "drop",
+        title: "Drop",
+        description: "Practices or activities to stop doing",
+        color: "bg-red-500/10 border-red-500/20",
+        icon: "X",
+        display_order: 0,
+      },
+      {
+        column_type: "add",
+        title: "Add",
+        description: "New practices or activities to start",
+        color: "bg-green-500/10 border-green-500/20",
+        icon: "Plus",
+        display_order: 1,
+      },
+      {
+        column_type: "keep",
+        title: "Keep",
+        description: "Good practices to continue",
+        color: "bg-blue-500/10 border-blue-500/20",
+        icon: "Check",
+        display_order: 2,
+      },
+      {
+        column_type: "improve",
+        title: "Improve",
+        description: "Things that need refinement",
+        color: "bg-yellow-500/10 border-yellow-500/20",
+        icon: "TrendingUp",
+        display_order: 3,
+      },
+    ],
+  },
 ];
 
 export function getTemplateById(id: string): BoardTemplate | undefined {
