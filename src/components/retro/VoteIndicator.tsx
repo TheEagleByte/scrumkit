@@ -34,12 +34,14 @@ export function VoteIndicator({
   disabled = false,
   className,
 }: VoteIndicatorProps) {
-  // Generate dots for visual representation
-  const dots = Array.from({ length: Math.min(voteCount, maxDisplay) }, (_, i) => i);
-  const remainingVotes = Math.max(0, voteCount - maxDisplay);
+  // Always render full dot row with placeholders
+  const displayCount = Math.max(0, maxDisplay);
+  const dots = Array.from({ length: displayCount }, (_, i) => i);
+  const remainingVotes = Math.max(0, voteCount - displayCount);
 
   const handleClick = () => {
-    if (!disabled && canVote) {
+    // Allow vote removal even at vote limit
+    if (!disabled && (canVote || hasVoted)) {
       onVote();
     }
   };
@@ -76,11 +78,11 @@ export function VoteIndicator({
             key={i}
             className={cn(
               "w-2 h-2 rounded-full transition-all",
-              hasVoted
-                ? "bg-primary"
-                : voteCount > i
-                ? "bg-muted-foreground"
-                : "bg-muted"
+              i < voteCount
+                ? hasVoted
+                  ? "bg-primary"
+                  : "bg-muted-foreground"
+                : "bg-muted border border-muted-foreground/20"
             )}
           />
         ))}
@@ -131,7 +133,10 @@ interface VoteCounterProps {
 
 export function VoteCounter({ votesUsed, maxVotes, className }: VoteCounterProps) {
   const votesRemaining = Math.max(0, maxVotes - votesUsed);
-  const percentage = (votesUsed / maxVotes) * 100;
+  const percentage =
+    maxVotes > 0
+      ? Math.min(100, (Math.max(0, votesUsed) / maxVotes) * 100)
+      : 0;
 
   return (
     <div className={cn("space-y-2", className)}>

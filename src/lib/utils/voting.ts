@@ -1,4 +1,4 @@
-import type { Database } from "@/lib/supabase/types";
+import type { Database } from "@/lib/supabase/types-enhanced";
 
 type Vote = Database["public"]["Tables"]["votes"]["Row"];
 
@@ -87,12 +87,13 @@ export function getVoteDisplay(
 }
 
 /**
- * Sort items by vote count
+ * Sort items by vote count with optional tiebreaker
  */
 export function sortItemsByVotes<T extends { id: string }>(
   items: T[],
   votes: Vote[],
-  order: "asc" | "desc" = "desc"
+  order: "asc" | "desc" = "desc",
+  tiebreaker?: (a: T, b: T) => number
 ): T[] {
   const voteCountMap = new Map<string, number>();
 
@@ -107,7 +108,9 @@ export function sortItemsByVotes<T extends { id: string }>(
     const aVotes = voteCountMap.get(a.id) || 0;
     const bVotes = voteCountMap.get(b.id) || 0;
 
-    return order === "desc" ? bVotes - aVotes : aVotes - bVotes;
+    const cmp = order === "desc" ? bVotes - aVotes : aVotes - bVotes;
+    if (cmp !== 0) return cmp;
+    return tiebreaker ? tiebreaker(a, b) : 0;
   });
 }
 
@@ -161,12 +164,16 @@ export function formatVoteCount(count: number, showZero: boolean = true): string
 }
 
 /**
- * Generate vote display dots
+ * Generate vote display dots for visual representation
+ * @param currentVotes - Number of votes currently cast
+ * @param maxVotes - Maximum number of votes allowed
+ * @param showCapacity - Whether to show empty dots for remaining capacity (renamed from hasVoted for clarity)
+ * @returns Array of dot objects with filled state and index
  */
 export function getVoteDots(
   currentVotes: number,
   maxVotes: number = 5,
-  hasVoted: boolean = false
+  showCapacity: boolean = false
 ): Array<{ filled: boolean; index: number }> {
   const dots = [];
 
@@ -175,7 +182,7 @@ export function getVoteDots(
   }
 
   // Add empty dots if showing user's voting capacity
-  if (hasVoted && currentVotes < maxVotes) {
+  if (showCapacity && currentVotes < maxVotes) {
     for (let i = currentVotes; i < maxVotes; i++) {
       dots.push({ filled: false, index: i });
     }

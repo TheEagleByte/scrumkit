@@ -872,63 +872,36 @@ export function useUserVoteStats(retrospectiveId: string, userId: string) {
     queryFn: async () => {
       const supabase = createClient();
 
-      // Get retrospective max votes
-      const { data: retro, error: retroError } = await supabase
-        .from("retrospectives")
-        .select("max_votes_per_user")
-        .eq("id", retrospectiveId)
+      // Use the retrospective_vote_stats view for efficient querying
+      const { data: stats, error } = await supabase
+        .from("retrospective_vote_stats")
+        .select("*")
+        .eq("retrospective_id", retrospectiveId)
+        .eq("profile_id", userId)
         .single();
 
-      if (retroError) {
-        console.error("Error fetching retrospective:", retroError);
+      if (error) {
+        // If no data exists, user hasn't voted yet
+        if (error.code === 'PGRST116') {
+          // Get the max votes from retrospective
+          const { data: retro } = await supabase
+            .from("retrospectives")
+            .select("max_votes_per_user")
+            .eq("id", retrospectiveId)
+            .single();
+
+          const maxVotes = retro?.max_votes_per_user || 5;
+          return { votesUsed: 0, maxVotes, votesRemaining: maxVotes };
+        }
+
+        console.error("Error fetching vote stats:", error);
         return { votesUsed: 0, maxVotes: 5, votesRemaining: 5 };
       }
 
-      const maxVotes = retro?.max_votes_per_user || 5;
-
-      // Get all column IDs for this retrospective
-      const { data: columns, error: columnsError } = await supabase
-        .from("retrospective_columns")
-        .select("id")
-        .eq("retrospective_id", retrospectiveId);
-
-      if (columnsError || !columns || columns.length === 0) {
-        return { votesUsed: 0, maxVotes, votesRemaining: maxVotes };
-      }
-
-      const columnIds = columns.map(col => col.id);
-
-      // Get items in these columns
-      const { data: items, error: itemsError } = await supabase
-        .from("retrospective_items")
-        .select("id")
-        .in("column_id", columnIds);
-
-      if (itemsError || !items || items.length === 0) {
-        return { votesUsed: 0, maxVotes, votesRemaining: maxVotes };
-      }
-
-      const itemIds = items.map(item => item.id);
-
-      // Count user's votes
-      const { data: votes, error: votesError } = await supabase
-        .from("votes")
-        .select("id")
-        .in("item_id", itemIds)
-        .eq("profile_id", userId);
-
-      if (votesError) {
-        console.error("Error fetching votes:", votesError);
-        return { votesUsed: 0, maxVotes, votesRemaining: maxVotes };
-      }
-
-      const votesUsed = votes?.length || 0;
-      const votesRemaining = Math.max(0, maxVotes - votesUsed);
-
       return {
-        votesUsed,
-        maxVotes,
-        votesRemaining,
+        votesUsed: stats?.votes_used || 0,
+        maxVotes: stats?.max_votes_per_user || 5,
+        votesRemaining: stats?.votes_remaining || 5,
       };
     },
     enabled: !!userId && !userId.startsWith("anon-"), // Don't fetch for anonymous users

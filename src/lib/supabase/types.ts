@@ -249,6 +249,7 @@ export type Database = {
           unique_url: string | null
           updated_at: string | null
           voting_limit: number | null
+          max_votes_per_user: number | null
         }
         Insert: {
           completed_at?: string | null
@@ -269,6 +270,7 @@ export type Database = {
           unique_url?: string | null
           updated_at?: string | null
           voting_limit?: number | null
+          max_votes_per_user?: number | null
         }
         Update: {
           completed_at?: string | null
@@ -289,6 +291,7 @@ export type Database = {
           unique_url?: string | null
           updated_at?: string | null
           voting_limit?: number | null
+          max_votes_per_user?: number | null
         }
         Relationships: [
           {
@@ -419,7 +422,15 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      retrospective_vote_stats: {
+        Row: {
+          retrospective_id: string
+          profile_id: string
+          votes_used: number
+          max_votes_per_user: number
+          votes_remaining: number
+        }
+      }
     }
     Functions: {
       generate_unique_url: {

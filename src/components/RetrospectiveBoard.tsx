@@ -305,11 +305,17 @@ export function RetrospectiveBoard({
 
   const getColumnItems = useMemo(
     () => (columnId: string) => {
+      // Precompute vote counts once
+      const voteCountMap = new Map<string, number>();
+      for (const v of votes) {
+        voteCountMap.set(v.item_id, (voteCountMap.get(v.item_id) || 0) + 1);
+      }
+
       return items
         .filter(item => item.column_id === columnId)
         .sort((a, b) => {
-          const aVotes = votes.filter(v => v.item_id === a.id).length;
-          const bVotes = votes.filter(v => v.item_id === b.id).length;
+          const aVotes = voteCountMap.get(a.id) || 0;
+          const bVotes = voteCountMap.get(b.id) || 0;
 
           if (sortByVotes) {
             // Sort by votes first when toggle is on
@@ -690,7 +696,7 @@ export function RetrospectiveBoard({
                         if (hasVoted) {
                           canVote = true; // Can always remove vote
                         } else {
-                          canVote = voteStats ? voteStats.votesRemaining > 0 : false;
+                          canVote = voteStats ? voteStats.votesRemaining > 0 : true;
                         }
                       }
 
