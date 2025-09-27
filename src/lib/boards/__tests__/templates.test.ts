@@ -176,7 +176,7 @@ describe('boards/templates', () => {
           'Frown', 'Meh', 'Smile',
           'PlayCircle', 'PauseCircle', 'TrendingUp',
           'Heart', 'Star',
-          'TrendingDown'
+          'TrendingDown', 'X', 'Check', 'Plus'
         ];
 
         boardTemplates.forEach(template => {

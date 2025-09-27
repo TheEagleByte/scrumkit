@@ -31,6 +31,24 @@ interface TemplateSelectorProps {
   };
 }
 
+const deserializeColumns = (value: Tables<'custom_templates'>['columns']): BoardTemplate['columns'] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.map((column, index) => {
+    const col = column as Record<string, unknown>;
+    return {
+      column_type: typeof col?.column_type === "string" ? col.column_type : `column-${index}`,
+      title: typeof col?.title === "string" ? col.title : "",
+      description: typeof col?.description === "string" ? col.description : "",
+      color: typeof col?.color === "string" ? col.color : "bg-green-500/10 border-green-500/20",
+      icon: typeof col?.icon === "string" ? col.icon : undefined,
+      display_order: typeof col?.display_order === "number" ? col.display_order : index,
+    };
+  });
+};
+
 export function TemplateSelector({
   selectedTemplateId,
   onTemplateSelect,
@@ -47,7 +65,7 @@ export function TemplateSelector({
       id: ct.id,
       name: ct.name,
       description: ct.description || "",
-      columns: (ct.columns as unknown) as BoardTemplate["columns"],
+      columns: deserializeColumns(ct.columns),
       isCustom: true,
       isPublic: ct.is_public,
       createdBy: ct.created_by,
