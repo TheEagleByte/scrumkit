@@ -176,6 +176,7 @@ describe('use-retrospective', () => {
     // Setup Supabase mock to return the same builder instance
     mockSupabase = {
       from: jest.fn(() => mockQueryBuilder),
+      rpc: jest.fn(),
     };
 
     mockCreateClient.mockReturnValue(mockSupabase);
@@ -188,7 +189,7 @@ describe('use-retrospective', () => {
       expect(retrospectiveKeys.detail('retro-1')).toEqual(['retrospectives', 'detail', 'retro-1']);
       expect(retrospectiveKeys.items('retro-1')).toEqual(['retrospectives', 'detail', 'retro-1', 'items']);
       expect(retrospectiveKeys.columns('retro-1')).toEqual(['retrospectives', 'detail', 'retro-1', 'columns']);
-      expect(retrospectiveKeys.votes('retro-1')).toEqual(['retrospectives', 'detail', 'retro-1', 'votes']);
+      expect(retrospectiveKeys.votes('retro-1')).toEqual(['retrospectives', 'detail', 'retro-1', 'votes', 'all']);
     });
   });
 
@@ -625,6 +626,8 @@ describe('use-retrospective', () => {
   describe('useToggleVote', () => {
     it('adds vote successfully', async () => {
       const newVote = { id: 'vote-3', item_id: 'item-1', profile_id: 'user-3' };
+      // Mock the RPC call for can_user_vote
+      mockSupabase.rpc.mockResolvedValue({ data: true, error: null });
       mockQueryBuilder.single.mockResolvedValue({ data: newVote, error: null });
 
       const { result } = renderHook(() => useToggleVote(), { wrapper: createWrapper() });
@@ -642,6 +645,11 @@ describe('use-retrospective', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
+      expect(mockSupabase.rpc).toHaveBeenCalledWith('can_user_vote', {
+        p_retrospective_id: 'retro-1',
+        p_user_id: 'user-3',
+        p_item_id: 'item-1'
+      });
       expect(mockSupabase.from).toHaveBeenCalledWith('votes');
       expect(result.current.data).toEqual({ action: 'added', vote: newVote });
     });
@@ -695,7 +703,8 @@ describe('use-retrospective', () => {
     });
 
     it('handles vote error', async () => {
-      mockQueryBuilder.single.mockResolvedValue({
+      // Mock the RPC call failing
+      mockSupabase.rpc.mockResolvedValue({
         data: null,
         error: { message: 'Vote failed' }
       });

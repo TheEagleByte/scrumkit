@@ -130,7 +130,22 @@ export async function createBoard(input: CreateBoardInput) {
   };
 }
 
-export async function getBoard(uniqueUrl: string) {
+type BoardWithRelations = Database["public"]["Tables"]["retrospectives"]["Row"] & {
+  retrospective_columns: Array<{
+    id: string;
+    column_type: string;
+    title: string;
+    description: string | null;
+    color: string | null;
+    display_order: number | null;
+  }>;
+  team: {
+    id: string;
+    name: string;
+  } | null;
+};
+
+export async function getBoard(uniqueUrl: string): Promise<BoardWithRelations | null> {
   const supabase = await createClient();
 
   const { data: board, error } = await supabase
@@ -162,7 +177,17 @@ export async function getBoard(uniqueUrl: string) {
   return board;
 }
 
-export async function getUserBoards() {
+type UserBoard = {
+  id: string;
+  unique_url: string | null;
+  title: string | null;
+  template: string | null;
+  is_archived: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export async function getUserBoards(): Promise<UserBoard[]> {
   const supabase = await createClient();
   const cookieStore = await cookies();
 

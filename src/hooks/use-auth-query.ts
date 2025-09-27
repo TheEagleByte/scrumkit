@@ -12,6 +12,7 @@ import type { User, AuthError } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types-enhanced";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+type ProfileInsert = Database["public"]["Tables"]["profiles"]["Insert"];
 
 // Query keys factory
 export const authKeys = {
@@ -200,7 +201,7 @@ export function useUpdateProfile() {
 
       const supabase = createClient();
 
-      const updates = {
+      const updates: ProfileInsert = {
         id: user.id,
         email: user.email!,
         updated_at: new Date().toISOString(),
