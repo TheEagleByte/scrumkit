@@ -11,14 +11,12 @@ export default async function RetroPage({
   const { id } = await params;
 
   // Fetch the board data
-  const boardResult = await getBoard(id);
+  const board = await getBoard(id);
 
-  if (!boardResult) {
+  if (!board) {
     notFound();
+    return null; // This line will never execute but helps TypeScript understand
   }
-
-  // TypeScript needs help understanding the control flow
-  const board = boardResult;
 
   // Get user info
   const user = await getUserFromServer();
