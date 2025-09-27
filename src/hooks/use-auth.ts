@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
-import type { Profile } from "@/lib/supabase/types-enhanced";
+import type { Profile, Database } from "@/lib/supabase/types-enhanced";
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -31,7 +31,7 @@ export function useAuth() {
             .single();
 
           if (profileData) {
-            setProfile(profileData as Profile);
+            setProfile(profileData);
           }
         }
       } catch (error) {
@@ -59,7 +59,7 @@ export function useAuth() {
           .single();
 
         if (profileData) {
-          setProfile(profileData as Profile);
+          setProfile(profileData);
         }
       } else {
         setProfile(null);
@@ -82,9 +82,8 @@ export function useAuth() {
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!user) throw new Error("No user logged in");
 
-    const { data, error } = await (supabase
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .from("profiles") as any)
+    const { data, error } = await supabase
+      .from("profiles")
       .update(updates)
       .eq("id", user.id)
       .select()
@@ -95,7 +94,7 @@ export function useAuth() {
       throw error;
     }
 
-    setProfile(data as Profile);
+    setProfile(data);
     return data;
   };
 

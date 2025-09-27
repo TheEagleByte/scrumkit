@@ -209,10 +209,8 @@ export function useUpdateProfile() {
         ...(avatarUrl !== undefined && { avatar_url: avatarUrl }),
       };
 
-      // TypeScript has issues with type inference on upsert, use any as a workaround
-      const { data, error } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from("profiles") as any)
+      const { data, error } = await supabase
+        .from("profiles")
         .upsert(updates)
         .select()
         .single();

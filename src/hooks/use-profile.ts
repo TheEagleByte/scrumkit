@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { Profile, ProfileUpdate } from "@/lib/supabase/types-enhanced";
+import type { Profile, ProfileUpdate, Database } from "@/lib/supabase/types-enhanced";
 
 export function useProfile(userId?: string) {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -29,8 +29,8 @@ export function useProfile(userId?: string) {
 
       if (fetchError) throw fetchError;
 
-      setProfile(data as Profile);
-      return data as Profile;
+      setProfile(data);
+      return data;
     } catch (err) {
       console.error("Error fetching profile:", err);
       setError(err as Error);
@@ -62,8 +62,8 @@ export function useProfile(userId?: string) {
 
       if (updateError) throw updateError;
 
-      setProfile(data as Profile);
-      return data as Profile;
+      setProfile(data);
+      return data;
     } catch (err) {
       console.error("Error updating profile:", err);
       setError(err as Error);
