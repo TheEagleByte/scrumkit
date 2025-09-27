@@ -32,9 +32,10 @@ describe('RetroItem', () => {
       expect(screen.getByText(mockItem.author)).toBeInTheDocument();
     });
 
-    it('renders the vote count with emoji', () => {
+    it('renders the vote count', () => {
       render(<RetroItem {...defaultProps} />);
-      expect(screen.getByText(`👍 ${mockItem.votes}`)).toBeInTheDocument();
+      // The vote count is now displayed as just the number in VoteIndicator
+      expect(screen.getByText(mockItem.votes.toString())).toBeInTheDocument();
     });
 
     it('renders remove button with X icon', () => {
@@ -46,7 +47,8 @@ describe('RetroItem', () => {
 
     it('renders vote button', () => {
       render(<RetroItem {...defaultProps} />);
-      const voteButton = screen.getByText(`👍 ${mockItem.votes}`);
+      // VoteIndicator now shows just the number
+      const voteButton = screen.getByText(mockItem.votes.toString());
       expect(voteButton).toBeInTheDocument();
       expect(voteButton.closest('button')).toBeInTheDocument();
     });
@@ -65,7 +67,7 @@ describe('RetroItem', () => {
 
     it('calls onVote with correct ID when vote button is clicked', () => {
       render(<RetroItem {...defaultProps} />);
-      const voteButton = screen.getByText(`👍 ${mockItem.votes}`).closest('button') as HTMLElement;
+      const voteButton = screen.getByText(mockItem.votes.toString()).closest('button') as HTMLElement;
 
       fireEvent.click(voteButton);
 
@@ -97,14 +99,14 @@ describe('RetroItem', () => {
       const itemWithZeroVotes = { ...mockItem, votes: 0 };
       render(<RetroItem {...defaultProps} item={itemWithZeroVotes} />);
 
-      expect(screen.getByText('👍 0')).toBeInTheDocument();
+      expect(screen.getByText('0')).toBeInTheDocument();
     });
 
     it('handles large vote counts', () => {
       const itemWithManyVotes = { ...mockItem, votes: 999 };
       render(<RetroItem {...defaultProps} item={itemWithManyVotes} />);
 
-      expect(screen.getByText('👍 999')).toBeInTheDocument();
+      expect(screen.getByText('999')).toBeInTheDocument();
     });
 
     it('handles long text content', () => {
@@ -160,9 +162,10 @@ describe('RetroItem', () => {
 
     it('applies correct styling to vote button', () => {
       render(<RetroItem {...defaultProps} />);
-      const voteButton = screen.getByText(`👍 ${mockItem.votes}`).closest('button');
+      const voteButton = screen.getByText(mockItem.votes.toString()).closest('button');
 
-      expect(voteButton).toHaveClass('h-6', 'px-2', 'text-xs');
+      // VoteIndicator button has different classes now
+      expect(voteButton).toHaveClass('h-auto', 'px-2', 'py-1');
     });
 
     it('applies muted color to author text', () => {
