@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { Tables, TablesInsert } from '@/lib/supabase/types';
+import type { Tables, TablesInsert, Json } from '@/lib/supabase/types';
 import type { BoardTemplate, BoardColumn } from '@/lib/boards/templates';
 
 export function useTemplates(teamId?: string, organizationId?: string) {
@@ -146,7 +146,7 @@ export function useDeleteCustomTemplate() {
 export function useTemplatePreferences(userId: string) {
   const [preferences, setPreferences] = useState<{
     preferred_template_id: string | null;
-    template_preferences: Record<string, unknown>;
+    template_preferences: Json;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -171,7 +171,12 @@ export function useTemplatePreferences(userId: string) {
           .single();
 
         if (error) throw error;
-        setPreferences(data);
+        if (data) {
+          setPreferences({
+            preferred_template_id: data.preferred_template_id,
+            template_preferences: data.template_preferences || {}
+          });
+        }
       } catch (err) {
         setError(err as Error);
       } finally {
@@ -184,7 +189,7 @@ export function useTemplatePreferences(userId: string) {
 
   const updatePreferences = async (updates: {
     preferred_template_id?: string | null;
-    template_preferences?: Record<string, unknown>;
+    template_preferences?: Json;
   }) => {
     if (!userId) return;
 
@@ -199,8 +204,13 @@ export function useTemplatePreferences(userId: string) {
         .single();
 
       if (error) throw error;
-      setPreferences(data);
-      return data;
+      if (data) {
+        setPreferences({
+          preferred_template_id: data.preferred_template_id,
+          template_preferences: data.template_preferences || {}
+        });
+        return data;
+      }
     } catch (err) {
       setError(err as Error);
       throw err;
@@ -214,9 +224,9 @@ export function createRetrospectiveFromTemplate(
   template: BoardTemplate | Tables<'custom_templates'>,
   retrospectiveData: Partial<TablesInsert<'retrospectives'>>
 ) {
-  const columns = 'columns' in template
+  const columns = 'columns' in template && Array.isArray(template.columns)
     ? template.columns
-    : (template as Tables<'custom_templates'>).columns as BoardColumn[];
+    : ((template as Tables<'custom_templates'>).columns as unknown) as BoardColumn[];
 
   return {
     ...retrospectiveData,

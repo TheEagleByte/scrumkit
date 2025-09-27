@@ -104,7 +104,7 @@ export function TemplateSelector({
                 <ol className="list-decimal list-inside space-y-1 ml-2">
                   <li>Start a new retrospective or open an existing one</li>
                   <li>Configure the columns as needed</li>
-                  <li>Use the "Save as Template" option in the board menu</li>
+                  <li>Use the &quot;Save as Template&quot; option in the board menu</li>
                 </ol>
               </div>
               <div className="flex justify-end">
@@ -129,8 +129,9 @@ export function TemplateSelector({
           {sortedTemplates.map((template) => {
             const isPreferred = template.id === preferredTemplate;
             const isRecent = recentTemplates.includes(template.id);
-            const isCustom = "isCustom" in template && (template as any).isCustom;
-            const isPublic = "isPublic" in template && (template as any).isPublic;
+            const templateWithCustom = template as BoardTemplate & { isCustom?: boolean; isPublic?: boolean };
+            const isCustom = "isCustom" in templateWithCustom && templateWithCustom.isCustom;
+            const isPublic = "isPublic" in templateWithCustom && templateWithCustom.isPublic;
 
             return (
               <div key={template.id} className="relative">
