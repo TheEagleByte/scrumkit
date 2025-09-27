@@ -40,7 +40,8 @@ export const retrospectiveKeys = {
   detail: (id: string) => [...retrospectiveKeys.details(), id] as const,
   items: (retrospectiveId: string) => [...retrospectiveKeys.detail(retrospectiveId), "items"] as const,
   columns: (retrospectiveId: string) => [...retrospectiveKeys.detail(retrospectiveId), "columns"] as const,
-  votes: (retrospectiveId: string) => [...retrospectiveKeys.detail(retrospectiveId), "votes"] as const,
+  votes: (retrospectiveId: string, scope: string = "all") =>
+    [...retrospectiveKeys.detail(retrospectiveId), "votes", scope] as const,
   voteStats: (retrospectiveId: string, userId: string) => [...retrospectiveKeys.detail(retrospectiveId), "voteStats", userId] as const,
 };
 
@@ -130,8 +131,11 @@ export function useRetrospectiveItems(retrospectiveId: string) {
 
 // Fetch votes for items
 export function useVotes(retrospectiveId: string, itemIds: string[]) {
+  // Create a stable scope string from itemIds
+  const scope = itemIds.length === 0 ? "none" : itemIds.slice().sort().join(",");
+
   return useQuery<Vote[]>({
-    queryKey: retrospectiveKeys.votes(retrospectiveId),
+    queryKey: retrospectiveKeys.votes(retrospectiveId, scope),
     queryFn: async (): Promise<Vote[]> => {
       if (itemIds.length === 0) return [];
 
@@ -369,47 +373,26 @@ export function useToggleVote() {
         if (error) throw error;
         return { action: "removed" as const };
       } else {
-        // Check vote limit before adding
-        // Get retrospective max votes
-        const { data: retro, error: retroError } = await supabase
-          .from("retrospectives")
-          .select("max_votes_per_user")
-          .eq("id", retrospectiveId)
-          .single();
+        // Check vote limit before adding using server-side function
+        const { data: canVote, error: checkError } = await supabase
+          .rpc("can_user_vote", {
+            p_retrospective_id: retrospectiveId,
+            p_user_id: userId,
+            p_item_id: itemId
+          });
 
-        if (retroError) throw retroError;
+        if (checkError) throw checkError;
 
-        const maxVotes = retro?.max_votes_per_user || 5;
+        if (!canVote) {
+          // Get the max votes for a better error message
+          const { data: retro } = await supabase
+            .from("retrospectives")
+            .select("max_votes_per_user")
+            .eq("id", retrospectiveId)
+            .single();
 
-        // Count current votes for this user in this retrospective
-        const { data: columns } = await supabase
-          .from("retrospective_columns")
-          .select("id")
-          .eq("retrospective_id", retrospectiveId);
-
-        if (columns && columns.length > 0) {
-          const columnIds = columns.map(col => col.id);
-
-          const { data: items } = await supabase
-            .from("retrospective_items")
-            .select("id")
-            .in("column_id", columnIds);
-
-          if (items && items.length > 0) {
-            const itemIds = items.map(item => item.id);
-
-            const { count, error: countError } = await supabase
-              .from("votes")
-              .select("*", { count: "exact", head: true })
-              .in("item_id", itemIds)
-              .eq("profile_id", userId);
-
-            if (countError) throw countError;
-
-            if (count && count >= maxVotes) {
-              throw new Error(`You've reached the maximum of ${maxVotes} votes for this retrospective`);
-            }
-          }
+          const maxVotes = retro?.max_votes_per_user || 5;
+          throw new Error(`You've reached the maximum of ${maxVotes} votes for this retrospective`);
         }
 
         // Add vote
@@ -433,18 +416,18 @@ export function useToggleVote() {
       }
 
       await queryClient.cancelQueries({
-        queryKey: retrospectiveKeys.votes(retrospectiveId)
+        queryKey: retrospectiveKeys.votes(retrospectiveId, "all")
       });
 
       const previousVotes = queryClient.getQueryData<Vote[]>(
-        retrospectiveKeys.votes(retrospectiveId)
+        retrospectiveKeys.votes(retrospectiveId, "all")
       );
 
       // Optimistically update
       if (hasVoted) {
         // Remove vote
         queryClient.setQueryData<Vote[]>(
-          retrospectiveKeys.votes(retrospectiveId),
+          retrospectiveKeys.votes(retrospectiveId, "all"),
           (old = []) => old.filter(v => !(v.item_id === itemId && v.profile_id === userId))
         );
       } else {
@@ -456,7 +439,7 @@ export function useToggleVote() {
           created_at: new Date().toISOString(),
         };
         queryClient.setQueryData<Vote[]>(
-          retrospectiveKeys.votes(retrospectiveId),
+          retrospectiveKeys.votes(retrospectiveId, "all"),
           (old = []) => [...old, optimisticVote]
         );
       }
@@ -466,7 +449,7 @@ export function useToggleVote() {
     onError: (err, variables, context) => {
       if (context?.previousVotes) {
         queryClient.setQueryData(
-          retrospectiveKeys.votes(variables.retrospectiveId),
+          retrospectiveKeys.votes(variables.retrospectiveId, "all"),
           context.previousVotes
         );
       }
@@ -474,7 +457,7 @@ export function useToggleVote() {
     },
     onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({
-        queryKey: retrospectiveKeys.votes(variables.retrospectiveId)
+        queryKey: retrospectiveKeys.votes(variables.retrospectiveId, "all")
       });
       // Also invalidate vote stats for the user
       if (!variables.userId.startsWith("anon-")) {
@@ -857,7 +840,7 @@ export function useMergeItems() {
         queryKey: retrospectiveKeys.items(variables.retrospectiveId)
       });
       queryClient.invalidateQueries({
-        queryKey: retrospectiveKeys.votes(variables.retrospectiveId)
+        queryKey: retrospectiveKeys.votes(variables.retrospectiveId, "all")
       });
     },
     onError: (err) => {
