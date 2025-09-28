@@ -21,6 +21,7 @@ export const AUTH_ERRORS = {
 
 /**
  * Sign up a new user
+ * Note: Profile will be created automatically via database trigger after email confirmation
  */
 export async function signUp(
   email: string,
@@ -38,17 +39,16 @@ export async function signUp(
       password,
       options: {
         data: metadata,
+        emailRedirectTo: `${window.location.origin}/auth/confirm`,
       },
     });
 
     if (error) {
+      if (error.message.includes('already registered') || error.message.includes('User already registered')) {
+        throw new Error('This email is already registered. Try signing in instead.');
+      }
       logger.error('Sign up error', error);
       throw new Error(error.message || AUTH_ERRORS.UNKNOWN_ERROR);
-    }
-
-    // If user is created, create their profile
-    if (data.user) {
-      await createUserProfile(data.user, metadata);
     }
 
     return { user: data.user, session: data.session };
@@ -83,62 +83,6 @@ export async function signIn(email: string, password: string) {
     return { user: data.user, session: data.session };
   } catch (error) {
     logger.error('Sign in failed', error as Error);
-    throw error;
-  }
-}
-
-/**
- * Sign in with magic link
- */
-export async function signInWithMagicLink(
-  email: string,
-  redirectTo?: string
-) {
-  try {
-    const supabase = createClient();
-
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: redirectTo || `${window.location.origin}/auth/confirm`,
-      },
-    });
-
-    if (error) {
-      logger.error('Magic link error', error);
-      throw new Error(error.message || AUTH_ERRORS.UNKNOWN_ERROR);
-    }
-
-    return { success: true };
-  } catch (error) {
-    logger.error('Magic link failed', error as Error);
-    throw error;
-  }
-}
-
-/**
- * Verify OTP token from magic link
- */
-export async function verifyOtp(
-  token: string,
-  type: 'email' = 'email'
-) {
-  try {
-    const supabase = createClient();
-
-    const { data, error } = await supabase.auth.verifyOtp({
-      token_hash: token,
-      type: type as 'email',
-    });
-
-    if (error) {
-      logger.error('OTP verification error', error);
-      throw new Error(error.message || AUTH_ERRORS.UNKNOWN_ERROR);
-    }
-
-    return { user: data.user, session: data.session };
-  } catch (error) {
-    logger.error('OTP verification failed', error as Error);
     throw error;
   }
 }
