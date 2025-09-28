@@ -68,37 +68,32 @@ describe('AuthForm', () => {
 
       expect(screen.getByText('Welcome to ScrumKit')).toBeInTheDocument();
       expect(screen.getByText('Sign in to save your boards and collaborate with your team')).toBeInTheDocument();
-      expect(screen.getByRole('tab', { name: 'Magic Link' })).toBeInTheDocument();
-      expect(screen.getByRole('tab', { name: 'Password' })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Sign In' })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Sign Up' })).toBeInTheDocument();
       expect(screen.getByText('continue as guest')).toBeInTheDocument();
     });
 
-    it('renders magic link form by default', () => {
+    it('renders sign in form by default', () => {
       render(<AuthForm />);
 
       expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /send magic link/i })).toBeInTheDocument();
+      expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
     });
   });
 
   describe('Tab Navigation', () => {
-    it('switches to password tab when clicked', async () => {
-      const user = userEvent.setup();
+    it('shows sign in form by default', () => {
       render(<AuthForm />);
-
-      const passwordTab = screen.getByRole('tab', { name: 'Password' });
-      await user.click(passwordTab);
 
       expect(screen.getByRole('tab', { name: 'Sign In' })).toBeInTheDocument();
       expect(screen.getByRole('tab', { name: 'Sign Up' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
     });
 
     it('switches between sign in and sign up forms', async () => {
       const user = userEvent.setup();
       render(<AuthForm />);
-
-      // Switch to password tab
-      await user.click(screen.getByRole('tab', { name: 'Password' }));
 
       // Should show sign in by default
       expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
@@ -106,96 +101,10 @@ describe('AuthForm', () => {
       // Switch to sign up
       await user.click(screen.getByRole('tab', { name: 'Sign Up' }));
       expect(screen.getByLabelText(/full name/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /sign up/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /create account/i })).toBeInTheDocument();
     });
   });
 
-  describe('Magic Link Authentication', () => {
-    it('sends magic link successfully', async () => {
-      mockAuth.signInWithOtp.mockResolvedValue({ error: null });
-      const user = userEvent.setup();
-
-      render(<AuthForm />);
-
-      const emailInput = screen.getByLabelText(/email/i);
-      const submitButton = screen.getByRole('button', { name: /send magic link/i });
-
-      await user.type(emailInput, 'test@example.com');
-      await user.click(submitButton);
-
-      expect(mockAuth.signInWithOtp).toHaveBeenCalledWith({
-        email: 'test@example.com',
-        options: {
-          emailRedirectTo: 'http://localhost/auth/confirm?redirectTo=%2Fretro',
-        },
-      });
-
-      expect(mockToast).toHaveBeenCalledWith({
-        title: 'Check your email',
-        description: "We've sent you a magic link to sign in.",
-      });
-    });
-
-    it('handles magic link errors', async () => {
-      mockAuth.signInWithOtp.mockRejectedValue(new Error('Invalid email'));
-      const user = userEvent.setup();
-
-      render(<AuthForm />);
-
-      const emailInput = screen.getByLabelText(/email/i);
-      const submitButton = screen.getByRole('button', { name: /send magic link/i });
-
-      await user.type(emailInput, 'test@example.com');
-      await user.click(submitButton);
-
-      await waitFor(() => {
-        expect(mockToast).toHaveBeenCalledWith({
-          title: 'Error',
-          description: 'Invalid email',
-          variant: 'destructive',
-        });
-      });
-    });
-
-    it('shows success screen after magic link sent', async () => {
-      mockAuth.signInWithOtp.mockResolvedValue({ error: null });
-      const user = userEvent.setup();
-
-      render(<AuthForm />);
-
-      const emailInput = screen.getByLabelText(/email/i);
-      const submitButton = screen.getByRole('button', { name: /send magic link/i });
-
-      await user.type(emailInput, 'test@example.com');
-      await user.click(submitButton);
-
-      await waitFor(() => {
-        expect(screen.getByText('Check your email')).toBeInTheDocument();
-        expect(screen.getByText(/test@example\.com/)).toBeInTheDocument();
-        expect(screen.getByText('Try a different email')).toBeInTheDocument();
-      });
-    });
-
-    it('uses custom redirectTo in magic link', async () => {
-      mockAuth.signInWithOtp.mockResolvedValue({ error: null });
-      const user = userEvent.setup();
-
-      render(<AuthForm redirectTo="/custom" />);
-
-      const emailInput = screen.getByLabelText(/email/i);
-      const submitButton = screen.getByRole('button', { name: /send magic link/i });
-
-      await user.type(emailInput, 'test@example.com');
-      await user.click(submitButton);
-
-      expect(mockAuth.signInWithOtp).toHaveBeenCalledWith({
-        email: 'test@example.com',
-        options: {
-          emailRedirectTo: 'http://localhost/auth/confirm?redirectTo=%2Fcustom',
-        },
-      });
-    });
-  });
 
   describe('Email/Password Sign In', () => {
     it('signs in successfully with email and password', async () => {
@@ -206,9 +115,6 @@ describe('AuthForm', () => {
       const user = userEvent.setup();
 
       render(<AuthForm />);
-
-      // Switch to password tab
-      await user.click(screen.getByRole('tab', { name: 'Password' }));
 
       const emailInput = document.getElementById('signin-email') as HTMLInputElement;
       const passwordInput = document.getElementById('signin-password') as HTMLInputElement;
@@ -238,9 +144,6 @@ describe('AuthForm', () => {
 
       render(<AuthForm />);
 
-      // Switch to password tab
-      await user.click(screen.getByRole('tab', { name: 'Password' }));
-
       const emailInput = document.getElementById('signin-email') as HTMLInputElement;
       const passwordInput = document.getElementById('signin-password') as HTMLInputElement;
       const submitButton = screen.getByRole('button', { name: /sign in/i });
@@ -267,9 +170,6 @@ describe('AuthForm', () => {
 
       render(<AuthForm redirectTo="/dashboard" />);
 
-      // Switch to password tab
-      await user.click(screen.getByRole('tab', { name: 'Password' }));
-
       const emailInput = document.getElementById('signin-email') as HTMLInputElement;
       const passwordInput = document.getElementById('signin-password') as HTMLInputElement;
       const submitButton = screen.getByRole('button', { name: /sign in/i });
@@ -294,14 +194,12 @@ describe('AuthForm', () => {
 
       render(<AuthForm />);
 
-      // Switch to password tab and sign up
-      await user.click(screen.getByRole('tab', { name: 'Password' }));
       await user.click(screen.getByRole('tab', { name: 'Sign Up' }));
 
       const fullNameInput = document.getElementById('signup-name') as HTMLInputElement;
       const emailInput = document.getElementById('signup-email') as HTMLInputElement;
       const passwordInput = document.getElementById('signup-password') as HTMLInputElement;
-      const submitButton = screen.getByRole('button', { name: /sign up/i });
+      const submitButton = screen.getByRole('button', { name: /create account/i });
 
       await user.type(fullNameInput, 'John Doe');
       await user.type(emailInput, 'john@example.com');
@@ -320,8 +218,8 @@ describe('AuthForm', () => {
       });
 
       expect(mockToast).toHaveBeenCalledWith({
-        title: 'Check your email',
-        description: "We've sent you a confirmation link to complete your sign up.",
+        title: 'Verify your email',
+        description: "We've sent a verification link to your email. Please click it to activate your account.",
       });
     });
 
@@ -331,14 +229,12 @@ describe('AuthForm', () => {
 
       render(<AuthForm />);
 
-      // Switch to password tab and sign up
-      await user.click(screen.getByRole('tab', { name: 'Password' }));
       await user.click(screen.getByRole('tab', { name: 'Sign Up' }));
 
       const fullNameInput = document.getElementById('signup-name') as HTMLInputElement;
       const emailInput = document.getElementById('signup-email') as HTMLInputElement;
       const passwordInput = document.getElementById('signup-password') as HTMLInputElement;
-      const submitButton = screen.getByRole('button', { name: /sign up/i });
+      const submitButton = screen.getByRole('button', { name: /create account/i });
 
       await user.type(fullNameInput, 'John Doe');
       await user.type(emailInput, 'existing@example.com');
@@ -347,7 +243,7 @@ describe('AuthForm', () => {
 
       await waitFor(() => {
         expect(mockToast).toHaveBeenCalledWith({
-          title: 'Error',
+          title: 'Signup failed',
           description: 'User already registered',
           variant: 'destructive',
         });
@@ -382,8 +278,6 @@ describe('AuthForm', () => {
       const user = userEvent.setup();
       render(<AuthForm />);
 
-      // Switch to password tab and sign up
-      await user.click(screen.getByRole('tab', { name: 'Password' }));
       await user.click(screen.getByRole('tab', { name: 'Sign Up' }));
 
       const passwordInput = document.getElementById('signup-password');
@@ -396,37 +290,42 @@ describe('AuthForm', () => {
       const user = userEvent.setup();
       render(<AuthForm />);
 
-      // Enter email in magic link tab
       const emailInput = screen.getByLabelText(/email/i);
       await user.type(emailInput, 'test@example.com');
 
-      // Switch to password tab
-      await user.click(screen.getByRole('tab', { name: 'Password' }));
+      await user.click(screen.getByRole('tab', { name: 'Sign Up' }));
 
-      // Email should be preserved
-      const passwordTabEmailInput = screen.getByLabelText(/email/i);
-      expect(passwordTabEmailInput).toHaveValue('test@example.com');
+      const signupEmailInput = screen.getByLabelText(/email/i);
+      expect(signupEmailInput).toHaveValue('test@example.com');
     });
 
     it('resets state when returning from success screen', async () => {
-      mockAuth.signInWithOtp.mockResolvedValue({ error: null });
+      mockAuth.signUp.mockResolvedValue({
+        data: { user: mockUser, session: null },
+        error: null
+      });
       const user = userEvent.setup();
 
       render(<AuthForm />);
 
-      // Send magic link
-      const emailInput = screen.getByLabelText(/email/i);
-      await user.type(emailInput, 'test@example.com');
-      await user.click(screen.getByRole('button', { name: /send magic link/i }));
+      await user.click(screen.getByRole('tab', { name: 'Sign Up' }));
 
-      // Wait for success screen and return
+      const fullNameInput = document.getElementById('signup-name') as HTMLInputElement;
+      const emailInput = document.getElementById('signup-email') as HTMLInputElement;
+      const passwordInput = document.getElementById('signup-password') as HTMLInputElement;
+      const submitButton = screen.getByRole('button', { name: /create account/i });
+
+      await user.type(fullNameInput, 'Test User');
+      await user.type(emailInput, 'test@example.com');
+      await user.type(passwordInput, 'password123');
+      await user.click(submitButton);
+
       await waitFor(() => {
         expect(screen.getByText('Try a different email')).toBeInTheDocument();
       });
 
       await user.click(screen.getByText('Try a different email'));
 
-      // Email should be cleared
       const newEmailInput = screen.getByLabelText(/email/i);
       expect(newEmailInput).toHaveValue('');
     });
