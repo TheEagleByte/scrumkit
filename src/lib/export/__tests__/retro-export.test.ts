@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import { formatMarkdownExport, type ExportData } from "../retro-export";
 
 describe("formatMarkdownExport", () => {
