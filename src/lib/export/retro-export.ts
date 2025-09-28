@@ -68,8 +68,8 @@ export function formatMarkdownExport(
           const bVotes = voteCountMap.get(b.id) || 0;
           if (aVotes !== bVotes) return bVotes - aVotes;
           return (
-            new Date(b.created_at || 0).getTime() -
-            new Date(a.created_at || 0).getTime()
+            new Date(b.created_at ?? Date.now()).getTime() -
+            new Date(a.created_at ?? Date.now()).getTime()
           );
         });
 
@@ -95,8 +95,8 @@ export function formatMarkdownExport(
       const bVotes = voteCountMap.get(b.id) || 0;
       if (aVotes !== bVotes) return bVotes - aVotes;
       return (
-        new Date(b.created_at || 0).getTime() -
-        new Date(a.created_at || 0).getTime()
+        new Date(b.created_at ?? Date.now()).getTime() -
+        new Date(a.created_at ?? Date.now()).getTime()
       );
     });
 

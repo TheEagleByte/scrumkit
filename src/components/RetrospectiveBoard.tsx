@@ -143,7 +143,7 @@ export function RetrospectiveBoard({
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   // Use TanStack Query hooks
-  const { isLoading: retroLoading } = useRetrospective(retrospectiveId);
+  const { data: retrospective, isLoading: retroLoading } = useRetrospective(retrospectiveId);
   const { data: columns = [], isLoading: columnsLoading } = useRetrospectiveColumns(retrospectiveId);
   const { data: items = [], isLoading: itemsLoading } = useRetrospectiveItems(retrospectiveId);
   const { data: votes = [] } = useVotes(retrospectiveId, items.map(i => i.id));
@@ -841,10 +841,12 @@ export function RetrospectiveBoard({
         open={exportDialogOpen}
         onOpenChange={setExportDialogOpen}
         exportData={{
-          retrospectiveName: sprintName,
+          retrospectiveName: retrospective?.title ?? sprintName,
           teamName,
-          sprintName,
-          date: new Date(),
+          sprintName: retrospective?.sprint_name ?? sprintName,
+          date: retrospective?.created_at
+            ? new Date(retrospective.created_at)
+            : new Date(),
           columns,
           items,
           votes,

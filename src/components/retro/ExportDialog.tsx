@@ -55,9 +55,16 @@ export function ExportDialog({
     }
   };
 
+  const sanitizeFilename = (name: string): string => {
+    // Replace any character not allowed in filenames with '_'
+    // This covers Windows and Unix invalid filename characters
+    return name.replace(/[\/\\:*?"<>|]/g, "_");
+  };
+
   const handleDownload = () => {
     try {
-      const filename = `${exportData.sprintName || "retrospective"}-${
+      const safeSprintName = sanitizeFilename(exportData.sprintName || "retrospective");
+      const filename = `${safeSprintName}-${
         exportData.date.toISOString().split("T")[0]
       }.md`;
       downloadMarkdown(markdownContent, filename);
