@@ -90,12 +90,7 @@ export function AuthForm({ redirectTo = "/retro" }: AuthFormProps) {
         },
       });
 
-      if (error) {
-        if (error.message.includes("already registered") || error.message.includes("User already registered")) {
-          throw new Error("This email is already registered. Try signing in instead.");
-        }
-        throw error;
-      }
+      if (error) throw error;
 
       toast({
         title: "Verify your email",

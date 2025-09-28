@@ -6,7 +6,7 @@
 import { createClient } from '@/lib/supabase/client';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import type { User } from '@supabase/supabase-js';
-import type { Profile, ProfileInsert, UUID } from './types-enhanced';
+import type { Profile, UUID } from './types-enhanced';
 import { logger } from '@/lib/logger';
 
 // Auth error messages
@@ -174,40 +174,6 @@ export async function getCurrentProfile(): Promise<Profile | null> {
   } catch (error) {
     logger.error('Get current profile failed', error as Error);
     return null;
-  }
-}
-
-/**
- * Create user profile after sign up
- */
-async function createUserProfile(
-  user: User,
-  metadata?: {
-    full_name?: string;
-    organization_id?: UUID;
-  }
-) {
-  try {
-    const supabase = createClient();
-
-    const profileData: ProfileInsert = {
-      id: user.id,
-      email: user.email!,
-      full_name: metadata?.full_name || user.user_metadata?.full_name,
-      organization_id: metadata?.organization_id,
-      avatar_url: user.user_metadata?.avatar_url,
-    };
-
-    const { error } = await supabase
-      .from('profiles')
-      .insert(profileData);
-
-    if (error) {
-      logger.error('Create profile error', error);
-      // Don't throw here - user is created, profile creation can be retried
-    }
-  } catch (error) {
-    logger.error('Create profile failed', error as Error);
   }
 }
 

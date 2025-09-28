@@ -18,20 +18,30 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Drop the trigger if it already exists
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+-- Drop the triggers if they already exist
+DROP TRIGGER IF EXISTS on_auth_user_created_insert ON auth.users;
+DROP TRIGGER IF EXISTS on_auth_user_email_confirmed ON auth.users;
 
--- Create trigger to run when a user is inserted or updated
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT OR UPDATE OF email_confirmed_at ON auth.users
+-- Create trigger for INSERT events (when user signs up with confirmed email)
+CREATE TRIGGER on_auth_user_created_insert
+  AFTER INSERT ON auth.users
   FOR EACH ROW
-  WHEN (NEW.email_confirmed_at IS NOT NULL AND OLD.email_confirmed_at IS NULL OR OLD IS NULL)
+  WHEN (NEW.email_confirmed_at IS NOT NULL)
   EXECUTE FUNCTION public.handle_new_user();
 
--- Grant necessary permissions
+-- Create trigger for UPDATE events (when user confirms email)
+CREATE TRIGGER on_auth_user_email_confirmed
+  AFTER UPDATE OF email_confirmed_at ON auth.users
+  FOR EACH ROW
+  WHEN (NEW.email_confirmed_at IS NOT NULL AND OLD.email_confirmed_at IS NULL)
+  EXECUTE FUNCTION public.handle_new_user();
+
+-- Grant necessary permissions (minimal privileges for security)
 GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;
-GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, anon, authenticated, service_role;
-GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres, anon, authenticated, service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres, service_role;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon, authenticated;
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 
 -- Add comment for documentation
 COMMENT ON FUNCTION public.handle_new_user() IS 'Automatically creates a user profile after email verification';

@@ -92,6 +92,41 @@ The following tables have real-time enabled:
 
 To seed the database with sample data, run the SQL in `supabase/seed/seed.sql` through the Supabase Dashboard SQL editor.
 
+## Authentication Testing
+
+### Running Auth Tests
+
+```bash
+# Run all auth tests
+npm run cypress -- --spec "cypress/e2e/auth-*.cy.ts"
+
+# Run specific auth test suite
+npm run cypress -- --spec "cypress/e2e/auth-signin.cy.ts"
+
+# Run in headless mode
+npm run cypress:headless -- --spec "cypress/e2e/auth-*.cy.ts"
+```
+
+### Test Users
+
+Test users are defined in `cypress/fixtures/test-users.json`. Ensure these users exist in your test Supabase instance before running tests.
+
+### Auth Flow Overview
+
+1. **Signup**: User provides email, password, full name → email verification sent
+2. **Email Verification**: User clicks link from email → account activated, profile created automatically
+3. **Signin**: User provides email, password → authenticated session
+4. **Session**: Persists across page reloads, managed by Supabase Auth
+5. **Signout**: Clears session, redirects to auth page
+
+### Auth Documentation
+
+See `docs/AUTH.md` for comprehensive authentication documentation including:
+- User flows and security features
+- Protected routes and session management
+- Troubleshooting guide
+- API reference
+
 ## Available MCP Servers
 
 ### Supabase MCP Server

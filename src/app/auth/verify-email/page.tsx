@@ -4,27 +4,33 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Mail, CheckCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function VerifyEmailPage() {
+  const [email, setEmail] = useState("");
   const [isResending, setIsResending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const { toast } = useToast();
   const supabase = createClient();
 
   const handleResendEmail = async () => {
+    if (!email.trim()) {
+      toast({
+        title: "Email required",
+        description: "Please enter the email address you used to sign up",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsResending(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user?.email) {
-        throw new Error("No email found. Please sign up again.");
-      }
-
       const { error } = await supabase.auth.resend({
         type: 'signup',
-        email: user.email,
+        email: email.trim(),
       });
 
       if (error) throw error;
@@ -70,23 +76,37 @@ export default function VerifyEmailPage() {
               <li>Make sure you entered the correct email</li>
             </ul>
           </div>
-          <Button
-            onClick={handleResendEmail}
-            disabled={isResending || emailSent}
-            className="w-full"
-            variant="outline"
-          >
-            {isResending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Sending...
-              </>
-            ) : emailSent ? (
-              "Email Sent!"
-            ) : (
-              "Resend Verification Email"
-            )}
-          </Button>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="verify-email-input">Email Address</Label>
+              <Input
+                id="verify-email-input"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isResending || emailSent}
+                required
+              />
+            </div>
+            <Button
+              onClick={handleResendEmail}
+              disabled={isResending || emailSent}
+              className="w-full"
+              variant="outline"
+            >
+              {isResending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : emailSent ? (
+                "Email Sent!"
+              ) : (
+                "Resend Verification Email"
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
