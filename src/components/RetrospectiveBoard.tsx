@@ -70,6 +70,8 @@ import { debounce } from "@/lib/utils/debounce";
 import { throttle } from "@/lib/utils/throttle";
 import { isAnonymousItemOwner } from "@/lib/boards/anonymous-items";
 import { sanitizeItemContent, isValidItemText } from "@/lib/utils/sanitize";
+import { ExportDialog } from "@/components/retro/ExportDialog";
+import { Download } from "lucide-react";
 
 interface RetrospectiveBoardProps {
   retrospectiveId: string;
@@ -138,9 +140,10 @@ export function RetrospectiveBoard({
   const [cooldowns, setCooldowns] = useState<Map<string, number>>(new Map());
   const [activeItem, setActiveItem] = useState<RetroItemData | null>(null);
   const [sortByVotes, setSortByVotes] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   // Use TanStack Query hooks
-  const { isLoading: retroLoading } = useRetrospective(retrospectiveId);
+  const { data: retrospective, isLoading: retroLoading } = useRetrospective(retrospectiveId);
   const { data: columns = [], isLoading: columnsLoading } = useRetrospectiveColumns(retrospectiveId);
   const { data: items = [], isLoading: itemsLoading } = useRetrospectiveItems(retrospectiveId);
   const { data: votes = [] } = useVotes(retrospectiveId, items.map(i => i.id));
@@ -506,6 +509,17 @@ export function RetrospectiveBoard({
             <ArrowUpDown className="h-4 w-4" />
             Sort by votes
           </Toggle>
+
+          {/* Export Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setExportDialogOpen(true)}
+            className="gap-1"
+          >
+            <Download className="h-4 w-4" />
+            Export
+          </Button>
           <Badge variant={realtime.connectionStatus === "connected" ? "default" : "secondary"}>
             {realtime.connectionStatus === "connected" ? "Connected" : "Connecting..."}
           </Badge>
@@ -821,6 +835,23 @@ export function RetrospectiveBoard({
           </div>
         )}
       </DragOverlay>
+
+      {/* Export Dialog */}
+      <ExportDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        exportData={{
+          retrospectiveName: retrospective?.title ?? 'Retrospective',
+          teamName,
+          sprintName: retrospective?.sprint_name ?? sprintName,
+          date: retrospective?.created_at
+            ? new Date(retrospective.created_at)
+            : new Date(),
+          columns,
+          items,
+          votes,
+        }}
+      />
     </div>
     </DndContext>
   );
