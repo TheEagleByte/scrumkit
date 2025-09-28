@@ -841,7 +841,7 @@ export function RetrospectiveBoard({
         open={exportDialogOpen}
         onOpenChange={setExportDialogOpen}
         exportData={{
-          retrospectiveName: retrospective?.title ?? sprintName,
+          retrospectiveName: retrospective?.title ?? 'Retrospective',
           teamName,
           sprintName: retrospective?.sprint_name ?? sprintName,
           date: retrospective?.created_at

@@ -23,6 +23,12 @@ import {
   type ExportOptions,
 } from "@/lib/export/retro-export";
 
+// Replace any character not allowed in filenames with '_'
+// This covers Windows and Unix invalid filename characters
+function sanitizeFilename(name: string): string {
+  return name.replace(/[\/\\:*?"<>|]/g, "_");
+}
+
 interface ExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -53,12 +59,6 @@ export function ExportDialog({
       console.error("Failed to copy to clipboard:", error);
       toast.error("Failed to copy to clipboard");
     }
-  };
-
-  const sanitizeFilename = (name: string): string => {
-    // Replace any character not allowed in filenames with '_'
-    // This covers Windows and Unix invalid filename characters
-    return name.replace(/[\/\\:*?"<>|]/g, "_");
   };
 
   const handleDownload = () => {
