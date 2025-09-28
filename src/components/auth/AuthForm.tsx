@@ -20,40 +20,10 @@ export function AuthForm({ redirectTo = "/retro" }: AuthFormProps) {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isMagicLinkSent, setIsMagicLinkSent] = useState(false);
+  const [isEmailSent, setIsEmailSent] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
   const supabase = createClient();
-
-  const handleMagicLink = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/confirm?redirectTo=${encodeURIComponent(redirectTo)}`,
-        },
-      });
-
-      if (error) throw error;
-
-      setIsMagicLinkSent(true);
-      toast({
-        title: "Check your email",
-        description: "We've sent you a magic link to sign in.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: (error as Error).message || "Failed to send magic link",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,6 +57,25 @@ export function AuthForm({ redirectTo = "/retro" }: AuthFormProps) {
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!fullName.trim()) {
+      toast({
+        title: "Name required",
+        description: "Please enter your full name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      toast({
+        title: "Weak password",
+        description: "Password must be at least 6 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -104,15 +93,16 @@ export function AuthForm({ redirectTo = "/retro" }: AuthFormProps) {
       if (error) throw error;
 
       toast({
-        title: "Check your email",
-        description: "We've sent you a confirmation link to complete your sign up.",
+        title: "Verify your email",
+        description: "We've sent a verification link to your email. Please click it to activate your account.",
       });
 
-      setIsMagicLinkSent(true);
+      setIsEmailSent(true);
     } catch (error) {
+      const errorMessage = (error as Error).message;
       toast({
-        title: "Error",
-        description: (error as Error).message || "Failed to sign up",
+        title: "Signup failed",
+        description: errorMessage || "Failed to create account. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -120,7 +110,7 @@ export function AuthForm({ redirectTo = "/retro" }: AuthFormProps) {
     }
   };
 
-  if (isMagicLinkSent) {
+  if (isEmailSent) {
     return (
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
@@ -129,17 +119,25 @@ export function AuthForm({ redirectTo = "/retro" }: AuthFormProps) {
           </div>
           <CardTitle>Check your email</CardTitle>
           <CardDescription>
-            We&apos;ve sent a magic link to <strong>{email}</strong>
+            We&apos;ve sent a verification link to <strong>{email}</strong>
           </CardDescription>
         </CardHeader>
-        <CardContent className="text-center">
-          <p className="text-sm text-muted-foreground mb-4">
-            Click the link in the email to sign in. The link will expire in 1 hour.
+        <CardContent className="text-center space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Click the link in the email to activate your account.
           </p>
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p>Didn&apos;t receive the email?</p>
+            <ul className="list-disc list-inside space-y-1 text-left">
+              <li>Check your spam folder</li>
+              <li>Wait a few minutes and try again</li>
+              <li>Make sure you entered the correct email</li>
+            </ul>
+          </div>
           <Button
             variant="outline"
             onClick={() => {
-              setIsMagicLinkSent(false);
+              setIsEmailSent(false);
               setEmail("");
             }}
             className="w-full"
@@ -153,25 +151,25 @@ export function AuthForm({ redirectTo = "/retro" }: AuthFormProps) {
 
   return (
     <Card className="w-full max-w-md">
-      <CardHeader>
+      <CardHeader className="text-center">
         <CardTitle>Welcome to ScrumKit</CardTitle>
         <CardDescription>
           Sign in to save your boards and collaborate with your team
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="magic-link" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="magic-link">Magic Link</TabsTrigger>
-            <TabsTrigger value="password">Password</TabsTrigger>
+        <Tabs defaultValue="signin" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="signin">Sign In</TabsTrigger>
+            <TabsTrigger value="signup">Sign Up</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="magic-link">
-            <form onSubmit={handleMagicLink} className="space-y-4">
+          <TabsContent value="signin">
+            <form onSubmit={handleEmailSignIn} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="magic-email">Email</Label>
+                <Label htmlFor="signin-email">Email</Label>
                 <Input
-                  id="magic-email"
+                  id="signin-email"
                   type="email"
                   placeholder="you@example.com"
                   value={email}
@@ -180,109 +178,86 @@ export function AuthForm({ redirectTo = "/retro" }: AuthFormProps) {
                   disabled={isLoading}
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="signin-password">Password</Label>
+                <Input
+                  id="signin-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
                 ) : (
-                  <Mail className="mr-2 h-4 w-4" />
+                  <>
+                    <KeyRound className="mr-2 h-4 w-4" />
+                    Sign In
+                  </>
                 )}
-                Send Magic Link
               </Button>
             </form>
           </TabsContent>
 
-          <TabsContent value="password">
-            <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="signin">
-                <form onSubmit={handleEmailSignIn} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
-                    <Input
-                      id="signin-email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-password">Password</Label>
-                    <Input
-                      id="signin-password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <KeyRound className="mr-2 h-4 w-4" />
-                    )}
-                    Sign In
-                  </Button>
-                </form>
-              </TabsContent>
-
-              <TabsContent value="signup">
-                <form onSubmit={handleEmailSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full Name</Label>
-                    <Input
-                      id="signup-name"
-                      type="text"
-                      placeholder="John Doe"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      minLength={6}
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <ArrowRight className="mr-2 h-4 w-4" />
-                    )}
-                    Sign Up
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
+          <TabsContent value="signup">
+            <form onSubmit={handleEmailSignUp} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="signup-name">Full Name</Label>
+                <Input
+                  id="signup-name"
+                  type="text"
+                  placeholder="John Doe"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="signup-email">Email</Label>
+                <Input
+                  id="signup-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="signup-password">Password</Label>
+                <Input
+                  id="signup-password"
+                  type="password"
+                  placeholder="At least 6 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  disabled={isLoading}
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating account...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="mr-2 h-4 w-4" />
+                    Create Account
+                  </>
+                )}
+              </Button>
+            </form>
           </TabsContent>
         </Tabs>
       </CardContent>

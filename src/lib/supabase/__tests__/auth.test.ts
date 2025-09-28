@@ -6,8 +6,6 @@
 import {
   signUp,
   signIn,
-  signInWithMagicLink,
-  verifyOtp,
   signOut,
   getSession,
   getCurrentUser,
@@ -128,6 +126,7 @@ describe('Auth Utilities', () => {
           data: {
             full_name: 'Test User',
           },
+          emailRedirectTo: 'http://localhost/auth/confirm',
         },
       });
 
@@ -181,53 +180,6 @@ describe('Auth Utilities', () => {
     });
   });
 
-  describe('signInWithMagicLink', () => {
-    it('sends magic link successfully', async () => {
-      mockAuth.signInWithOtp.mockResolvedValue({ error: null });
-
-      const result = await signInWithMagicLink('test@example.com');
-
-      expect(mockAuth.signInWithOtp).toHaveBeenCalledWith({
-        email: 'test@example.com',
-        options: {
-          emailRedirectTo: 'http://localhost/auth/confirm',
-        },
-      });
-
-      expect(result).toEqual({ success: true });
-    });
-
-    it('handles magic link errors', async () => {
-      mockAuth.signInWithOtp.mockResolvedValue({
-        error: { message: 'Invalid email' },
-      });
-
-      await expect(signInWithMagicLink('invalid@email')).rejects.toThrow(
-        'Invalid email'
-      );
-    });
-  });
-
-  describe('verifyOtp', () => {
-    it('verifies OTP token successfully', async () => {
-      mockAuth.verifyOtp.mockResolvedValue({
-        data: { user: mockUser, session: mockSession },
-        error: null,
-      });
-
-      const result = await verifyOtp('token-123');
-
-      expect(mockAuth.verifyOtp).toHaveBeenCalledWith({
-        token_hash: 'token-123',
-        type: 'email',
-      });
-
-      expect(result).toEqual({
-        user: mockUser,
-        session: mockSession,
-      });
-    });
-  });
 
   describe('signOut', () => {
     it('signs out user successfully', async () => {
