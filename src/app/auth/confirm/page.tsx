@@ -88,16 +88,30 @@ export default function AuthConfirmPage() {
               <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
                 <XCircle className="h-6 w-6 text-destructive" />
               </div>
-              <CardTitle>Authentication failed</CardTitle>
+              <CardTitle>Verification Failed</CardTitle>
               <CardDescription>{errorMessage}</CardDescription>
             </CardHeader>
-            <CardContent className="text-center">
-              <Button
-                onClick={() => router.push("/auth")}
-                className="w-full"
-              >
-                Back to sign in
-              </Button>
+            <CardContent className="space-y-3">
+              {(errorMessage.toLowerCase().includes("expired") || errorMessage.toLowerCase().includes("invalid")) && (
+                <p className="text-sm text-center text-muted-foreground">
+                  Your verification link has expired or is invalid. Request a new one below.
+                </p>
+              )}
+              <div className="space-y-2">
+                <Button
+                  onClick={() => router.push("/auth/verify-email")}
+                  className="w-full"
+                >
+                  Resend Verification Email
+                </Button>
+                <Button
+                  onClick={() => router.push("/auth")}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Back to Sign In
+                </Button>
+              </div>
             </CardContent>
           </>
         )}
