@@ -70,6 +70,8 @@ import { debounce } from "@/lib/utils/debounce";
 import { throttle } from "@/lib/utils/throttle";
 import { isAnonymousItemOwner } from "@/lib/boards/anonymous-items";
 import { sanitizeItemContent, isValidItemText } from "@/lib/utils/sanitize";
+import { ExportDialog } from "@/components/retro/ExportDialog";
+import { Download } from "lucide-react";
 
 interface RetrospectiveBoardProps {
   retrospectiveId: string;
@@ -138,6 +140,7 @@ export function RetrospectiveBoard({
   const [cooldowns, setCooldowns] = useState<Map<string, number>>(new Map());
   const [activeItem, setActiveItem] = useState<RetroItemData | null>(null);
   const [sortByVotes, setSortByVotes] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   // Use TanStack Query hooks
   const { isLoading: retroLoading } = useRetrospective(retrospectiveId);
@@ -506,6 +509,17 @@ export function RetrospectiveBoard({
             <ArrowUpDown className="h-4 w-4" />
             Sort by votes
           </Toggle>
+
+          {/* Export Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setExportDialogOpen(true)}
+            className="gap-1"
+          >
+            <Download className="h-4 w-4" />
+            Export
+          </Button>
           <Badge variant={realtime.connectionStatus === "connected" ? "default" : "secondary"}>
             {realtime.connectionStatus === "connected" ? "Connected" : "Connecting..."}
           </Badge>
@@ -821,6 +835,21 @@ export function RetrospectiveBoard({
           </div>
         )}
       </DragOverlay>
+
+      {/* Export Dialog */}
+      <ExportDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        exportData={{
+          retrospectiveName: sprintName,
+          teamName,
+          sprintName,
+          date: new Date(),
+          columns,
+          items,
+          votes,
+        }}
+      />
     </div>
     </DndContext>
   );
