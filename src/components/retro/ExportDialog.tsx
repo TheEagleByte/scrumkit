@@ -23,10 +23,18 @@ import {
   type ExportOptions,
 } from "@/lib/export/retro-export";
 
+const DEFAULT_FILENAME = "retrospective";
+
 // Replace any character not allowed in filenames with '_'
-// This covers Windows and Unix invalid filename characters
-function sanitizeFilename(name: string): string {
-  return name.replace(/[\/\\:*?"<>|]/g, "_");
+// This covers Windows and Unix invalid filename characters plus control chars
+function sanitizeFilename(rawName?: string): string {
+  const candidate = rawName ?? DEFAULT_FILENAME;
+  const sanitized = candidate
+    .replace(/[\x00-\x1f\x7f]/g, "") // Remove control characters
+    .replace(/[\/\\:*?"<>|]/g, "_") // Replace filesystem-invalid chars
+    .trim();
+
+  return sanitized.length > 0 ? sanitized : DEFAULT_FILENAME;
 }
 
 interface ExportDialogProps {
@@ -63,7 +71,7 @@ export function ExportDialog({
 
   const handleDownload = () => {
     try {
-      const safeSprintName = sanitizeFilename(exportData.sprintName || "retrospective");
+      const safeSprintName = sanitizeFilename(exportData.sprintName);
       const filename = `${safeSprintName}-${
         exportData.date.toISOString().split("T")[0]
       }.md`;
