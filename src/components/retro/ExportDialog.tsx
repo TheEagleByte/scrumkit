@@ -30,7 +30,7 @@ const DEFAULT_FILENAME = "retrospective";
 function sanitizeFilename(rawName?: string): string {
   const candidate = rawName ?? DEFAULT_FILENAME;
   const sanitized = candidate
-    .replace(/[\x00-\x1f\x7f]/g, "") // Remove control characters
+    .replace(/\p{Cc}+/gu, "") // Remove control characters
     .replace(/[\/\\:*?"<>|]/g, "_") // Replace filesystem-invalid chars
     .trim();
 
