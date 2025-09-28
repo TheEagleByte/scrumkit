@@ -5,11 +5,29 @@
 
 // Example custom command for logging in with Supabase
 Cypress.Commands.add('login', (email: string, password: string) => {
-  cy.visit('/login')
-  cy.get('input[type="email"]').type(email)
-  cy.get('input[type="password"]').type(password)
+  cy.visit('/auth')
+  cy.contains('Sign In').click()
+  cy.get('input[id="signin-email"]').type(email)
+  cy.get('input[id="signin-password"]').type(password)
   cy.get('button[type="submit"]').click()
-  cy.url().should('not.include', '/login')
+  cy.url().should('not.include', '/auth')
+})
+
+// Command to sign up a new user
+Cypress.Commands.add('signup', (email: string, password: string, fullName: string) => {
+  cy.visit('/auth')
+  cy.contains('Sign Up').click()
+  cy.get('input[id="signup-name"]').type(fullName)
+  cy.get('input[id="signup-email"]').type(email)
+  cy.get('input[id="signup-password"]').type(password)
+  cy.get('button[type="submit"]').click()
+})
+
+// Command to log out
+Cypress.Commands.add('logout', () => {
+  cy.get('[data-testid="user-menu"]').click()
+  cy.contains('Sign out').click()
+  cy.url().should('include', '/auth')
 })
 
 // Command to create a new board with specified title and template
@@ -122,6 +140,8 @@ declare global {
   namespace Cypress {
     interface Chainable {
       login(email: string, password: string): Chainable<void>
+      signup(email: string, password: string, fullName: string): Chainable<void>
+      logout(): Chainable<void>
       createBoard(title: string, template?: string): Chainable<void>
       addRetroItem(columnTitle: string, text: string): Chainable<void>
       voteOnItem(itemText: string, count?: number): Chainable<void>
