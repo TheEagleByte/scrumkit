@@ -12,16 +12,6 @@ import StarBorder from "@/components/StarBorder";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Header } from "@/components/layout/Header";
 
-interface Board {
-  id: string;
-  unique_url: string;
-  title: string;
-  template: string | null;
-  is_archived: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
 export default function BoardsPage() {
   const [showArchived, setShowArchived] = useState(false);
 

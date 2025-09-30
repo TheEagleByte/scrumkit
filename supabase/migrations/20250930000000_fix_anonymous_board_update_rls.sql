@@ -1,5 +1,5 @@
 -- Fix RLS policy for anonymous board updates (including deletion)
--- Description: Simplify the update policy to allow all updates on anonymous boards
+-- Description: Update the policy to allow updates on anonymous boards where creator_cookie is present
 -- The application layer handles permission checks via creator_cookie validation
 
 -- Drop the overly restrictive policy
