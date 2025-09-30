@@ -480,7 +480,7 @@ export function RetrospectiveBoard({
       onDragCancel={handleDragCancel}
       modifiers={[restrictToWindowEdges]}
     >
-      <div className="relative min-h-screen p-4 md:p-8" ref={boardRef}>
+      <div className="relative min-h-screen p-4 pt-24 md:px-8 md:pt-24 md:pb-8" ref={boardRef}>
       {/* Header */}
       <div className="mb-6 flex justify-between items-center">
         <div>

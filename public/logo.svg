@@ -1,0 +1,77 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Large top-left square -->
+  <rect x="109" y="112" width="136" height="136" rx="24" fill="url(#gradient1)"/>
+
+  <!-- Large top-right square -->
+  <rect x="267" y="112" width="136" height="136" rx="24" fill="url(#gradient2)"/>
+
+  <!-- Large bottom-left square -->
+  <rect x="109" y="270" width="136" height="136" rx="24" fill="url(#gradient3)"/>
+
+  <!-- Medium squares right column top -->
+  <rect x="267" y="270" width="60" height="60" rx="14" fill="url(#gradient4)"/>
+  <rect x="343" y="270" width="60" height="60" rx="14" fill="url(#gradient5)"/>
+
+  <!-- Small squares right column middle -->
+  <rect x="267" y="346" width="60" height="60" rx="14" fill="url(#gradient6)"/>
+  <rect x="343" y="346" width="28" height="28" rx="8" fill="url(#gradient7)"/>
+  <rect x="375" y="346" width="28" height="28" rx="8" fill="url(#gradient8)"/>
+
+  <!-- Small squares right column bottom -->
+  <rect x="343" y="378" width="28" height="28" rx="8" fill="url(#gradient9)"/>
+  <rect x="375" y="378" width="28" height="28" rx="8" fill="url(#gradient10)"/>
+
+  <!-- Gradient definitions -->
+  <defs>
+    <!-- Main violet/purple gradient -->
+    <linearGradient id="gradient1" x1="109" y1="112" x2="245" y2="248" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+
+    <linearGradient id="gradient2" x1="267" y1="112" x2="403" y2="248" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+
+    <linearGradient id="gradient3" x1="109" y1="270" x2="245" y2="406" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6d28d9"/>
+      <stop offset="100%" stop-color="#5b21b6"/>
+    </linearGradient>
+
+    <linearGradient id="gradient4" x1="267" y1="270" x2="327" y2="330" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+
+    <linearGradient id="gradient5" x1="343" y1="270" x2="403" y2="330" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+
+    <linearGradient id="gradient6" x1="267" y1="346" x2="327" y2="406" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6d28d9"/>
+      <stop offset="100%" stop-color="#5b21b6"/>
+    </linearGradient>
+
+    <linearGradient id="gradient7" x1="343" y1="346" x2="371" y2="374" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+
+    <linearGradient id="gradient8" x1="375" y1="346" x2="403" y2="374" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#9333ea"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+
+    <linearGradient id="gradient9" x1="343" y1="378" x2="371" y2="406" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+
+    <linearGradient id="gradient10" x1="375" y1="378" x2="403" y2="406" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+</svg>

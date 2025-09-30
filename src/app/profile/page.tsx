@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
 import { Loader2, User, Mail, Camera, Save, ArrowLeft } from "lucide-react";
+import { Header } from "@/components/layout/Header";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -140,8 +141,11 @@ export default function ProfilePage() {
 
   if (authLoading || profileLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="min-h-screen bg-background">
+        <Header showAuth={true} />
+        <div className="flex items-center justify-center h-[calc(100vh-6rem)] pt-24">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
       </div>
     );
   }
@@ -153,16 +157,9 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container max-w-4xl mx-auto px-4 py-8">
+      <Header showAuth={true} />
+      <div className="container max-w-4xl mx-auto px-4 py-8 pt-24">
         <div className="mb-6">
-          <Button
-            variant="ghost"
-            onClick={() => router.push("/retro")}
-            className="mb-4"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to board
-          </Button>
           <h1 className="text-3xl font-bold">Profile Settings</h1>
           <p className="text-muted-foreground">
             Manage your account settings and preferences
