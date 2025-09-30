@@ -293,7 +293,7 @@ export async function deleteBoard(uniqueUrl: string) {
 
   const { data: board, error: fetchError } = await supabase
     .from("retrospectives")
-    .select("creator_cookie, team_id, is_anonymous")
+    .select("creator_cookie, team_id, is_anonymous") // is_anonymous needed for RLS policy evaluation
     .eq("unique_url", uniqueUrl)
     .single();
 

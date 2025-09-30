@@ -12,11 +12,12 @@ export default function AuthConfirmPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
-  const supabase = createClient();
 
   useEffect(() => {
     const handleAuthConfirmation = async () => {
       try {
+        const supabase = createClient();
+
         // Get the token hash from the URL
         const token_hash = searchParams.get("token_hash");
         const type = searchParams.get("type");
