@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getUserFromServer } from "@/lib/supabase/auth";
 import { AuthFormWithQuery } from "@/components/auth/AuthFormWithQuery";
+import Image from "next/image";
 
 export default async function AuthPage({
   searchParams,
@@ -11,7 +12,7 @@ export default async function AuthPage({
 
   // If user is already logged in, redirect them
   if (user) {
-    redirect(searchParams.redirectTo || "/retro");
+    redirect(searchParams.redirectTo || "/dashboard");
   }
 
   return (
@@ -20,7 +21,13 @@ export default async function AuthPage({
       <div className="relative z-10">
         <div className="mb-8 text-center">
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl" />
+            <Image
+              src="/logo.svg"
+              alt="ScrumKit"
+              width={64}
+              height={64}
+              className="drop-shadow-lg"
+            />
           </div>
           <h1 className="text-3xl font-bold mb-2">ScrumKit</h1>
           <p className="text-muted-foreground">

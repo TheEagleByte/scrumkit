@@ -2,6 +2,7 @@
 
 import { motion } from "motion/react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, Zap, Shield, Users, BarChart, Clock, CheckCircle, Heart, Calendar, Server, GitBranch, MessageSquare, Hash, CreditCard, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TextType from "@/components/TypewriterText";
@@ -103,7 +104,7 @@ export default function Home() {
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Magnet padding={50} magnetStrength={3}>
-                    <Link href="/boards/new">
+                    <Link href="/dashboard">
                       <StarBorder
                         color="#8b5cf6"
                         speed="3s"
@@ -734,7 +735,7 @@ export default function Home() {
                   Join 500+ teams using ScrumKit for better sprints. Free and open source forever.
                 </p>
                 <Magnet padding={100} magnetStrength={2.5}>
-                  <Link href="/boards/new">
+                  <Link href="/dashboard">
                     <StarBorder
                       color="#8b5cf6"
                       speed="3s"
@@ -765,7 +766,13 @@ export default function Home() {
               {/* Brand Column */}
               <div className="col-span-2 md:col-span-1">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg" aria-hidden="true" />
+                  <Image
+                    src="/logo.svg"
+                    alt="ScrumKit"
+                    width={32}
+                    height={32}
+                    className="rounded-lg"
+                  />
                   <span className="font-semibold text-lg">ScrumKit</span>
                 </div>
                 <p className="text-sm text-gray-400 mb-4">

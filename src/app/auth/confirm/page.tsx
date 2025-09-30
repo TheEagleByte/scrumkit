@@ -20,7 +20,7 @@ export default function AuthConfirmPage() {
         // Get the token hash from the URL
         const token_hash = searchParams.get("token_hash");
         const type = searchParams.get("type");
-        const redirectTo = searchParams.get("redirectTo") || "/retro";
+        const redirectTo = searchParams.get("redirectTo") || "/dashboard";
 
         if (!token_hash || !type) {
           throw new Error("Invalid confirmation link");
