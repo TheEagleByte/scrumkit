@@ -179,7 +179,7 @@ describe('RootLayout Metadata', () => {
   it('has SEO-friendly metadata', () => {
     expect(metadata.title).toContain('ScrumKit')
     expect(metadata.title).toContain('Open Source')
-    expect(metadata.description).toContain('retrospectives')
+    expect(metadata.description).toContain('Retrospectives')
     expect(metadata.description).toContain('planning poker')
     expect(metadata.description).toContain('open source')
   })
