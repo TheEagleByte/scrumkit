@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { motion } from "motion/react";
 import AnimatedLogo from "@/components/AnimatedLogo";
 
 export default function LogoPage() {
@@ -219,7 +218,7 @@ export default function LogoPage() {
 
             {/* Don'ts */}
             <div className="p-8 rounded-xl bg-red-500/10 border border-red-500/20">
-              <h3 className="text-xl font-semibold text-red-400 mb-4">✗ Don't</h3>
+              <h3 className="text-xl font-semibold text-red-400 mb-4">✗ Don&apos;t</h3>
               <ul className="space-y-3 text-sm">
                 <li className="flex items-start gap-2">
                   <span className="text-red-400 mt-0.5">•</span>
