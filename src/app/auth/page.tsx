@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getUserFromServer } from "@/lib/supabase/auth";
 import { AuthFormWithQuery } from "@/components/auth/AuthFormWithQuery";
-import Image from "next/image";
+import InteractiveAnimatedLogo from "@/components/InteractiveAnimatedLogo";
 
 export default async function AuthPage({
   searchParams,
@@ -21,11 +21,11 @@ export default async function AuthPage({
       <div className="relative z-10">
         <div className="mb-8 text-center">
           <div className="flex justify-center mb-4">
-            <Image
-              src="/logo.svg"
-              alt="ScrumKit"
-              width={64}
-              height={64}
+            <InteractiveAnimatedLogo
+              size={64}
+              playOnMount={true}
+              enableHover={true}
+              sessionKey="auth-logo-animated"
               className="drop-shadow-lg"
             />
           </div>

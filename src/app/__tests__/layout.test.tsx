@@ -170,29 +170,37 @@ describe('RootLayout', () => {
 describe('RootLayout Metadata', () => {
   it('exports correct metadata object', () => {
     expect(metadata).toBeDefined()
-    expect(metadata.title).toBe('ScrumKit - Sprint Retrospectives That Teams Love')
+    expect(metadata.title).toBe('ScrumKit - Open Source Tools for Better Sprints')
     expect(metadata.description).toBe(
-      'Run engaging retrospectives that drive continuous improvement. Collect feedback, vote on issues, and track action items - all in real-time.'
+      'All essential scrum ceremony tools in one unified platform. Retrospectives, planning poker, daily standups, and team health checks—completely free and open source. Self-hostable with one-click deploy.'
     )
-    expect(metadata.generator).toBe('v0.app')
   })
 
   it('has SEO-friendly metadata', () => {
     expect(metadata.title).toContain('ScrumKit')
-    expect(metadata.title).toContain('Sprint Retrospectives')
-    expect(metadata.description).toContain('retrospectives')
-    expect(metadata.description).toContain('feedback')
-    expect(metadata.description).toContain('real-time')
+    expect(metadata.title).toContain('Open Source')
+    expect(metadata.description).toContain('Retrospectives')
+    expect(metadata.description).toContain('planning poker')
+    expect(metadata.description).toContain('open source')
   })
 
   it('metadata follows best practices', () => {
     // Title should be reasonable length (typically under 60 characters for SEO)
     expect(metadata.title?.length).toBeLessThan(70)
 
-    // Description should be reasonable length (typically under 160 characters for SEO)
-    expect(metadata.description?.length).toBeLessThan(200)
+    // Description should be reasonable length (typically under 200 characters for SEO)
+    expect(metadata.description?.length).toBeLessThan(250)
 
-    // Should have generator field
-    expect(metadata.generator).toBeTruthy()
+    // Should have keywords field
+    expect(metadata.keywords).toBeDefined()
+    expect(Array.isArray(metadata.keywords)).toBe(true)
+
+    // Should have Open Graph metadata
+    expect(metadata.openGraph).toBeDefined()
+    expect(metadata.openGraph?.title).toContain('ScrumKit')
+
+    // Should have Twitter metadata
+    expect(metadata.twitter).toBeDefined()
+    expect(metadata.twitter?.card).toBe('summary_large_image')
   })
 })
