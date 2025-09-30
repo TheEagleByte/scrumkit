@@ -16,7 +16,7 @@ interface AuthFormWithQueryProps {
   redirectTo?: string;
 }
 
-export function AuthFormWithQuery({ redirectTo = "/retro" }: AuthFormWithQueryProps) {
+export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQueryProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");

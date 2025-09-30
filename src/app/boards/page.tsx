@@ -10,16 +10,7 @@ import { useState, useMemo } from "react";
 import Magnet from "@/components/Magnet";
 import StarBorder from "@/components/StarBorder";
 import { Skeleton } from "@/components/ui/skeleton";
-
-interface Board {
-  id: string;
-  unique_url: string;
-  title: string;
-  template: string | null;
-  is_archived: boolean;
-  created_at: string;
-  updated_at: string;
-}
+import { Header } from "@/components/layout/Header";
 
 export default function BoardsPage() {
   const [showArchived, setShowArchived] = useState(false);
@@ -50,7 +41,8 @@ export default function BoardsPage() {
   if (isLoading) {
     return (
       <main className="min-h-screen bg-background">
-        <div className="container max-w-7xl mx-auto py-8 px-4">
+        <Header showAuth={true} />
+        <div className="container max-w-7xl mx-auto py-8 px-4 pt-24">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
             <div className="space-y-2">
               <Skeleton className="h-12 w-64" />
@@ -71,7 +63,8 @@ export default function BoardsPage() {
   if (error) {
     return (
       <main className="min-h-screen bg-background">
-        <div className="container max-w-7xl mx-auto py-8 px-4">
+        <Header showAuth={true} />
+        <div className="container max-w-7xl mx-auto py-8 px-4 pt-24">
           <div className="text-center py-12">
             <p className="text-destructive mb-4">Failed to load boards</p>
             <Button onClick={() => window.location.reload()}>Retry</Button>
@@ -83,10 +76,13 @@ export default function BoardsPage() {
 
   return (
     <main className="min-h-screen bg-background relative">
+      {/* Header */}
+      <Header showAuth={true} />
+
       {/* Background gradient effect */}
       <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-blue-500/5" />
 
-      <div className="container max-w-7xl mx-auto py-8 px-4 relative z-10">
+      <div className="container max-w-7xl mx-auto py-8 px-4 pt-24 relative z-10">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

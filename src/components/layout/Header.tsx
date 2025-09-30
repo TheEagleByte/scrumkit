@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/auth/UserMenu";
 import { useAuth } from "@/hooks/use-auth";
@@ -17,28 +18,16 @@ export function Header({ showAuth = true }: HeaderProps) {
   return (
     <nav className="fixed top-0 w-full z-50 bg-black/50 backdrop-blur-lg border-b border-white/5">
       <div className="container max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg" aria-hidden="true" />
+        <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <Image
+            src="/logo.svg"
+            alt="ScrumKit"
+            width={32}
+            height={32}
+            className="w-8 h-8"
+          />
           <span className="font-semibold text-lg">ScrumKit</span>
         </Link>
-
-        <div className="hidden md:flex items-center gap-8">
-          <Link href="#features" className="text-gray-400 hover:text-white transition">
-            Features
-          </Link>
-          <Link href="#integrations" className="text-gray-400 hover:text-white transition">
-            Integrations
-          </Link>
-          <a
-            href="https://github.com/scrumkit/scrumkit"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-gray-400 hover:text-white transition flex items-center gap-1"
-          >
-            <GithubIcon className="w-4 h-4" />
-            <span>GitHub</span>
-          </a>
-        </div>
 
         {showAuth && (
           <div className="flex items-center gap-4">
@@ -46,7 +35,7 @@ export function Header({ showAuth = true }: HeaderProps) {
               <>
                 {user ? (
                   <>
-                    <Link href="/retro">
+                    <Link href="/dashboard">
                       <Button variant="ghost" className="text-gray-400 hover:text-white">
                         Dashboard
                       </Button>
@@ -61,7 +50,7 @@ export function Header({ showAuth = true }: HeaderProps) {
                       </Button>
                     </Link>
                     <Magnet padding={50} magnetStrength={4}>
-                      <Link href="/retro">
+                      <Link href="/dashboard">
                         <Button className="bg-white text-black hover:bg-gray-200 font-medium">
                           Start Free
                         </Button>

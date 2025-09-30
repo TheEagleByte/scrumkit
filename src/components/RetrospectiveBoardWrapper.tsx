@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { RetrospectiveBoard } from "./RetrospectiveBoard";
 import { getOrCreateAnonymousUser } from "@/lib/boards/anonymous";
+import { Header } from "@/components/layout/Header";
 
 interface RetrospectiveBoardWrapperProps {
   retrospectiveId: string;
@@ -62,11 +63,14 @@ export function RetrospectiveBoardWrapper({
   }, [authenticatedUser]);
 
   return (
-    <RetrospectiveBoard
-      retrospectiveId={retrospectiveId}
-      currentUser={boardUser}
-      teamName={teamName}
-      sprintName={sprintName}
-    />
+    <>
+      <Header showAuth={true} />
+      <RetrospectiveBoard
+        retrospectiveId={retrospectiveId}
+        currentUser={boardUser}
+        teamName={teamName}
+        sprintName={sprintName}
+      />
+    </>
   );
 }

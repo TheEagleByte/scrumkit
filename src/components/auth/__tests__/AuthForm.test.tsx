@@ -134,7 +134,7 @@ describe('AuthForm', () => {
         description: "You've been signed in successfully.",
       });
 
-      expect(mockPush).toHaveBeenCalledWith('/retro');
+      expect(mockPush).toHaveBeenCalledWith('/dashboard');
       expect(mockRefresh).toHaveBeenCalled();
     });
 
@@ -213,7 +213,7 @@ describe('AuthForm', () => {
           data: {
             full_name: 'John Doe',
           },
-          emailRedirectTo: 'http://localhost/auth/confirm?redirectTo=%2Fretro',
+          emailRedirectTo: 'http://localhost/auth/confirm?redirectTo=%2Fdashboard',
         },
       });
 
@@ -259,7 +259,7 @@ describe('AuthForm', () => {
       const guestButton = screen.getByText('continue as guest');
       await user.click(guestButton);
 
-      expect(mockPush).toHaveBeenCalledWith('/retro');
+      expect(mockPush).toHaveBeenCalledWith('/dashboard');
     });
 
     it('navigates to custom redirect when continuing as guest', async () => {
