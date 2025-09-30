@@ -309,18 +309,13 @@ export async function deleteBoard(uniqueUrl: string) {
   }
 
   // Soft delete the board
-  console.log("Attempting to delete board:", { uniqueUrl, is_anonymous: board.is_anonymous, has_cookie: !!board.creator_cookie });
-
-  const { error: deleteError, data } = await supabase
+  const { error: deleteError } = await supabase
     .from("retrospectives")
     .update({
       is_deleted: true,
       updated_at: new Date().toISOString(),
     })
-    .eq("unique_url", uniqueUrl)
-    .select();
-
-  console.log("Delete result:", { error: deleteError, data });
+    .eq("unique_url", uniqueUrl);
 
   if (deleteError) {
     console.error("Error deleting board:", deleteError);
