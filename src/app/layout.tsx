@@ -19,9 +19,34 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ScrumKit - Sprint Retrospectives That Teams Love",
-  description: "Run engaging retrospectives that drive continuous improvement. Collect feedback, vote on issues, and track action items - all in real-time.",
-  generator: "v0.app",
+  title: "ScrumKit - Open Source Tools for Better Sprints",
+  description: "All essential scrum ceremony tools in one unified platform. Retrospectives, planning poker, daily standups, and team health checks—completely free and open source. Self-hostable with one-click deploy.",
+  keywords: ["scrum", "agile", "retrospectives", "planning poker", "sprint planning", "team health", "open source", "self-hosted", "collaboration"],
+  authors: [{ name: "ScrumKit Team" }],
+  creator: "ScrumKit",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://scrumkit.dev",
+    siteName: "ScrumKit",
+    title: "ScrumKit - Open Source Tools for Better Sprints",
+    description: "All essential scrum ceremony tools in one unified platform. Retrospectives, planning poker, daily standups, and team health checks—completely free and open source.",
+    images: [
+      {
+        url: "/logo.png",
+        width: 512,
+        height: 512,
+        alt: "ScrumKit Logo",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ScrumKit - Open Source Tools for Better Sprints",
+    description: "All essential scrum ceremony tools in one unified platform. Free, open source, and self-hostable.",
+    creator: "@scrumkit",
+    images: ["/logo.png"],
+  },
   icons: {
     icon: [
       { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
@@ -37,6 +62,7 @@ export const metadata: Metadata = {
     ],
   },
   manifest: "/site.webmanifest",
+  metadataBase: new URL("https://scrumkit.dev"),
 };
 
 export default function RootLayout({

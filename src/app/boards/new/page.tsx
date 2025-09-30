@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Create New Board - ScrumKit",
-  description: "Create a new retrospective board for your team",
+  title: "Create New Retro Board - ScrumKit",
+  description: "Create a new retrospective board for your team. Choose from 10+ templates including Mad/Sad/Glad, Start/Stop/Continue, and more.",
 };
 
 export default function NewBoardPage() {
