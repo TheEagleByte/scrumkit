@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Header } from "@/components/layout/Header";
 import Magnet from "@/components/Magnet";
 import StarBorder from "@/components/StarBorder";
+import InteractiveAnimatedLogo from "@/components/InteractiveAnimatedLogo";
 
 export default function DashboardPage() {
   return (
@@ -29,6 +30,20 @@ export default function DashboardPage() {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.1 }}
+            className="flex justify-center mb-6"
+          >
+            <InteractiveAnimatedLogo
+              size={56}
+              playOnMount={true}
+              enableHover={true}
+              sessionKey="dashboard-logo-animated"
+            />
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 border border-violet-500/20 text-sm mb-6"
           >
             <Sparkles className="w-4 h-4 text-violet-400" />
@@ -38,7 +53,7 @@ export default function DashboardPage() {
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
             className="text-5xl md:text-6xl font-bold mb-4"
           >
             Welcome to <span className="bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">ScrumKit</span>
@@ -47,7 +62,7 @@ export default function DashboardPage() {
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
             className="text-xl text-muted-foreground max-w-2xl mx-auto"
           >
             Choose your tool to get started with better sprint ceremonies
