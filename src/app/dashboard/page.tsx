@@ -34,9 +34,9 @@ export default function DashboardPage() {
           >
             <InteractiveAnimatedLogo
               size={56}
-              playOnMount={true}
+              playOnMount={false}
               enableHover={true}
-              sessionKey="dashboard-logo-animated"
+              sessionKey="header-logo-animated"
             />
           </motion.div>
 

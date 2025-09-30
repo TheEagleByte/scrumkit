@@ -24,6 +24,7 @@ export function Header({ showAuth = true }: HeaderProps) {
             playOnMount={true}
             enableHover={true}
             sessionKey="header-logo-animated"
+            ariaHidden={true}
           />
           <span className="font-semibold text-lg group-hover:opacity-80 transition-opacity">ScrumKit</span>
         </Link>

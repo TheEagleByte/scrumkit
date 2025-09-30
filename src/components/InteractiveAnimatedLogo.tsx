@@ -9,6 +9,7 @@ import AnimatedLogo from "@/components/AnimatedLogo";
  * @param playOnMount - Whether to play animation on mount (only once per session)
  * @param enableHover - Whether to enable hover-to-animate
  * @param sessionKey - Unique key for session storage (prevents re-animation on navigation)
+ * @param ariaHidden - Whether to hide from screen readers (for decorative use)
  */
 interface InteractiveAnimatedLogoProps {
   size?: number;
@@ -16,6 +17,7 @@ interface InteractiveAnimatedLogoProps {
   enableHover?: boolean;
   sessionKey?: string;
   className?: string;
+  ariaHidden?: boolean;
 }
 
 export default function InteractiveAnimatedLogo({
@@ -24,13 +26,24 @@ export default function InteractiveAnimatedLogo({
   enableHover = true,
   sessionKey = "logo-animated",
   className = "",
+  ariaHidden = false,
 }: InteractiveAnimatedLogoProps) {
   const [isAnimating, setIsAnimating] = useState(false);
-  const [hasPlayedOnMount, setHasPlayedOnMount] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const cooldownRef = useRef(false);
-  const prefersReducedMotion = typeof window !== "undefined"
-    ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    : false;
+
+  // Reactive reduced-motion handling
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReducedMotion(mediaQuery.matches);
+
+    const handleChange = (e: MediaQueryListEvent) => {
+      setPrefersReducedMotion(e.matches);
+    };
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
 
   // Handle initial animation on mount
   useEffect(() => {
@@ -40,7 +53,6 @@ export default function InteractiveAnimatedLogo({
     const hasPlayed = sessionStorage.getItem(sessionKey);
     if (!hasPlayed) {
       setIsAnimating(true);
-      setHasPlayedOnMount(true);
       sessionStorage.setItem(sessionKey, "true");
 
       // Animation duration is ~2.8 seconds (from component)
@@ -72,8 +84,12 @@ export default function InteractiveAnimatedLogo({
   return (
     <div
       onMouseEnter={handleHover}
+      onTouchStart={handleHover}
+      onFocus={handleHover}
       className={`inline-block cursor-pointer transition-transform hover:scale-105 ${className}`}
-      aria-label="ScrumKit animated logo - hover to replay animation"
+      aria-label={ariaHidden ? undefined : "ScrumKit animated logo - hover to replay animation"}
+      aria-hidden={ariaHidden}
+      tabIndex={ariaHidden ? -1 : 0}
     >
       <AnimatedLogo
         size={size}
