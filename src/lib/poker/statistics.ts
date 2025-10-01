@@ -145,7 +145,7 @@ export function calculateStoryStatistics(
   return {
     storyId: story.id,
     title: story.title,
-    finalEstimate: story.final_estimate,
+    finalEstimate: story.final_estimate ?? null,
     voteCount: votes.length,
     averageVote,
     medianVote,

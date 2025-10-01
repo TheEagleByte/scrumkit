@@ -36,7 +36,7 @@ export function ExportButton({ session, variant = "outline", size = "default" }:
       const exportData = prepareExportData(
         {
           title: session.title,
-          description: session.description,
+          description: session.description ?? null,
           created_at: session.created_at,
           estimation_sequence: session.estimation_sequence,
         },

@@ -16,6 +16,7 @@ import type {
   PokerVote,
   StorySessionInfo,
   SessionStatistics,
+  EstimationSequenceType,
 } from "./types";
 import { calculateSessionStatistics } from "./statistics";
 import { getSequenceByType } from "./utils";
@@ -1085,8 +1086,8 @@ export async function getSessionStatistics(sessionId: string): Promise<SessionSt
 
   // Get estimation sequence for consensus calculations
   const sequence = getSequenceByType(
-    session.estimation_sequence,
-    session.custom_sequence ?? undefined
+    (session.estimation_sequence || "fibonacci") as EstimationSequenceType,
+    session.custom_sequence as (string | number)[] | undefined
   );
 
   // Fetch all stories for the session
