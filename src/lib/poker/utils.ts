@@ -165,20 +165,44 @@ export function canRevealVotes(storyStatus: string): boolean {
   return storyStatus === 'voting';
 }
 
-// Parse custom sequence from comma-separated string
+/**
+ * Parse custom sequence from comma-separated string into array of values.
+ * Converts numeric strings to numbers, keeps text and emojis as strings.
+ *
+ * @param input - Comma-separated string of estimation values
+ * @returns Array of parsed values (numbers or strings)
+ *
+ * @example
+ * parseCustomSequence("1, 2, 3") // [1, 2, 3]
+ * parseCustomSequence("XS, S, M") // ["XS", "S", "M"]
+ * parseCustomSequence("🚀, 🏃, ☕") // ["🚀", "🏃", "☕"]
+ * parseCustomSequence("1, XL, 🚀") // [1, "XL", "🚀"]
+ */
 export function parseCustomSequence(input: string): (string | number)[] {
   return input
     .split(",")
     .map(v => v.trim())
     .filter(v => v.length > 0)
     .map(v => {
-      // Try to parse as number, otherwise keep as string (including emojis)
+      // Try to parse as finite number, otherwise keep as string (including emojis)
       const num = parseFloat(v);
-      return isNaN(num) ? v : num;
+      return !isNaN(num) && isFinite(num) ? num : v;
     });
 }
 
-// Validate custom sequence values
+/**
+ * Validate custom sequence values meet requirements.
+ * Ensures 3-20 values, all non-empty, and all numeric values are valid.
+ *
+ * @param values - Array of estimation values to validate
+ * @returns True if valid, false otherwise
+ *
+ * @example
+ * validateCustomSequence([1, 2, 3]) // true
+ * validateCustomSequence(["XS", "M", "XL"]) // true
+ * validateCustomSequence([1, 2]) // false (too few)
+ * validateCustomSequence([1, "", 3]) // false (empty string)
+ */
 export function validateCustomSequence(values: (string | number)[]): boolean {
   // Must have between 3 and 20 values
   if (values.length < 3 || values.length > 20) {
@@ -194,7 +218,20 @@ export function validateCustomSequence(values: (string | number)[]): boolean {
   });
 }
 
-// Get emoji suggestions for fun sequences
+/**
+ * Get categorized emoji suggestions for creating fun estimation sequences.
+ * Returns predefined emoji groups organized by theme.
+ *
+ * @returns Array of emoji suggestion categories with values
+ *
+ * @example
+ * const suggestions = getEmojiSuggestions();
+ * // [
+ * //   { category: 'Speed', values: ['🚀', '🏃', '🚶', '🐌', '🐢'] },
+ * //   { category: 'Size', values: ['🦐', '🐁', '🐈', '🐕', '🐘', '🦕'] },
+ * //   ...
+ * // ]
+ */
 export function getEmojiSuggestions(): { category: string; values: string[] }[] {
   return [
     {
