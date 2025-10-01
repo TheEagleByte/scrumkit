@@ -80,6 +80,7 @@ export interface PokerVote {
   id: string;
   story_id: string;
   participant_id: string;
+  session_id: string;
   vote_value: string;
   is_revealed: boolean;
   created_at: string;
