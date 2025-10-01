@@ -199,7 +199,7 @@ export function SessionSummary({ sessionId }: SessionSummaryProps) {
               Participant Contributions
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {statistics.participantStats
+              {[...statistics.participantStats]
                 .sort((a, b) => b.totalVotes - a.totalVotes)
                 .map((participant) => (
                   <div

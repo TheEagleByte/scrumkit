@@ -197,54 +197,54 @@ export function VoteResults({
         </CardHeader>
         <CardContent>
           {/* Statistics Summary */}
-          {analysis.numericVotes.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+            <div className="text-center p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+              <p className="text-xs text-slate-600 dark:text-slate-400">Most Common</p>
+              <p className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                {analysis.mode.join(", ")}
+              </p>
+            </div>
+            {analysis.average !== undefined && (
               <div className="text-center p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                <p className="text-xs text-slate-600 dark:text-slate-400">Most Common</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400">Average</p>
                 <p className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                  {analysis.mode.join(", ")}
+                  {analysis.average.toFixed(1)}
                 </p>
               </div>
-              {analysis.average !== undefined && (
-                <div className="text-center p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                  <p className="text-xs text-slate-600 dark:text-slate-400">Average</p>
-                  <p className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                    {analysis.average.toFixed(1)}
-                  </p>
-                </div>
-              )}
-              {analysis.median !== undefined && (
-                <div className="text-center p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                  <p className="text-xs text-slate-600 dark:text-slate-400">Median</p>
-                  <p className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                    {analysis.median}
-                  </p>
-                </div>
-              )}
+            )}
+            {analysis.median !== undefined && (
+              <div className="text-center p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                <p className="text-xs text-slate-600 dark:text-slate-400">Median</p>
+                <p className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                  {analysis.median}
+                </p>
+              </div>
+            )}
+            {analysis.numericVotes.length > 0 && (
               <div className="text-center p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
                 <p className="text-xs text-slate-600 dark:text-slate-400">Range</p>
                 <p className="text-lg font-bold text-slate-900 dark:text-slate-100">
                   {Math.min(...analysis.numericVotes)} - {Math.max(...analysis.numericVotes)}
                 </p>
               </div>
-              <div className={cn(
-                "text-center p-3 rounded-lg",
+            )}
+            <div className={cn(
+              "text-center p-3 rounded-lg",
+              analysis.consensusPercentage >= 70
+                ? "bg-green-50 dark:bg-green-900/20"
+                : "bg-slate-50 dark:bg-slate-800"
+            )}>
+              <p className="text-xs text-slate-600 dark:text-slate-400">Consensus</p>
+              <p className={cn(
+                "text-lg font-bold",
                 analysis.consensusPercentage >= 70
-                  ? "bg-green-50 dark:bg-green-900/20"
-                  : "bg-slate-50 dark:bg-slate-800"
+                  ? "text-green-700 dark:text-green-400"
+                  : "text-slate-900 dark:text-slate-100"
               )}>
-                <p className="text-xs text-slate-600 dark:text-slate-400">Consensus</p>
-                <p className={cn(
-                  "text-lg font-bold",
-                  analysis.consensusPercentage >= 70
-                    ? "text-green-700 dark:text-green-400"
-                    : "text-slate-900 dark:text-slate-100"
-                )}>
-                  {analysis.consensusPercentage.toFixed(0)}%
-                </p>
-              </div>
+                {analysis.consensusPercentage.toFixed(0)}%
+              </p>
             </div>
-          )}
+          </div>
 
           {/* Bar Chart */}
           <div className="space-y-3">
