@@ -1,4 +1,4 @@
-import type { EstimationSequence, EstimationSequenceType, SessionSettings } from "./types";
+import type { EstimationSequence, EstimationSequenceType, SessionSettings } from "@/lib/poker/types";
 
 // Pre-defined estimation sequences
 export const ESTIMATION_SEQUENCES: Record<EstimationSequenceType, EstimationSequence> = {

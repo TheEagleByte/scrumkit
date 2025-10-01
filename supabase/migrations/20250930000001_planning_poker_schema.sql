@@ -4,7 +4,7 @@
 -- Create poker_sessions table
 CREATE TABLE IF NOT EXISTS poker_sessions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  unique_url VARCHAR(255) UNIQUE NOT NULL DEFAULT generate_unique_url(),
+  unique_url VARCHAR(255) UNIQUE NOT NULL,
   title VARCHAR(255) NOT NULL,
   description TEXT,
   team_id UUID REFERENCES teams(id) ON DELETE CASCADE,
@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS poker_votes (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   story_id UUID NOT NULL REFERENCES poker_stories(id) ON DELETE CASCADE,
   participant_id UUID NOT NULL REFERENCES poker_participants(id) ON DELETE CASCADE,
+  session_id UUID NOT NULL, -- Denormalized for realtime filtering
 
   -- Vote details
   vote_value VARCHAR(50) NOT NULL, -- The estimate value (could be number, ?, coffee, etc.)
@@ -112,6 +113,7 @@ CREATE INDEX idx_poker_participants_participant_cookie ON poker_participants(par
 
 CREATE INDEX idx_poker_votes_story_id ON poker_votes(story_id);
 CREATE INDEX idx_poker_votes_participant_id ON poker_votes(participant_id);
+CREATE INDEX idx_poker_votes_session_id ON poker_votes(session_id);
 
 -- Add updated_at triggers
 CREATE TRIGGER update_poker_sessions_updated_at BEFORE UPDATE ON poker_sessions
@@ -122,6 +124,12 @@ CREATE TRIGGER update_poker_stories_updated_at BEFORE UPDATE ON poker_stories
 
 CREATE TRIGGER update_poker_votes_updated_at BEFORE UPDATE ON poker_votes
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Add trigger to set unique_url on poker_sessions
+CREATE TRIGGER poker_sessions_set_unique_url
+  BEFORE INSERT ON poker_sessions
+  FOR EACH ROW
+  EXECUTE FUNCTION set_unique_url();
 
 -- Enable Row Level Security
 ALTER TABLE poker_sessions ENABLE ROW LEVEL SECURITY;
@@ -148,22 +156,16 @@ CREATE POLICY "Anyone can create poker sessions"
   WITH CHECK (true);
 
 -- Session creators can update their sessions
+-- Note: Anonymous session updates are handled server-side via creator_cookie validation
 CREATE POLICY "Creators can update their poker sessions"
   ON poker_sessions FOR UPDATE
-  USING (
-    (auth.uid() IS NOT NULL AND created_by = auth.uid())
-    OR
-    (is_anonymous = true AND creator_cookie IS NOT NULL)
-  );
+  USING (auth.uid() IS NOT NULL AND created_by = auth.uid());
 
 -- Session creators can delete their sessions
+-- Note: Anonymous session deletes are handled server-side via creator_cookie validation
 CREATE POLICY "Creators can delete their poker sessions"
   ON poker_sessions FOR DELETE
-  USING (
-    (auth.uid() IS NOT NULL AND created_by = auth.uid())
-    OR
-    (is_anonymous = true AND creator_cookie IS NOT NULL)
-  );
+  USING (auth.uid() IS NOT NULL AND created_by = auth.uid());
 
 -- RLS Policies for poker_stories
 -- Anyone can read stories from active sessions
@@ -253,14 +255,13 @@ CREATE POLICY "Anyone can join poker sessions"
   );
 
 -- Participants can update their own info
+-- Note: Anonymous participant updates are handled server-side via participant_cookie validation
 CREATE POLICY "Participants can update their own info"
   ON poker_participants FOR UPDATE
-  USING (
-    profile_id = auth.uid()
-    OR participant_cookie IS NOT NULL
-  );
+  USING (profile_id = auth.uid());
 
 -- Facilitators can remove participants
+-- Note: Anonymous participant removal is handled server-side
 CREATE POLICY "Facilitators can remove participants"
   ON poker_participants FOR DELETE
   USING (
@@ -269,11 +270,11 @@ CREATE POLICY "Facilitators can remove participants"
       WHERE ps.id = session_id
       AND ps.created_by = auth.uid()
     )
-    OR is_facilitator = true
   );
 
 -- RLS Policies for poker_votes
 -- Participants can read all votes (visibility controlled by is_revealed flag)
+-- Note: Anonymous read access is handled via server-side participant verification
 CREATE POLICY "Participants can read poker votes"
   ON poker_votes FOR SELECT
   USING (
@@ -281,11 +282,12 @@ CREATE POLICY "Participants can read poker votes"
       SELECT 1 FROM poker_participants pp
       JOIN poker_stories ps ON ps.session_id = pp.session_id
       WHERE ps.id = story_id
-      AND (pp.profile_id = auth.uid() OR pp.participant_cookie IS NOT NULL)
+      AND pp.profile_id = auth.uid()
     )
   );
 
 -- Participants can submit votes
+-- Note: Anonymous vote submission is handled server-side via participant_cookie validation
 CREATE POLICY "Participants can submit votes"
   ON poker_votes FOR INSERT
   WITH CHECK (
@@ -293,30 +295,32 @@ CREATE POLICY "Participants can submit votes"
       SELECT 1 FROM poker_participants pp
       JOIN poker_stories ps ON ps.session_id = pp.session_id
       WHERE ps.id = story_id
-      AND (pp.profile_id = auth.uid() OR pp.participant_cookie IS NOT NULL)
+      AND pp.profile_id = auth.uid()
       AND pp.is_observer = false
     )
   );
 
 -- Participants can update their own votes (if revoting allowed)
+-- Note: Anonymous vote updates are handled server-side via participant_cookie validation
 CREATE POLICY "Participants can update their votes"
   ON poker_votes FOR UPDATE
   USING (
     EXISTS (
       SELECT 1 FROM poker_participants pp
       WHERE pp.id = participant_id
-      AND (pp.profile_id = auth.uid() OR pp.participant_cookie IS NOT NULL)
+      AND pp.profile_id = auth.uid()
     )
   );
 
 -- Participants can delete their own votes
+-- Note: Anonymous vote deletes are handled server-side via participant_cookie validation
 CREATE POLICY "Participants can delete their votes"
   ON poker_votes FOR DELETE
   USING (
     EXISTS (
       SELECT 1 FROM poker_participants pp
       WHERE pp.id = participant_id
-      AND (pp.profile_id = auth.uid() OR pp.participant_cookie IS NOT NULL)
+      AND pp.profile_id = auth.uid()
     )
   );
 
@@ -326,3 +330,10 @@ ALTER TABLE poker_sessions
   FOREIGN KEY (current_story_id)
   REFERENCES poker_stories(id)
   ON DELETE SET NULL;
+
+-- Add foreign key constraint for poker_votes.session_id
+ALTER TABLE poker_votes
+  ADD CONSTRAINT fk_vote_session
+  FOREIGN KEY (session_id)
+  REFERENCES poker_sessions(id)
+  ON DELETE CASCADE;

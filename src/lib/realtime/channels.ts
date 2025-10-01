@@ -248,6 +248,7 @@ export function setupPokerSessionSubscriptions(
         event: "*",
         schema: "public",
         table: "poker_votes",
+        filter: `session_id=eq.${sessionId}`,
       },
       handlers.onVoteChange
     );

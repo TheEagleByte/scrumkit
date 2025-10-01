@@ -21,7 +21,10 @@ export default async function PokerSessionPage({
     notFound();
   }
 
-  const sequence = getSequenceByType(session.estimation_sequence);
+  const sequence = getSequenceByType(
+    session.estimation_sequence,
+    session.custom_sequence ?? undefined,
+  );
 
   return (
     <main className="min-h-screen bg-background grid-pattern">

@@ -68,9 +68,9 @@ export function useCreatePokerSession() {
         creator_cookie: null,
         estimation_sequence: newSession.settings?.estimationSequence || "fibonacci",
         custom_sequence: newSession.settings?.customSequence || null,
-        auto_reveal: newSession.settings?.autoReveal || false,
-        allow_revote: newSession.settings?.allowRevote || true,
-        show_voter_names: newSession.settings?.showVoterNames || true,
+        auto_reveal: newSession.settings?.autoReveal ?? false,
+        allow_revote: newSession.settings?.allowRevote ?? true,
+        show_voter_names: newSession.settings?.showVoterNames ?? true,
         status: "active",
         current_story_id: null,
         is_anonymous: !newSession.teamId,
@@ -173,13 +173,13 @@ export function useUpdatePokerSession() {
 
 // End a poker session
 export function useEndPokerSession() {
-  const updateMutation = useUpdatePokerSession();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (uniqueUrl: string) => endPokerSession(uniqueUrl),
     onSuccess: () => {
       toast.success("Poker session ended");
-      updateMutation.reset();
+      queryClient.invalidateQueries({ queryKey: pokerSessionKeys.lists() });
     },
     onError: () => {
       toast.error("Failed to end poker session");
@@ -189,13 +189,13 @@ export function useEndPokerSession() {
 
 // Archive a poker session
 export function useArchivePokerSession() {
-  const updateMutation = useUpdatePokerSession();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (uniqueUrl: string) => archivePokerSession(uniqueUrl),
     onSuccess: () => {
       toast.success("Poker session archived");
-      updateMutation.reset();
+      queryClient.invalidateQueries({ queryKey: pokerSessionKeys.lists() });
     },
     onError: () => {
       toast.error("Failed to archive poker session");
@@ -206,10 +206,12 @@ export function useArchivePokerSession() {
 // Delete a poker session with undo functionality
 export function useDeletePokerSession() {
   const queryClient = useQueryClient();
-  let undoTimeoutId: NodeJS.Timeout | null = null;
 
   return useMutation({
-    mutationFn: deletePokerSession,
+    mutationFn: async (uniqueUrl: string) => {
+      // Don't call the server action immediately - we'll defer it
+      return { uniqueUrl };
+    },
     onMutate: async (uniqueUrl: string) => {
       await queryClient.cancelQueries({ queryKey: pokerSessionKeys.lists() });
 
@@ -234,7 +236,7 @@ export function useDeletePokerSession() {
       };
       localStorage.setItem(deletionKey, JSON.stringify(deletionData));
 
-      return { previousSessions, sessionToDelete, deletionKey };
+      return { previousSessions, sessionToDelete, deletionKey, uniqueUrl };
     },
     onError: (err, uniqueUrl, context) => {
       // Restore the session on error
@@ -254,6 +256,7 @@ export function useDeletePokerSession() {
     },
     onSuccess: (data, uniqueUrl, context) => {
       const message = `Poker session "${context?.sessionToDelete?.title}" deleted`;
+      let deletionTimeoutId: NodeJS.Timeout | null = null;
 
       // Show undo toast
       toast.success(message, {
@@ -262,8 +265,8 @@ export function useDeletePokerSession() {
           label: "Undo",
           onClick: () => {
             // Cancel deletion
-            if (undoTimeoutId) {
-              clearTimeout(undoTimeoutId);
+            if (deletionTimeoutId) {
+              clearTimeout(deletionTimeoutId);
             }
 
             // Remove from localStorage
@@ -284,8 +287,8 @@ export function useDeletePokerSession() {
         },
       });
 
-      // Schedule actual deletion after 5 seconds
-      undoTimeoutId = setTimeout(() => {
+      // Schedule actual server deletion after 5 seconds
+      deletionTimeoutId = setTimeout(async () => {
         // Check if deletion was cancelled
         if (
           context?.deletionKey &&
@@ -294,17 +297,28 @@ export function useDeletePokerSession() {
           return;
         }
 
-        // Clean up localStorage
-        if (context?.deletionKey) {
-          localStorage.removeItem(context.deletionKey);
+        // Actually delete on server
+        try {
+          await deletePokerSession(context?.uniqueUrl || uniqueUrl);
+
+          // Clean up localStorage
+          if (context?.deletionKey) {
+            localStorage.removeItem(context.deletionKey);
+          }
+
+          // Invalidate to sync with server
+          queryClient.invalidateQueries({ queryKey: pokerSessionKeys.lists() });
+        } catch (error) {
+          // If server deletion fails, restore the session
+          if (context?.previousSessions) {
+            queryClient.setQueryData(
+              pokerSessionKeys.lists(),
+              context.previousSessions
+            );
+          }
+          toast.error("Failed to delete poker session");
         }
       }, 5000);
-    },
-    onSettled: () => {
-      // Don't immediately invalidate, wait for timeout or undo
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: pokerSessionKeys.lists() });
-      }, 5500);
     },
   });
 }

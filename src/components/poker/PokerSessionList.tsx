@@ -101,9 +101,13 @@ export function PokerSessionList({ sessions, showArchived = false }: PokerSessio
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {sessions.map((session, index) => {
-          const sequence = getSequenceByType(session.estimation_sequence);
+          const sequence = getSequenceByType(
+            session.estimation_sequence,
+            session.custom_sequence ?? undefined,
+          );
           const isActive = session.status === "active";
           const isEnded = session.status === "ended";
+          const canArchive = isActive || isEnded;
 
           return (
             <motion.div
@@ -133,22 +137,22 @@ export function PokerSessionList({ sessions, showArchived = false }: PokerSessio
                             Open Session
                           </Link>
                         </DropdownMenuItem>
+                        {(isActive || canArchive) && <DropdownMenuSeparator />}
                         {isActive && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => handleEndSession(session.unique_url)}
-                            >
-                              <CheckCircle2 className="mr-2 h-4 w-4" />
-                              End Session
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleArchiveSession(session.unique_url)}
-                            >
-                              <Archive className="mr-2 h-4 w-4" />
-                              Archive
-                            </DropdownMenuItem>
-                          </>
+                          <DropdownMenuItem
+                            onClick={() => handleEndSession(session.unique_url)}
+                          >
+                            <CheckCircle2 className="mr-2 h-4 w-4" />
+                            End Session
+                          </DropdownMenuItem>
+                        )}
+                        {canArchive && (
+                          <DropdownMenuItem
+                            onClick={() => handleArchiveSession(session.unique_url)}
+                          >
+                            <Archive className="mr-2 h-4 w-4" />
+                            Archive
+                          </DropdownMenuItem>
                         )}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
