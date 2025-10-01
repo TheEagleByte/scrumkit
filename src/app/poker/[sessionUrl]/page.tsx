@@ -7,6 +7,8 @@ import { TrendingUp, Calendar, Settings } from "lucide-react";
 import { getSequenceByType } from "@/lib/poker/utils";
 import { format } from "date-fns";
 import { StoryManager } from "@/components/poker/StoryManager";
+import { SessionSummary } from "@/components/poker/SessionSummary";
+import { ExportButton } from "@/components/poker/ExportButton";
 
 export default async function PokerSessionPage({
   params,
@@ -34,13 +36,18 @@ export default async function PokerSessionPage({
       <div className="container max-w-7xl mx-auto py-8 px-4 pt-24">
         {/* Session Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <TrendingUp className="h-8 w-8 text-indigo-500" />
-            <h1 className="text-4xl font-bold">{session.title}</h1>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <TrendingUp className="h-8 w-8 text-indigo-500" />
+                <h1 className="text-4xl font-bold">{session.title}</h1>
+              </div>
+              {session.description && (
+                <p className="text-lg text-muted-foreground mt-2">{session.description}</p>
+              )}
+            </div>
+            <ExportButton session={session} />
           </div>
-          {session.description && (
-            <p className="text-lg text-muted-foreground mt-2">{session.description}</p>
-          )}
         </div>
 
         {/* Session Info Cards */}
@@ -120,6 +127,11 @@ export default async function PokerSessionPage({
             </div>
           </CardContent>
         </Card>
+
+        {/* Session Statistics */}
+        <div className="mb-8">
+          <SessionSummary sessionId={session.id} />
+        </div>
 
         {/* Story Management */}
         <StoryManager session={session} />
