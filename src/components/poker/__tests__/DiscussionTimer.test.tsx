@@ -1,24 +1,25 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { DiscussionTimer } from '../DiscussionTimer';
-import * as timerHook from '@/hooks/use-discussion-timer';
+import { useDiscussionTimer } from '@/hooks/use-discussion-timer';
 
 // Mock the timer hook
-vi.mock('@/hooks/use-discussion-timer');
+jest.mock('@/hooks/use-discussion-timer');
+
+const mockUseDiscussionTimer = useDiscussionTimer as jest.MockedFunction<typeof useDiscussionTimer>;
 
 describe('DiscussionTimer', () => {
-  const mockStart = vi.fn();
-  const mockPause = vi.fn();
-  const mockResume = vi.fn();
-  const mockReset = vi.fn();
-  const mockToggleSound = vi.fn();
-  const mockAddTime = vi.fn();
+  const mockStart = jest.fn();
+  const mockPause = jest.fn();
+  const mockResume = jest.fn();
+  const mockReset = jest.fn();
+  const mockToggleSound = jest.fn();
+  const mockAddTime = jest.fn();
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
 
     // Default mock implementation
-    vi.mocked(timerHook.useDiscussionTimer).mockReturnValue({
+    mockUseDiscussionTimer.mockReturnValue({
       state: {
         totalSeconds: 0,
         elapsedSeconds: 0,
@@ -107,7 +108,7 @@ describe('DiscussionTimer', () => {
     });
 
     it('should disable break toggle when timer is running', () => {
-      vi.mocked(timerHook.useDiscussionTimer).mockReturnValue({
+      mockUseDiscussionTimer.mockReturnValue({
         state: {
           totalSeconds: 300,
           elapsedSeconds: 60,
@@ -173,7 +174,7 @@ describe('DiscussionTimer', () => {
 
   describe('Running Timer', () => {
     beforeEach(() => {
-      vi.mocked(timerHook.useDiscussionTimer).mockReturnValue({
+      mockUseDiscussionTimer.mockReturnValue({
         state: {
           totalSeconds: 300,
           elapsedSeconds: 60,
@@ -238,7 +239,7 @@ describe('DiscussionTimer', () => {
 
   describe('Paused Timer', () => {
     beforeEach(() => {
-      vi.mocked(timerHook.useDiscussionTimer).mockReturnValue({
+      mockUseDiscussionTimer.mockReturnValue({
         state: {
           totalSeconds: 300,
           elapsedSeconds: 60,
@@ -276,7 +277,7 @@ describe('DiscussionTimer', () => {
 
   describe('Completed Timer', () => {
     beforeEach(() => {
-      vi.mocked(timerHook.useDiscussionTimer).mockReturnValue({
+      mockUseDiscussionTimer.mockReturnValue({
         state: {
           totalSeconds: 300,
           elapsedSeconds: 300,
@@ -321,7 +322,7 @@ describe('DiscussionTimer', () => {
     });
 
     it('should show muted icon when sound is disabled', () => {
-      vi.mocked(timerHook.useDiscussionTimer).mockReturnValue({
+      mockUseDiscussionTimer.mockReturnValue({
         state: {
           totalSeconds: 0,
           elapsedSeconds: 0,
@@ -346,7 +347,7 @@ describe('DiscussionTimer', () => {
 
   describe('Progress Display', () => {
     it('should show progress percentage', () => {
-      vi.mocked(timerHook.useDiscussionTimer).mockReturnValue({
+      mockUseDiscussionTimer.mockReturnValue({
         state: {
           totalSeconds: 300,
           elapsedSeconds: 150,
