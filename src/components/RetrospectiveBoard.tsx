@@ -27,6 +27,7 @@ import {
   Meh,
   Star,
   Settings2,
+  Palette,
 } from "lucide-react";
 import { DraggableRetroItem } from "@/components/retro/DraggableRetroItem";
 import type { RetroItemData } from "@/components/retro/RetroItem";
@@ -82,6 +83,13 @@ import {
   useUpdateFacilitatorSettings,
   useFacilitatorRealtime,
 } from "@/hooks/use-facilitator";
+import { BoardCustomizationDialog } from "@/components/retro/BoardCustomizationDialog";
+import {
+  useUpdateRetrospective,
+  useUpdateColumn,
+  useCreateColumn,
+  useDeleteColumn,
+} from "@/hooks/use-retrospective";
 
 interface RetrospectiveBoardProps {
   retrospectiveId: string;
@@ -152,6 +160,7 @@ export function RetrospectiveBoard({
   const [sortByVotes, setSortByVotes] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [facilitatorPanelOpen, setFacilitatorPanelOpen] = useState(false);
+  const [customizationDialogOpen, setCustomizationDialogOpen] = useState(false);
 
   // Use TanStack Query hooks
   const { data: retrospective, isLoading: retroLoading } = useRetrospective(retrospectiveId);
@@ -166,6 +175,10 @@ export function RetrospectiveBoard({
   const toggleVoteMutation = useToggleVote();
   const updateItemMutation = useUpdateItem();
   const moveItemMutation = useMoveItem();
+  const updateRetrospectiveMutation = useUpdateRetrospective();
+  const updateColumnMutation = useUpdateColumn();
+  const createColumnMutation = useCreateColumn();
+  const deleteColumnMutation = useDeleteColumn();
 
   // Facilitator hooks
   const { data: facilitatorSettings } = useFacilitatorSettings(retrospectiveId);
@@ -474,6 +487,109 @@ export function RetrospectiveBoard({
     setActiveItem(null);
   };
 
+  // Memoize board settings to prevent dialog edits from being wiped during real-time updates
+  const boardSettings = useMemo(
+    () => ({
+      title: retrospective?.title || sprintName,
+      description: retrospective?.description || "",
+      is_anonymous: retrospective?.is_anonymous ?? false,
+      max_votes_per_user: retrospective?.max_votes_per_user ?? 5,
+    }),
+    [
+      retrospective?.title,
+      retrospective?.description,
+      retrospective?.is_anonymous,
+      retrospective?.max_votes_per_user,
+      sprintName,
+    ]
+  );
+
+  const handleSaveCustomization = async (
+    settings: {
+      title: string;
+      description: string;
+      is_anonymous: boolean;
+      max_votes_per_user: number;
+    },
+    updatedColumns: Array<{
+      id: string;
+      title: string;
+      description: string | null;
+      color: string | null;
+      column_type: string;
+      display_order: number | null;
+    }>
+  ) => {
+    try {
+      // Update retrospective settings
+      await updateRetrospectiveMutation.mutateAsync({
+        retrospectiveId,
+        updates: {
+          title: settings.title,
+          description: settings.description,
+          is_anonymous: settings.is_anonymous,
+          max_votes_per_user: settings.max_votes_per_user,
+        },
+      });
+
+      // Handle column changes
+      const existingColumnIds = columns.map((c) => c.id);
+      const updatedColumnIds = updatedColumns.map((c) => c.id);
+
+      // Delete removed columns (run in parallel)
+      const deletedColumns = existingColumnIds.filter(
+        (id) => !updatedColumnIds.includes(id)
+      );
+      await Promise.all(
+        deletedColumns.map((columnId) =>
+          deleteColumnMutation.mutateAsync({
+            columnId,
+            retrospectiveId,
+          })
+        )
+      );
+
+      // Separate creates and updates for parallel processing
+      const columnsToCreate = updatedColumns.filter((col) =>
+        col.id.startsWith("temp-")
+      );
+      const columnsToUpdate = updatedColumns.filter(
+        (col) => !col.id.startsWith("temp-")
+      );
+
+      // Run creates and updates in parallel batches
+      await Promise.all([
+        ...columnsToCreate.map((column) =>
+          createColumnMutation.mutateAsync({
+            retrospectiveId,
+            title: column.title,
+            description: column.description,
+            color: column.color,
+            column_type: column.column_type,
+            display_order: column.display_order || 0,
+          })
+        ),
+        ...columnsToUpdate.map((column) =>
+          updateColumnMutation.mutateAsync({
+            columnId: column.id,
+            retrospectiveId,
+            updates: {
+              title: column.title,
+              description: column.description,
+              color: column.color,
+              display_order: column.display_order,
+            },
+          })
+        ),
+      ]);
+
+      toast.success("Board customization saved successfully!");
+    } catch (error) {
+      console.error("Failed to save customization:", error);
+      toast.error("Failed to save customization. Please try again.");
+    }
+  };
+
   const isLoading = retroLoading || columnsLoading || itemsLoading;
 
   if (isLoading) {
@@ -500,7 +616,14 @@ export function RetrospectiveBoard({
       {/* Header */}
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold mb-1">{sprintName}</h1>
+          <h1 className="text-3xl font-bold mb-1">
+            {retrospective?.title || sprintName}
+          </h1>
+          {retrospective?.description && (
+            <p className="text-sm text-muted-foreground mb-1">
+              {retrospective.description}
+            </p>
+          )}
           <p className="text-muted-foreground">{teamName}</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
@@ -550,6 +673,17 @@ export function RetrospectiveBoard({
             <ArrowUpDown className="h-4 w-4" />
             Sort by votes
           </Toggle>
+
+          {/* Customize Board Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCustomizationDialogOpen(true)}
+            className="gap-1"
+          >
+            <Palette className="h-4 w-4" />
+            Customize
+          </Button>
 
           {/* Facilitator Tools Button */}
           <Button
@@ -934,6 +1068,21 @@ export function RetrospectiveBoard({
           }))}
         />
       )}
+
+      {/* Board Customization Dialog */}
+      <BoardCustomizationDialog
+        open={customizationDialogOpen}
+        onOpenChange={setCustomizationDialogOpen}
+        boardSettings={boardSettings}
+        columns={columns}
+        onSave={handleSaveCustomization}
+        isLoading={
+          updateRetrospectiveMutation.isPending ||
+          updateColumnMutation.isPending ||
+          createColumnMutation.isPending ||
+          deleteColumnMutation.isPending
+        }
+      />
     </div>
     </DndContext>
   );

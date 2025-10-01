@@ -35,6 +35,10 @@ jest.mock('@/hooks/use-retrospective', () => ({
     },
     isLoading: false
   })),
+  useUpdateRetrospective: jest.fn(() => ({ mutateAsync: jest.fn(), isPending: false })),
+  useUpdateColumn: jest.fn(() => ({ mutateAsync: jest.fn(), isPending: false })),
+  useCreateColumn: jest.fn(() => ({ mutateAsync: jest.fn(), isPending: false })),
+  useDeleteColumn: jest.fn(() => ({ mutateAsync: jest.fn(), isPending: false })),
 }));
 
 jest.mock('@/hooks/use-realtime', () => ({

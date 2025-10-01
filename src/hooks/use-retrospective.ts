@@ -912,3 +912,235 @@ export function useCanVote(retrospectiveId: string, userId: string, itemId: stri
 
   return { canVote: true, reason: "can_vote" };
 }
+
+// Update retrospective settings (title, description, voting limits, anonymous mode)
+export function useUpdateRetrospective() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      retrospectiveId,
+      updates,
+    }: {
+      retrospectiveId: string;
+      updates: {
+        title?: string;
+        description?: string;
+        is_anonymous?: boolean;
+        max_votes_per_user?: number;
+      };
+    }) => {
+      const supabase = createClient();
+
+      const { data, error } = await supabase
+        .from("retrospectives")
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", retrospectiveId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: retrospectiveKeys.detail(variables.retrospectiveId),
+      });
+      toast.success("Board settings updated successfully");
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Failed to update board settings");
+    },
+  });
+}
+
+// Update column properties (title, description, color, display_order)
+export function useUpdateColumn() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      columnId,
+      retrospectiveId,
+      updates,
+    }: {
+      columnId: string;
+      retrospectiveId: string;
+      updates: {
+        title?: string;
+        description?: string | null;
+        color?: string | null;
+        display_order?: number | null;
+      };
+    }) => {
+      const supabase = createClient();
+
+      const { data, error } = await supabase
+        .from("retrospective_columns")
+        .update(updates)
+        .eq("id", columnId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: retrospectiveKeys.columns(variables.retrospectiveId),
+      });
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Failed to update column");
+    },
+  });
+}
+
+// Create a new column
+export function useCreateColumn() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      retrospectiveId,
+      title,
+      description,
+      color,
+      column_type,
+      display_order,
+    }: {
+      retrospectiveId: string;
+      title: string;
+      description?: string | null;
+      color?: string | null;
+      column_type: string;
+      display_order: number;
+    }) => {
+      const supabase = createClient();
+
+      const { data, error } = await supabase
+        .from("retrospective_columns")
+        .insert({
+          retrospective_id: retrospectiveId,
+          title,
+          description,
+          color,
+          column_type,
+          display_order,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: retrospectiveKeys.columns(variables.retrospectiveId),
+      });
+      toast.success("Column added successfully");
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Failed to add column");
+    },
+  });
+}
+
+// Delete a column (and all its items)
+export function useDeleteColumn() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      columnId,
+      retrospectiveId,
+    }: {
+      columnId: string;
+      retrospectiveId: string;
+    }) => {
+      const supabase = createClient();
+
+      // Items will be deleted automatically due to CASCADE
+      const { error } = await supabase
+        .from("retrospective_columns")
+        .delete()
+        .eq("id", columnId);
+
+      if (error) throw error;
+      return columnId;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: retrospectiveKeys.columns(variables.retrospectiveId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: retrospectiveKeys.items(variables.retrospectiveId),
+      });
+      toast.success("Column deleted successfully");
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Failed to delete column");
+    },
+  });
+}
+
+// Bulk update column display orders (for reordering)
+export function useBulkUpdateColumns() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      retrospectiveId,
+      columns,
+    }: {
+      retrospectiveId: string;
+      columns: Array<{
+        id: string;
+        display_order: number;
+      }>;
+    }) => {
+      const supabase = createClient();
+
+      // Update each column's display_order
+      const updates = await Promise.all(
+        columns.map((col) =>
+          supabase
+            .from("retrospective_columns")
+            .update({ display_order: col.display_order })
+            .eq("id", col.id)
+            .select()
+            .single()
+        )
+      );
+
+      const errorUpdates = updates
+        .map((u, idx) => (u.error ? { id: columns[idx].id, error: u.error } : null))
+        .filter(Boolean) as Array<{ id: string; error: unknown }>;
+
+      if (errorUpdates.length > 0) {
+        const errorDetails = errorUpdates
+          .map((e) => {
+            const errorMsg = e.error && typeof e.error === 'object' && 'message' in e.error
+              ? String(e.error.message)
+              : String(e.error);
+            return `Column ID: ${e.id}, Error: ${errorMsg}`;
+          })
+          .join("; ");
+        throw new Error(`Failed to update some columns: ${errorDetails}`);
+      }
+
+      return updates.map((u) => u.data);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: retrospectiveKeys.columns(variables.retrospectiveId),
+      });
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Failed to reorder columns");
+    },
+  });
+}

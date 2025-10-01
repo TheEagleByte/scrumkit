@@ -302,6 +302,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           creator_cookie: string | null
+          description: string | null
           id: string
           is_anonymous: boolean | null
           is_archived: boolean | null
@@ -323,6 +324,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           creator_cookie?: string | null
+          description?: string | null
           id?: string
           is_anonymous?: boolean | null
           is_archived?: boolean | null
@@ -344,6 +346,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           creator_cookie?: string | null
+          description?: string | null
           id?: string
           is_anonymous?: boolean | null
           is_archived?: boolean | null
