@@ -25,10 +25,30 @@ export const pokerParticipantKeys = {
     [...pokerParticipantKeys.all, "session", sessionId] as const,
 };
 
-// Fetch all participants for a session with real-time updates
+// Type for session participants query key
+type SessionParticipantsKey = ReturnType<typeof pokerParticipantKeys.session>;
+
+// Type for session participants options - narrowed to prevent key/fn override
+type SessionParticipantsOptions = Omit<
+  UseQueryOptions<PokerParticipant[], Error, PokerParticipant[], SessionParticipantsKey>,
+  "queryKey" | "queryFn" | "enabled"
+>;
+
+/**
+ * Hook to fetch and subscribe to participants for a poker session with real-time updates.
+ *
+ * @param sessionId - The unique identifier of the poker session
+ * @param options - Optional React Query configuration options
+ * @returns Query result containing participant data and loading states
+ *
+ * @example
+ * ```tsx
+ * const { data: participants, isLoading } = useSessionParticipants(sessionId);
+ * ```
+ */
 export function useSessionParticipants(
   sessionId: string,
-  options?: UseQueryOptions<PokerParticipant[]>
+  options?: SessionParticipantsOptions
 ) {
   const queryClient = useQueryClient();
 
@@ -60,7 +80,20 @@ export function useSessionParticipants(
           filter: `session_id=eq.${sessionId}`,
         },
         (payload) => {
-          console.log("Participant change:", payload);
+          if (process.env.NODE_ENV !== "production") {
+            // eslint-disable-next-line no-console
+            console.debug("Participant change:", payload?.eventType);
+          }
+
+          // Skip heartbeat-only updates to reduce unnecessary refetches
+          if (payload?.eventType === "UPDATE") {
+            const oldRow = payload.old ?? {};
+            const newRow = payload.new ?? {};
+            const changed = Object.keys(newRow).filter((k) => oldRow[k] !== newRow[k]);
+            if (changed.length === 1 && changed[0] === "last_seen_at") {
+              return;
+            }
+          }
 
           // Invalidate queries to refetch data
           queryClient.invalidateQueries({
@@ -79,7 +112,17 @@ export function useSessionParticipants(
   return query;
 }
 
-// Join a poker session as a participant
+/**
+ * Mutation hook to join a poker session as a participant with optimistic updates.
+ *
+ * @returns Mutation object with mutate function and loading states
+ *
+ * @example
+ * ```tsx
+ * const joinSession = useJoinPokerSession();
+ * joinSession.mutate({ sessionId, input: { name: "John" } });
+ * ```
+ */
 export function useJoinPokerSession() {
   const queryClient = useQueryClient();
 
@@ -148,7 +191,20 @@ export function useJoinPokerSession() {
   });
 }
 
-// Hook to get participant count for a session
+/**
+ * Hook to get the count of participants in a session.
+ *
+ * Note: This hook calls useSessionParticipants and subscribes to real-time updates.
+ * For count-only queries without real-time updates, consider using a separate hook.
+ *
+ * @param sessionId - The unique identifier of the poker session
+ * @returns The number of participants in the session
+ *
+ * @example
+ * ```tsx
+ * const participantCount = useParticipantCount(sessionId);
+ * ```
+ */
 export function useParticipantCount(sessionId: string): number {
   const { data: participants } = useSessionParticipants(sessionId);
   return participants?.length || 0;

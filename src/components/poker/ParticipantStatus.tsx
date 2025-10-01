@@ -17,6 +17,25 @@ interface ParticipantStatusProps {
   sessionId: string;
 }
 
+/**
+ * Component that displays real-time participant status and voting progress for a poker session.
+ *
+ * Features:
+ * - Shows all participants with their vote status (voted/waiting)
+ * - Tracks online/offline status using Supabase Presence
+ * - Displays "waiting for" indicator for participants who haven't voted
+ * - Separates voters from observers
+ * - Updates in real-time as participants join, leave, or vote
+ *
+ * @param props - Component properties
+ * @param props.story - The current story being voted on
+ * @param props.sessionId - The unique identifier of the poker session
+ *
+ * @example
+ * ```tsx
+ * <ParticipantStatus story={currentStory} sessionId={session.id} />
+ * ```
+ */
 export function ParticipantStatus({ story, sessionId }: ParticipantStatusProps) {
   const { data: participants = [], isLoading: loadingParticipants } = useSessionParticipants(sessionId);
   const { data: votes = [], isLoading: loadingVotes } = useStoryVotes(story.id);
@@ -43,10 +62,16 @@ export function ParticipantStatus({ story, sessionId }: ParticipantStatusProps) 
           setPresenceState(state);
         })
         .on("presence", { event: "join" }, ({ key, newPresences }) => {
-          console.log("Participant joined:", key, newPresences);
+          if (process.env.NODE_ENV !== "production") {
+            // eslint-disable-next-line no-console
+            console.debug("Participant joined:", key, newPresences);
+          }
         })
         .on("presence", { event: "leave" }, ({ key, leftPresences }) => {
-          console.log("Participant left:", key, leftPresences);
+          if (process.env.NODE_ENV !== "production") {
+            // eslint-disable-next-line no-console
+            console.debug("Participant left:", key, leftPresences);
+          }
         })
         .subscribe(async (status) => {
           if (status === "SUBSCRIBED") {
