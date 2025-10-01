@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Planning Poker Timer & Discussion Tools** (Issue #24 - EPIC-003 Story 8)
+  - Discussion timer with preset durations (2, 5, 10 minutes)
+  - Break timer mode with presets (5, 10, 15 minutes)
+  - Custom timer duration input (1-60 minutes)
+  - Pause/resume timer functionality
+  - Visual progress indicator with color-coded warnings:
+    - Green: 0-50% elapsed
+    - Yellow: 50-75% elapsed
+    - Amber: 75-90% elapsed
+    - Orange: 90-99% elapsed
+    - Red: 100% complete
+  - Audio notifications for warnings (90%) and completion
+  - Configurable sound notifications with mute toggle
+  - Add time (+1 minute) during active timer
+  - Timer preferences persistence in local storage
+  - Accessible only to facilitators during voting sessions
+  - Comprehensive test coverage for timer utilities and components
+- Enhanced Progress component with custom indicator styling support
 - **Planning Poker Statistics & Analytics** (Issue #23 - EPIC-003 Story 7)
   - Comprehensive session statistics with key metrics dashboard
   - Consensus percentage calculation and display (votes within 1 step of mode)
