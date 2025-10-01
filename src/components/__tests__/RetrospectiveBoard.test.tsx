@@ -56,11 +56,34 @@ jest.mock('@/hooks/use-realtime', () => ({
   })),
 }));
 
+jest.mock('@/hooks/use-facilitator', () => ({
+  useFacilitatorSettings: jest.fn(() => ({
+    data: {
+      timer: null,
+      phase: 'brainstorm',
+      focusedColumnId: null,
+      soundEnabled: true,
+    },
+    isLoading: false,
+  })),
+  useUpdateFacilitatorSettings: jest.fn(() => ({
+    mutate: jest.fn(),
+    mutateAsync: jest.fn(),
+    isPending: false,
+  })),
+  useFacilitatorRealtime: jest.fn(),
+}));
+
 jest.mock('@/lib/supabase/client', () => ({
   createClient: jest.fn(() => ({
     auth: {
       getUser: jest.fn().mockResolvedValue({ data: { user: null }, error: null }),
     },
+    channel: jest.fn(() => ({
+      on: jest.fn().mockReturnThis(),
+      subscribe: jest.fn().mockReturnThis(),
+    })),
+    removeChannel: jest.fn(),
   })),
 }));
 

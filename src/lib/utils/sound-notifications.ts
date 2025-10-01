@@ -23,19 +23,49 @@ export function setSoundEnabled(enabled: boolean): void {
   localStorage.setItem(SOUND_ENABLED_KEY, enabled.toString());
 }
 
+// Shared AudioContext instance to avoid exhausting browser limits
+let sharedAudioContext: AudioContext | null = null;
+
+/**
+ * Get or create the shared AudioContext
+ */
+function getAudioContext(): AudioContext | null {
+  if (typeof window === 'undefined') return null;
+
+  if (!sharedAudioContext) {
+    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) {
+      console.warn('AudioContext not supported');
+      return null;
+    }
+    try {
+      sharedAudioContext = new AudioContextClass();
+    } catch (error) {
+      console.error('Failed to create AudioContext:', error);
+      return null;
+    }
+  }
+
+  // Resume context if it's suspended (e.g., due to browser autoplay policies)
+  if (sharedAudioContext.state === 'suspended') {
+    sharedAudioContext.resume().catch(err => {
+      console.error('Failed to resume AudioContext:', err);
+    });
+  }
+
+  return sharedAudioContext;
+}
+
 /**
  * Play a simple beep sound using Web Audio API
  */
 function playBeep(frequency: number, duration: number, volume: number = 0.3): void {
-  if (typeof window === 'undefined' || !isSoundEnabled()) return;
+  if (!isSoundEnabled()) return;
+
+  const audioContext = getAudioContext();
+  if (!audioContext) return;
 
   try {
-    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextClass) {
-      console.warn('AudioContext not supported');
-      return;
-    }
-    const audioContext = new AudioContextClass();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
 
