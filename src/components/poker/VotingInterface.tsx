@@ -2,22 +2,29 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { VotingCard } from "./VotingCard";
+import { VoteResults } from "./VoteResults";
 import { ParticipantStatus } from "./ParticipantStatus";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Users, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, Users, AlertCircle, Eye } from "lucide-react";
 import { useSubmitVote, useParticipantVote, useStoryVotes } from "@/hooks/use-poker-votes";
+import { useRevealVotes } from "@/hooks/use-poker-reveal";
+import { useSessionParticipants } from "@/hooks/use-poker-participants";
 import type { EstimationSequence, PokerStory } from "@/lib/poker/types";
 import { canVoteOnStory } from "@/lib/poker/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { pokerVoteKeys } from "@/hooks/use-poker-votes";
+import { pokerStoryKeys } from "@/hooks/use-poker-stories";
 
 interface VotingInterfaceProps {
   story: PokerStory;
   sequence: EstimationSequence;
   sessionId: string;
   isObserver?: boolean;
+  showVoterNames?: boolean;
+  autoReveal?: boolean;
 }
 
 // Keyboard shortcut mapping
@@ -55,14 +62,49 @@ export function VotingInterface({
   sequence,
   sessionId,
   isObserver = false,
+  showVoterNames = true,
+  autoReveal = false,
 }: VotingInterfaceProps) {
   const [selectedValue, setSelectedValue] = useState<string | null>(null);
+  const [isFacilitator, setIsFacilitator] = useState(false);
   const submitVote = useSubmitVote();
+  const revealVotes = useRevealVotes();
   const { data: currentVote } = useParticipantVote(story.id);
   const { data: allVotes } = useStoryVotes(story.id);
+  const { data: participants = [] } = useSessionParticipants(sessionId);
 
   const canVote = canVoteOnStory(story.status) && !isObserver;
   const hasVoted = !!currentVote;
+  const isRevealed = story.status === "revealed" || story.status === "estimated";
+
+  // Check if current user is facilitator
+  useEffect(() => {
+    const checkFacilitator = async () => {
+      if (typeof window === "undefined") return;
+
+      const creatorCookie = document.cookie
+        .split("; ")
+        .find(row => row.startsWith("scrumkit_poker_creator="))
+        ?.split("=")[1];
+
+      const participantCookie = document.cookie
+        .split("; ")
+        .find(row => row.startsWith("scrumkit_poker_participant="))
+        ?.split("=")[1];
+
+      // Check if user is facilitator/creator
+      const currentParticipant = participants.find(
+        p => p.participant_cookie === participantCookie
+      );
+
+      setIsFacilitator(
+        !!currentParticipant?.is_facilitator ||
+        !!creatorCookie
+      );
+    };
+
+    checkFacilitator();
+  }, [participants]);
 
   // Set initial selected value from current vote
   useEffect(() => {
@@ -150,14 +192,14 @@ export function VotingInterface({
     };
   }, [handleKeyPress]);
 
-  // Real-time subscription for vote updates
+  // Real-time subscription for vote and story updates
   const queryClient = useQueryClient();
 
   useEffect(() => {
     const supabase = createClient();
 
     // Subscribe to poker_votes changes for this story
-    const channel = supabase
+    const votesChannel = supabase
       .channel(`poker-votes:${story.id}`)
       .on(
         'postgres_changes',
@@ -179,11 +221,53 @@ export function VotingInterface({
       )
       .subscribe();
 
+    // Subscribe to poker_stories changes to detect reveal
+    const storyChannel = supabase
+      .channel(`poker-story:${story.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'poker_stories',
+          filter: `id=eq.${story.id}`,
+        },
+        () => {
+          // Invalidate story queries when status changes
+          queryClient.invalidateQueries({
+            queryKey: pokerStoryKeys.all,
+          });
+        }
+      )
+      .subscribe();
+
     // Cleanup
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(votesChannel);
+      supabase.removeChannel(storyChannel);
     };
   }, [story.id, queryClient]);
+
+  // Calculate voting progress
+  const votingParticipants = participants.filter(p => !p.is_observer);
+  const votedCount = allVotes?.length || 0;
+  const allVoted = votingParticipants.length > 0 && votedCount === votingParticipants.length;
+
+  // Auto-reveal when all participants have voted
+  useEffect(() => {
+    if (autoReveal && allVoted && story.status === "voting" && !revealVotes.isPending) {
+      // Small delay to allow last vote to be visible
+      const timer = setTimeout(() => {
+        revealVotes.mutate(story.id);
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [autoReveal, allVoted, story.status, story.id, revealVotes]);
+
+  const handleReveal = () => {
+    revealVotes.mutate(story.id);
+  };
 
   // Combine all cards (regular + special)
   const allCards = [
@@ -192,6 +276,26 @@ export function VotingInterface({
   ];
 
   const voteCount = allVotes?.length || 0;
+
+  // If votes are revealed, show the results
+  if (isRevealed && allVotes && allVotes.length > 0) {
+    return (
+      <div className="space-y-6">
+        {/* Participant Status Section */}
+        <ParticipantStatus story={story} sessionId={sessionId} />
+
+        {/* Vote Results */}
+        <VoteResults
+          storyId={story.id}
+          sessionId={sessionId}
+          votes={allVotes}
+          showVoterNames={showVoterNames}
+          isFacilitator={isFacilitator}
+          sequence={sequence}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -231,11 +335,24 @@ export function VotingInterface({
               </CardDescription>
             </div>
 
-            {/* Vote count indicator */}
-            <Badge variant="outline" className="flex items-center gap-2">
-              <Users className="h-3 w-3" />
-              {voteCount} {voteCount === 1 ? 'vote' : 'votes'}
-            </Badge>
+            {/* Vote count indicator and reveal button */}
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="flex items-center gap-2">
+                <Users className="h-3 w-3" />
+                {voteCount} {voteCount === 1 ? 'vote' : 'votes'}
+              </Badge>
+              {isFacilitator && canVote && voteCount > 0 && (
+                <Button
+                  size="sm"
+                  onClick={handleReveal}
+                  disabled={revealVotes.isPending}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Reveal Votes
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
 
