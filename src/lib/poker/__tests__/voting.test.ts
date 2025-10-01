@@ -113,7 +113,7 @@ describe('Voting Utilities', () => {
       });
 
       it('should reject invalid values', () => {
-        expect(isValidVoteValue('3', sequence)).toBe(true);
+        expect(isValidVoteValue('3', sequence)).toBe(false);
         expect(isValidVoteValue('128', sequence)).toBe(false);
       });
     });
