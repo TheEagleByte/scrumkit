@@ -166,9 +166,9 @@ describe('timer-utils', () => {
         currentTime: 0,
       };
 
-      // @ts-ignore
+      // @ts-expect-error - Mocking AudioContext for tests
       global.AudioContext = vi.fn(() => audioContextMock);
-      // @ts-ignore
+      // @ts-expect-error - Mocking window for tests
       global.window = { AudioContext: global.AudioContext };
     });
 
@@ -183,7 +183,7 @@ describe('timer-utils', () => {
 
     it('should not play sound if window is undefined', () => {
       const originalWindow = global.window;
-      // @ts-ignore
+      // @ts-expect-error - Testing undefined window scenario
       global.window = undefined;
 
       playNotificationSound('warning', true);
