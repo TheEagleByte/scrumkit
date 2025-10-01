@@ -10,6 +10,7 @@ import type { PokerVote, PokerParticipant, EstimationSequence } from "@/lib/poke
 import { cn } from "@/lib/utils";
 import { useResetVotes } from "@/hooks/use-poker-reveal";
 import { useUpdatePokerStory } from "@/hooks/use-poker-stories";
+import { calculateConsensusPercentage } from "@/lib/poker/statistics";
 
 interface VoteResultsProps {
   storyId: string;
@@ -26,6 +27,7 @@ interface VoteAnalysis {
   numericVotes: number[];
   average?: number;
   median?: number;
+  consensusPercentage: number;
   consensusThreshold: number;
   outlierThreshold: number;
 }
@@ -84,16 +86,20 @@ export function VoteResults({
         : sorted[mid];
     }
 
+    // Calculate consensus percentage (% of votes within 1 step of mode)
+    const consensusPercentage = calculateConsensusPercentage(votes, sequence.values);
+
     return {
       distribution,
       mode,
       numericVotes,
       average,
       median,
+      consensusPercentage,
       consensusThreshold: 0.6, // 60% of votes within range
       outlierThreshold: 2, // Values >2 steps away from mode
     };
-  }, [votes]);
+  }, [votes, sequence.values]);
 
   // Pre-compute value-to-index map for performance
   const valueIndexMap = useMemo(() => {
@@ -192,7 +198,7 @@ export function VoteResults({
         <CardContent>
           {/* Statistics Summary */}
           {analysis.numericVotes.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
               <div className="text-center p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
                 <p className="text-xs text-slate-600 dark:text-slate-400">Most Common</p>
                 <p className="text-lg font-bold text-slate-900 dark:text-slate-100">
@@ -219,6 +225,22 @@ export function VoteResults({
                 <p className="text-xs text-slate-600 dark:text-slate-400">Range</p>
                 <p className="text-lg font-bold text-slate-900 dark:text-slate-100">
                   {Math.min(...analysis.numericVotes)} - {Math.max(...analysis.numericVotes)}
+                </p>
+              </div>
+              <div className={cn(
+                "text-center p-3 rounded-lg",
+                analysis.consensusPercentage >= 70
+                  ? "bg-green-50 dark:bg-green-900/20"
+                  : "bg-slate-50 dark:bg-slate-800"
+              )}>
+                <p className="text-xs text-slate-600 dark:text-slate-400">Consensus</p>
+                <p className={cn(
+                  "text-lg font-bold",
+                  analysis.consensusPercentage >= 70
+                    ? "text-green-700 dark:text-green-400"
+                    : "text-slate-900 dark:text-slate-100"
+                )}>
+                  {analysis.consensusPercentage.toFixed(0)}%
                 </p>
               </div>
             </div>
