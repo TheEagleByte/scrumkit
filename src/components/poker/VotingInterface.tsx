@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { VotingCard } from "./VotingCard";
+import { ParticipantStatus } from "./ParticipantStatus";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Users, AlertCircle } from "lucide-react";
@@ -15,6 +16,7 @@ import { pokerVoteKeys } from "@/hooks/use-poker-votes";
 interface VotingInterfaceProps {
   story: PokerStory;
   sequence: EstimationSequence;
+  sessionId: string;
   isObserver?: boolean;
 }
 
@@ -51,6 +53,7 @@ const getKeyboardShortcut = (value: string | number): string | undefined => {
 export function VotingInterface({
   story,
   sequence,
+  sessionId,
   isObserver = false,
 }: VotingInterfaceProps) {
   const [selectedValue, setSelectedValue] = useState<string | null>(null);
@@ -191,45 +194,50 @@ export function VotingInterface({
   const voteCount = allVotes?.length || 0;
 
   return (
-    <Card className="border-indigo-200 dark:border-indigo-800">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              {hasVoted ? (
-                <>
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                  Your Vote
-                </>
-              ) : (
-                <>
-                  <Users className="h-5 w-5 text-indigo-600" />
-                  Select Your Estimate
-                </>
-              )}
-            </CardTitle>
-            <CardDescription>
-              {canVote ? (
-                hasVoted ? (
-                  "You can change your vote at any time before reveal"
-                ) : (
-                  "Click a card or use keyboard shortcuts to vote"
-                )
-              ) : isObserver ? (
-                "You are an observer and cannot vote"
-              ) : (
-                "Voting is not open for this story"
-              )}
-            </CardDescription>
-          </div>
+    <div className="space-y-6">
+      {/* Participant Status Section */}
+      <ParticipantStatus story={story} sessionId={sessionId} />
 
-          {/* Vote count indicator */}
-          <Badge variant="outline" className="flex items-center gap-2">
-            <Users className="h-3 w-3" />
-            {voteCount} {voteCount === 1 ? 'vote' : 'votes'}
-          </Badge>
-        </div>
-      </CardHeader>
+      {/* Voting Cards Section */}
+      <Card className="border-indigo-200 dark:border-indigo-800">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                {hasVoted ? (
+                  <>
+                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    Your Vote
+                  </>
+                ) : (
+                  <>
+                    <Users className="h-5 w-5 text-indigo-600" />
+                    Select Your Estimate
+                  </>
+                )}
+              </CardTitle>
+              <CardDescription>
+                {canVote ? (
+                  hasVoted ? (
+                    "You can change your vote at any time before reveal"
+                  ) : (
+                    "Click a card or use keyboard shortcuts to vote"
+                  )
+                ) : isObserver ? (
+                  "You are an observer and cannot vote"
+                ) : (
+                  "Voting is not open for this story"
+                )}
+              </CardDescription>
+            </div>
+
+            {/* Vote count indicator */}
+            <Badge variant="outline" className="flex items-center gap-2">
+              <Users className="h-3 w-3" />
+              {voteCount} {voteCount === 1 ? 'vote' : 'votes'}
+            </Badge>
+          </div>
+        </CardHeader>
 
       <CardContent>
         {!canVote && !isObserver && (
@@ -293,6 +301,7 @@ export function VotingInterface({
           </p>
         </div>
       </CardContent>
-    </Card>
+      </Card>
+    </div>
   );
 }

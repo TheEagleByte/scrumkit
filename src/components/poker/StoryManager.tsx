@@ -198,6 +198,7 @@ export function StoryManager({ session }: StoryManagerProps) {
           <VotingInterface
             story={currentStory}
             sequence={sequence}
+            sessionId={session.id}
           />
         </>
       )}
