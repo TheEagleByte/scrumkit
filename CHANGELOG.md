@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Planning Poker Custom Estimation Sequences** (Issue #22 - EPIC-003 Story 6)
+  - Custom sequence creator in session setup form
+  - Support for numbers, text, and emoji values in custom sequences
+  - Validation for 3-20 values in custom sequences
+  - Emoji suggestions for fun sequences (speed, size, effort categories)
+  - Examples: 🚀, 🏃, 🚶, 🐌, ☕, 🔥, ❄️, etc.
+  - Parse and validate custom sequence values automatically
+  - Custom sequences stored in database and used during voting
 - **Planning Poker Story/Ticket Management** (Issue #18 - EPIC-003 Story 2)
   - Add, edit, and delete stories for estimation
   - Story form with fields: title, description, acceptance criteria, external link
