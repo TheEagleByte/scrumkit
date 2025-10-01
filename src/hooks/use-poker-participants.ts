@@ -136,7 +136,7 @@ export function useJoinPokerSession() {
         err instanceof Error ? err.message : "Failed to join session";
       toast.error(errorMessage);
     },
-    onSuccess: (data, variables) => {
+    onSuccess: () => {
       toast.success("Joined session successfully!");
     },
     onSettled: (data, error, variables) => {
@@ -152,12 +152,4 @@ export function useJoinPokerSession() {
 export function useParticipantCount(sessionId: string): number {
   const { data: participants } = useSessionParticipants(sessionId);
   return participants?.length || 0;
-}
-
-// Hook to check if current user is a facilitator
-export function useIsFacilitator(sessionId: string): boolean {
-  const { data: participants } = useSessionParticipants(sessionId);
-  // This would need to be enhanced with actual user identification
-  // For now, returns false as a placeholder
-  return false;
 }

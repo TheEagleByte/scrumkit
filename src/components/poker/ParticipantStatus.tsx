@@ -10,23 +10,17 @@ import { useStoryVotes } from "@/hooks/use-poker-votes";
 import type { PokerStory } from "@/lib/poker/types";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
-import type { RealtimeChannel } from "@supabase/supabase-js";
+import type { RealtimeChannel, RealtimePresenceState } from "@supabase/supabase-js";
 
 interface ParticipantStatusProps {
   story: PokerStory;
   sessionId: string;
 }
 
-interface ParticipantPresence {
-  [key: string]: {
-    online_at: string;
-  };
-}
-
 export function ParticipantStatus({ story, sessionId }: ParticipantStatusProps) {
   const { data: participants = [], isLoading: loadingParticipants } = useSessionParticipants(sessionId);
   const { data: votes = [], isLoading: loadingVotes } = useStoryVotes(story.id);
-  const [presenceState, setPresenceState] = useState<ParticipantPresence>({});
+  const [presenceState, setPresenceState] = useState<RealtimePresenceState<Record<string, unknown>>>({});
 
   // Supabase Presence for tracking online participants
   useEffect(() => {
@@ -46,7 +40,7 @@ export function ParticipantStatus({ story, sessionId }: ParticipantStatusProps) 
       channel
         .on("presence", { event: "sync" }, () => {
           const state = channel.presenceState();
-          setPresenceState(state as ParticipantPresence);
+          setPresenceState(state);
         })
         .on("presence", { event: "join" }, ({ key, newPresences }) => {
           console.log("Participant joined:", key, newPresences);
@@ -94,7 +88,7 @@ export function ParticipantStatus({ story, sessionId }: ParticipantStatusProps) 
   };
 
   // Check if participant is online via presence
-  const isOnline = (participantId: string): boolean => {
+  const isOnline = (): boolean => {
     return Object.keys(presenceState).length > 0;
   };
 
@@ -179,7 +173,7 @@ export function ParticipantStatus({ story, sessionId }: ParticipantStatusProps) 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {votingParticipants.map(participant => {
                 const hasVoted = votedParticipantIds.has(participant.id);
-                const online = isOnline(participant.id);
+                const online = isOnline();
 
                 return (
                   <div
@@ -242,7 +236,7 @@ export function ParticipantStatus({ story, sessionId }: ParticipantStatusProps) 
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {observerParticipants.map(participant => {
-                const online = isOnline(participant.id);
+                const online = isOnline();
 
                 return (
                   <div
