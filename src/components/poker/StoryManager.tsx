@@ -181,7 +181,7 @@ export function StoryManager({ session }: StoryManagerProps) {
       {localStories.length > 0 && (
         <StoryNavigation
           stories={localStories}
-          currentStoryId={session.current_story_id}
+          currentStoryId={session.current_story_id ?? null}
           sessionId={session.id}
         />
       )}
