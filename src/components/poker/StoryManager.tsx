@@ -29,6 +29,8 @@ import { StoryCard } from "./StoryCard";
 import { StoryForm } from "./StoryForm";
 import { BulkImportDialog } from "./BulkImportDialog";
 import { StoryNavigation } from "./StoryNavigation";
+import { VotingInterface } from "./VotingInterface";
+import { getSequenceByType } from "@/lib/poker/utils";
 
 interface StoryManagerProps {
   session: PokerSession;
@@ -136,56 +138,68 @@ export function StoryManager({ session }: StoryManagerProps) {
   };
 
   const currentStory = localStories.find((s) => s.id === currentStoryId);
+  const sequence = getSequenceByType(
+    session.estimation_sequence,
+    session.custom_sequence ?? undefined
+  );
 
   return (
     <div className="space-y-6">
       {/* Current Story Section */}
       {currentStory && (
-        <Card className="border-indigo-200 dark:border-indigo-800 bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-950/20 dark:to-background">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <ListOrdered className="h-5 w-5 text-indigo-600" />
-                Current Story
-              </CardTitle>
-            </div>
-            <CardDescription>
-              The story currently being estimated by the team
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-2xl font-bold mb-2">{currentStory.title}</h3>
-                {currentStory.description && (
-                  <p className="text-muted-foreground">{currentStory.description}</p>
+        <>
+          <Card className="border-indigo-200 dark:border-indigo-800 bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-950/20 dark:to-background">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <ListOrdered className="h-5 w-5 text-indigo-600" />
+                  Current Story
+                </CardTitle>
+              </div>
+              <CardDescription>
+                The story currently being estimated by the team
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-2xl font-bold mb-2">{currentStory.title}</h3>
+                  {currentStory.description && (
+                    <p className="text-muted-foreground">{currentStory.description}</p>
+                  )}
+                </div>
+
+                {currentStory.acceptance_criteria && (
+                  <div>
+                    <h4 className="font-semibold mb-2">Acceptance Criteria:</h4>
+                    <p className="text-sm whitespace-pre-wrap text-muted-foreground">
+                      {currentStory.acceptance_criteria}
+                    </p>
+                  </div>
+                )}
+
+                {currentStory.external_link && (
+                  <div>
+                    <a
+                      href={currentStory.external_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-indigo-600 dark:text-indigo-400 hover:underline"
+                    >
+                      View in external tracker →
+                    </a>
+                  </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
 
-              {currentStory.acceptance_criteria && (
-                <div>
-                  <h4 className="font-semibold mb-2">Acceptance Criteria:</h4>
-                  <p className="text-sm whitespace-pre-wrap text-muted-foreground">
-                    {currentStory.acceptance_criteria}
-                  </p>
-                </div>
-              )}
-
-              {currentStory.external_link && (
-                <div>
-                  <a
-                    href={currentStory.external_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-indigo-600 dark:text-indigo-400 hover:underline"
-                  >
-                    View in external tracker →
-                  </a>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+          {/* Voting Interface */}
+          <VotingInterface
+            story={currentStory}
+            sequence={sequence}
+          />
+        </>
       )}
 
       {/* Story Navigation */}

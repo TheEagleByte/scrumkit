@@ -13,6 +13,7 @@ import type {
   CreatePokerStoryInput,
   UpdatePokerStoryInput,
   PokerStory,
+  PokerVote,
 } from "./types";
 
 // Create a new poker session
@@ -766,4 +767,181 @@ export async function bulkImportStories(
   revalidatePath("/poker");
 
   return insertedStories as PokerStory[];
+}
+
+// ===========================
+// Vote Management Actions
+// ===========================
+
+// Submit or update a vote
+export async function submitPokerVote(
+  storyId: string,
+  voteValue: string
+): Promise<PokerVote> {
+  const supabase = await createClient();
+  const cookieStore = await cookies();
+
+  // Get participant cookie
+  const participantCookie = cookieStore.get("scrumkit_poker_participant")?.value;
+  if (!participantCookie) {
+    throw new Error("You must join the session before voting");
+  }
+
+  // Get the story and session info
+  const { data: story, error: storyError } = await supabase
+    .from("poker_stories")
+    .select("id, session_id, status, poker_sessions!inner(id, unique_url, allow_revote, status)")
+    .eq("id", storyId)
+    .single();
+
+  if (storyError || !story) {
+    throw new Error("Story not found");
+  }
+
+  const session = story.poker_sessions as unknown as {
+    id: string;
+    unique_url: string;
+    allow_revote: boolean;
+    status: string;
+  };
+
+  // Check if session is active
+  if (session.status !== "active") {
+    throw new Error("Cannot vote on inactive session");
+  }
+
+  // Check if story is in voting state
+  if (story.status !== "voting") {
+    throw new Error("Voting is not open for this story");
+  }
+
+  // Get participant
+  const { data: participant, error: participantError } = await supabase
+    .from("poker_participants")
+    .select("id, is_observer")
+    .eq("session_id", session.id)
+    .eq("participant_cookie", participantCookie)
+    .single();
+
+  if (participantError || !participant) {
+    throw new Error("You must join the session before voting");
+  }
+
+  // Check if participant is an observer
+  if (participant.is_observer) {
+    throw new Error("Observers cannot vote");
+  }
+
+  // Check if vote already exists
+  const { data: existingVote } = await supabase
+    .from("poker_votes")
+    .select("id, is_revealed")
+    .eq("story_id", storyId)
+    .eq("participant_id", participant.id)
+    .single();
+
+  if (existingVote) {
+    // Check if vote is already revealed
+    if (existingVote.is_revealed) {
+      throw new Error("Cannot change vote after it has been revealed");
+    }
+
+    // Check if revoting is allowed
+    if (!session.allow_revote) {
+      throw new Error("Revoting is not allowed for this session");
+    }
+
+    // Update existing vote
+    const { data: updatedVote, error: updateError } = await supabase
+      .from("poker_votes")
+      .update({
+        vote_value: voteValue,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existingVote.id)
+      .select()
+      .single();
+
+    if (updateError || !updatedVote) {
+      console.error("Error updating vote:", updateError);
+      throw new Error("Failed to update vote");
+    }
+
+    revalidatePath(`/poker/${session.unique_url}`);
+    return updatedVote as PokerVote;
+  }
+
+  // Create new vote
+  const { data: newVote, error: voteError } = await supabase
+    .from("poker_votes")
+    .insert({
+      story_id: storyId,
+      participant_id: participant.id,
+      session_id: session.id,
+      vote_value: voteValue,
+      is_revealed: false,
+    })
+    .select()
+    .single();
+
+  if (voteError || !newVote) {
+    console.error("Error creating vote:", voteError);
+    throw new Error("Failed to submit vote");
+  }
+
+  revalidatePath(`/poker/${session.unique_url}`);
+  return newVote as PokerVote;
+}
+
+// Get all votes for a story
+export async function getStoryVotes(storyId: string): Promise<(PokerVote & { participant: PokerParticipant })[]> {
+  const supabase = await createClient();
+
+  const { data: votes, error } = await supabase
+    .from("poker_votes")
+    .select(`
+      *,
+      participant:poker_participants(*)
+    `)
+    .eq("story_id", storyId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching story votes:", error);
+    return [];
+  }
+
+  return (votes as unknown as (PokerVote & { participant: PokerParticipant })[]) || [];
+}
+
+// Get current participant's vote for a story
+export async function getParticipantVote(storyId: string): Promise<PokerVote | null> {
+  const supabase = await createClient();
+  const cookieStore = await cookies();
+
+  const participantCookie = cookieStore.get("scrumkit_poker_participant")?.value;
+  if (!participantCookie) {
+    return null;
+  }
+
+  // Get participant ID
+  const { data: participant } = await supabase
+    .from("poker_participants")
+    .select("id, session_id")
+    .eq("participant_cookie", participantCookie)
+    .single();
+
+  if (!participant) {
+    return null;
+  }
+
+  // Get vote
+  const { data: vote } = await supabase
+    .from("poker_votes")
+    .select("*")
+    .eq("story_id", storyId)
+    .eq("participant_id", participant.id)
+    .single();
+
+  return vote as PokerVote | null;
 }
