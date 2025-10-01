@@ -26,6 +26,7 @@ import {
   TrendingDown,
   Meh,
   Star,
+  Settings2,
 } from "lucide-react";
 import { DraggableRetroItem } from "@/components/retro/DraggableRetroItem";
 import type { RetroItemData } from "@/components/retro/RetroItem";
@@ -72,6 +73,15 @@ import { isAnonymousItemOwner } from "@/lib/boards/anonymous-items";
 import { sanitizeItemContent, isValidItemText } from "@/lib/utils/sanitize";
 import { ExportDialog } from "@/components/retro/ExportDialog";
 import { Download } from "lucide-react";
+import { FacilitatorPanel } from "@/components/retro/FacilitatorPanel";
+import { Timer } from "@/components/retro/Timer";
+import { PhaseManager } from "@/components/retro/PhaseManager";
+import { FocusMode } from "@/components/retro/FocusMode";
+import {
+  useFacilitatorSettings,
+  useUpdateFacilitatorSettings,
+  useFacilitatorRealtime,
+} from "@/hooks/use-facilitator";
 
 interface RetrospectiveBoardProps {
   retrospectiveId: string;
@@ -141,6 +151,7 @@ export function RetrospectiveBoard({
   const [activeItem, setActiveItem] = useState<RetroItemData | null>(null);
   const [sortByVotes, setSortByVotes] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [facilitatorPanelOpen, setFacilitatorPanelOpen] = useState(false);
 
   // Use TanStack Query hooks
   const { data: retrospective, isLoading: retroLoading } = useRetrospective(retrospectiveId);
@@ -155,6 +166,11 @@ export function RetrospectiveBoard({
   const toggleVoteMutation = useToggleVote();
   const updateItemMutation = useUpdateItem();
   const moveItemMutation = useMoveItem();
+
+  // Facilitator hooks
+  const { data: facilitatorSettings } = useFacilitatorSettings(retrospectiveId);
+  const updateFacilitatorSettings = useUpdateFacilitatorSettings();
+  useFacilitatorRealtime(retrospectiveId);
 
   // Set up unified real-time subscriptions
   const realtime = useRetrospectiveRealtime(retrospectiveId, currentUser);
@@ -487,7 +503,32 @@ export function RetrospectiveBoard({
           <h1 className="text-3xl font-bold mb-1">{sprintName}</h1>
           <p className="text-muted-foreground">{teamName}</p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Facilitator State Indicators */}
+          {facilitatorSettings?.timer && facilitatorSettings.timer.duration > 0 && (
+            <Timer
+              initialState={facilitatorSettings.timer}
+              compact
+            />
+          )}
+          {facilitatorSettings?.phase && (
+            <PhaseManager
+              currentPhase={facilitatorSettings.phase}
+              compact
+            />
+          )}
+          {facilitatorSettings?.focusedColumnId && (
+            <FocusMode
+              columns={columns.map(col => ({
+                id: col.id,
+                title: col.title,
+                color: col.color || undefined,
+              }))}
+              focusedColumnId={facilitatorSettings.focusedColumnId}
+              compact
+            />
+          )}
+
           {/* Vote Counter */}
           {voteStats && !currentUser.id.startsWith("anon-") && (
             <div className="w-32">
@@ -509,6 +550,17 @@ export function RetrospectiveBoard({
             <ArrowUpDown className="h-4 w-4" />
             Sort by votes
           </Toggle>
+
+          {/* Facilitator Tools Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setFacilitatorPanelOpen(true)}
+            className="gap-1"
+          >
+            <Settings2 className="h-4 w-4" />
+            Facilitator Tools
+          </Button>
 
           {/* Export Button */}
           <Button
@@ -655,8 +707,18 @@ export function RetrospectiveBoard({
           const columnItems = getColumnItems(column.id);
           const itemIds = columnItems.map(item => `${column.id}-item-${item.id}`);
 
+          // Apply focus mode styling
+          const isFocused = facilitatorSettings?.focusedColumnId === column.id;
+          const hasFocus = !!facilitatorSettings?.focusedColumnId;
+          const isDimmed = hasFocus && !isFocused;
+
           return (
-            <Card key={column.id} className={`${column.color || getColumnColor(index)} border relative`}>
+            <Card
+              key={column.id}
+              className={`${column.color || getColumnColor(index)} border relative transition-opacity duration-300 ${
+                isDimmed ? 'opacity-40' : 'opacity-100'
+              } ${isFocused ? 'ring-2 ring-primary shadow-lg' : ''}`}
+            >
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   {getColumnIcon(column.column_type)}
@@ -852,6 +914,26 @@ export function RetrospectiveBoard({
           votes,
         }}
       />
+
+      {/* Facilitator Panel */}
+      {facilitatorSettings && (
+        <FacilitatorPanel
+          open={facilitatorPanelOpen}
+          onOpenChange={setFacilitatorPanelOpen}
+          settings={facilitatorSettings}
+          onSettingsChange={(newSettings) => {
+            updateFacilitatorSettings.mutate({
+              retrospectiveId,
+              settings: newSettings,
+            });
+          }}
+          columns={columns.map(col => ({
+            id: col.id,
+            title: col.title,
+            color: col.color || undefined,
+          }))}
+        />
+      )}
     </div>
     </DndContext>
   );
