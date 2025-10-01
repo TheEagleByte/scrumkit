@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -95,8 +95,17 @@ export function VoteResults({
     };
   }, [votes]);
 
+  // Pre-compute value-to-index map for performance
+  const valueIndexMap = useMemo(() => {
+    const map = new Map<string, number>();
+    sequence.values.forEach((value, index) => {
+      map.set(String(value), index);
+    });
+    return map;
+  }, [sequence.values]);
+
   // Determine if a vote is consensus or outlier
-  const getVoteCategory = (voteValue: string): 'consensus' | 'outlier' | 'normal' => {
+  const getVoteCategory = useCallback((voteValue: string): 'consensus' | 'outlier' | 'normal' => {
     // Check if it's the mode (most common)
     if (analysis.mode.includes(voteValue)) {
       return 'consensus';
@@ -107,11 +116,11 @@ export function VoteResults({
     if (!isNaN(numValue) && analysis.mode.length > 0) {
       const modeNum = parseFloat(analysis.mode[0]);
       if (!isNaN(modeNum)) {
-        // Find position in sequence
-        const valueIndex = sequence.values.findIndex(v => String(v) === voteValue);
-        const modeIndex = sequence.values.findIndex(v => String(v) === analysis.mode[0]);
+        // Use pre-computed map instead of findIndex
+        const valueIndex = valueIndexMap.get(voteValue);
+        const modeIndex = valueIndexMap.get(analysis.mode[0]);
 
-        if (valueIndex !== -1 && modeIndex !== -1) {
+        if (valueIndex !== undefined && modeIndex !== undefined) {
           const distance = Math.abs(valueIndex - modeIndex);
 
           // Consensus: within 1 card value
@@ -128,7 +137,7 @@ export function VoteResults({
     }
 
     return 'normal';
-  };
+  }, [analysis.mode, valueIndexMap]);
 
   // Sort votes by participant name
   const sortedVotes = [...votes].sort((a, b) =>

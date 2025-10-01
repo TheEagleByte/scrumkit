@@ -145,3 +145,11 @@ export interface SubmitPokerVoteInput {
   participantId: string;
   voteValue: string;
 }
+
+// Helper type for session data from story queries
+export interface StorySessionInfo {
+  id: string;
+  unique_url: string;
+  creator_cookie: string;
+  team_id: string | null;
+}

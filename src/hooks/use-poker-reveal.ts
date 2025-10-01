@@ -71,7 +71,7 @@ export function useResetVotes() {
         queryKey: pokerVoteKeys.story(variables),
       });
       queryClient.invalidateQueries({
-        queryKey: pokerVoteKeys.all,
+        queryKey: pokerVoteKeys.participant(variables),
       });
       queryClient.invalidateQueries({
         queryKey: pokerStoryKeys.all,

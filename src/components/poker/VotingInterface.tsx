@@ -17,6 +17,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { pokerVoteKeys } from "@/hooks/use-poker-votes";
 import { pokerStoryKeys } from "@/hooks/use-poker-stories";
+import { getCookie } from "@/lib/utils/cookies";
 
 interface VotingInterfaceProps {
   story: PokerStory;
@@ -82,15 +83,8 @@ export function VotingInterface({
     const checkFacilitator = async () => {
       if (typeof window === "undefined") return;
 
-      const creatorCookie = document.cookie
-        .split("; ")
-        .find(row => row.startsWith("scrumkit_poker_creator="))
-        ?.split("=")[1];
-
-      const participantCookie = document.cookie
-        .split("; ")
-        .find(row => row.startsWith("scrumkit_poker_participant="))
-        ?.split("=")[1];
+      const creatorCookie = getCookie("scrumkit_poker_creator");
+      const participantCookie = getCookie("scrumkit_poker_participant");
 
       // Check if user is facilitator/creator
       const currentParticipant = participants.find(

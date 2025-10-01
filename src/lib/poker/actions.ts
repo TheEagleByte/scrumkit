@@ -14,6 +14,7 @@ import type {
   UpdatePokerStoryInput,
   PokerStory,
   PokerVote,
+  StorySessionInfo,
 } from "./types";
 
 // Create a new poker session
@@ -969,12 +970,7 @@ export async function revealStoryVotes(storyId: string): Promise<void> {
     throw new Error("Story not found");
   }
 
-  const session = story.poker_sessions as unknown as {
-    id: string;
-    unique_url: string;
-    creator_cookie: string;
-    team_id: string | null;
-  };
+  const session = story.poker_sessions as unknown as StorySessionInfo;
 
   // Check permission for anonymous sessions
   if (!session.team_id && session.creator_cookie !== creatorCookie) {
@@ -1030,12 +1026,7 @@ export async function resetStoryVotes(storyId: string): Promise<void> {
     throw new Error("Story not found");
   }
 
-  const session = story.poker_sessions as unknown as {
-    id: string;
-    unique_url: string;
-    creator_cookie: string;
-    team_id: string | null;
-  };
+  const session = story.poker_sessions as unknown as StorySessionInfo;
 
   // Check permission for anonymous sessions
   if (!session.team_id && session.creator_cookie !== creatorCookie) {
