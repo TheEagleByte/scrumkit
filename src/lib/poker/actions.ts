@@ -1,0 +1,365 @@
+"use server";
+
+import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
+import { generateSessionUrl, DEFAULT_SESSION_SETTINGS } from "./utils";
+import type {
+  CreatePokerSessionInput,
+  UpdatePokerSessionInput,
+  PokerSession,
+  CreatePokerParticipantInput,
+  PokerParticipant,
+} from "./types";
+
+// Create a new poker session
+export async function createPokerSession(input: CreatePokerSessionInput) {
+  const supabase = await createClient();
+  const cookieStore = await cookies();
+
+  // Get or create creator cookie
+  let creatorCookie = cookieStore.get("scrumkit_poker_creator")?.value;
+  if (!creatorCookie) {
+    creatorCookie = `poker_creator_${generateSessionUrl()}_${Date.now()}`;
+    cookieStore.set("scrumkit_poker_creator", creatorCookie, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 60 * 60 * 24 * 365, // 1 year
+      path: "/",
+    });
+  }
+
+  // Merge settings with defaults
+  const settings = {
+    ...DEFAULT_SESSION_SETTINGS,
+    ...input.settings,
+  };
+
+  // Create the poker session
+  const { data: session, error: sessionError } = await supabase
+    .from("poker_sessions")
+    .insert({
+      title: input.title,
+      description: input.description,
+      team_id: input.teamId || null,
+      creator_cookie: creatorCookie,
+      is_anonymous: !input.teamId, // Anonymous if no team
+      estimation_sequence: settings.estimationSequence,
+      custom_sequence: settings.customSequence
+        ? JSON.parse(JSON.stringify(settings.customSequence))
+        : null,
+      auto_reveal: settings.autoReveal,
+      allow_revote: settings.allowRevote,
+      show_voter_names: settings.showVoterNames,
+      status: "active",
+    })
+    .select()
+    .single();
+
+  if (sessionError || !session) {
+    console.error("Error creating poker session:", sessionError);
+    throw new Error("Failed to create poker session");
+  }
+
+  // Add session to user's cookie list
+  if (!input.teamId) {
+    const sessionsList = cookieStore.get("scrumkit_poker_sessions")?.value;
+    const sessions = sessionsList ? JSON.parse(sessionsList) : [];
+    sessions.unshift(session.unique_url);
+    // Keep only last 20 sessions
+    const recentSessions = sessions.slice(0, 20);
+
+    cookieStore.set("scrumkit_poker_sessions", JSON.stringify(recentSessions), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+      path: "/",
+    });
+  }
+
+  revalidatePath("/poker");
+
+  return {
+    id: session.id,
+    unique_url: session.unique_url,
+    title: session.title,
+  };
+}
+
+// Get a poker session by URL
+export async function getPokerSession(uniqueUrl: string): Promise<PokerSession | null> {
+  const supabase = await createClient();
+
+  const { data: session, error } = await supabase
+    .from("poker_sessions")
+    .select("*")
+    .eq("unique_url", uniqueUrl)
+    .eq("is_deleted", false)
+    .single();
+
+  if (error || !session) {
+    console.error("Error fetching poker session:", error);
+    return null;
+  }
+
+  return session as PokerSession;
+}
+
+// Get user's poker sessions
+export async function getUserPokerSessions(): Promise<PokerSession[]> {
+  const supabase = await createClient();
+  const cookieStore = await cookies();
+
+  // Get user's sessions from cookies
+  const sessionsList = cookieStore.get("scrumkit_poker_sessions")?.value;
+  const sessionUrls = sessionsList ? JSON.parse(sessionsList) : [];
+
+  if (sessionUrls.length === 0) {
+    return [];
+  }
+
+  // Fetch sessions data
+  const { data: sessions, error } = await supabase
+    .from("poker_sessions")
+    .select("*")
+    .in("unique_url", sessionUrls)
+    .eq("is_deleted", false)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching user poker sessions:", error);
+    return [];
+  }
+
+  return (sessions as PokerSession[]) || [];
+}
+
+// Update a poker session
+export async function updatePokerSession(
+  uniqueUrl: string,
+  updates: UpdatePokerSessionInput
+) {
+  const supabase = await createClient();
+  const cookieStore = await cookies();
+
+  // Check if user has permission (via creator_cookie)
+  const creatorCookie = cookieStore.get("scrumkit_poker_creator")?.value;
+
+  const { data: session, error: fetchError } = await supabase
+    .from("poker_sessions")
+    .select("creator_cookie, team_id")
+    .eq("unique_url", uniqueUrl)
+    .single();
+
+  if (fetchError || !session) {
+    throw new Error("Poker session not found");
+  }
+
+  // Check permission
+  if (session.team_id) {
+    // For team sessions, would need auth check
+    throw new Error("Cannot update team poker sessions anonymously");
+  } else if (session.creator_cookie !== creatorCookie) {
+    throw new Error("You don't have permission to update this poker session");
+  }
+
+  // Build update object
+  const updateData: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (updates.title !== undefined) updateData.title = updates.title;
+  if (updates.description !== undefined) updateData.description = updates.description;
+  if (updates.status !== undefined) {
+    updateData.status = updates.status;
+    if (updates.status === 'ended') {
+      updateData.ended_at = new Date().toISOString();
+    }
+  }
+  if (updates.currentStoryId !== undefined) updateData.current_story_id = updates.currentStoryId;
+
+  // Handle settings updates
+  if (updates.settings) {
+    if (updates.settings.estimationSequence !== undefined) {
+      updateData.estimation_sequence = updates.settings.estimationSequence;
+    }
+    if (updates.settings.customSequence !== undefined) {
+      updateData.custom_sequence = JSON.parse(JSON.stringify(updates.settings.customSequence));
+    }
+    if (updates.settings.autoReveal !== undefined) {
+      updateData.auto_reveal = updates.settings.autoReveal;
+    }
+    if (updates.settings.allowRevote !== undefined) {
+      updateData.allow_revote = updates.settings.allowRevote;
+    }
+    if (updates.settings.showVoterNames !== undefined) {
+      updateData.show_voter_names = updates.settings.showVoterNames;
+    }
+  }
+
+  const { error: updateError } = await supabase
+    .from("poker_sessions")
+    .update(updateData)
+    .eq("unique_url", uniqueUrl);
+
+  if (updateError) {
+    console.error("Error updating poker session:", updateError);
+    throw new Error("Failed to update poker session");
+  }
+
+  revalidatePath(`/poker/${uniqueUrl}`);
+  revalidatePath("/poker");
+}
+
+// End a poker session
+export async function endPokerSession(uniqueUrl: string) {
+  return updatePokerSession(uniqueUrl, { status: "ended" });
+}
+
+// Archive a poker session
+export async function archivePokerSession(uniqueUrl: string) {
+  return updatePokerSession(uniqueUrl, { status: "archived" });
+}
+
+// Delete a poker session (soft delete)
+export async function deletePokerSession(uniqueUrl: string) {
+  const supabase = await createClient();
+  const cookieStore = await cookies();
+
+  // Check if user has permission (via creator_cookie)
+  const creatorCookie = cookieStore.get("scrumkit_poker_creator")?.value;
+
+  const { data: session, error: fetchError } = await supabase
+    .from("poker_sessions")
+    .select("creator_cookie, team_id")
+    .eq("unique_url", uniqueUrl)
+    .single();
+
+  if (fetchError || !session) {
+    throw new Error("Poker session not found");
+  }
+
+  // Check permission
+  if (session.team_id) {
+    throw new Error("Cannot delete team poker sessions anonymously");
+  } else if (session.creator_cookie !== creatorCookie) {
+    throw new Error("You don't have permission to delete this poker session");
+  }
+
+  // Soft delete the session
+  const { error: deleteError } = await supabase
+    .from("poker_sessions")
+    .update({
+      is_deleted: true,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("unique_url", uniqueUrl);
+
+  if (deleteError) {
+    console.error("Error deleting poker session:", deleteError);
+    throw new Error("Failed to delete poker session");
+  }
+
+  // Remove from user's cookie list
+  const sessionsList = cookieStore.get("scrumkit_poker_sessions")?.value;
+  const sessions = sessionsList ? JSON.parse(sessionsList) : [];
+  const filtered = sessions.filter((url: string) => url !== uniqueUrl);
+
+  cookieStore.set("scrumkit_poker_sessions", JSON.stringify(filtered), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 60 * 60 * 24 * 30, // 30 days
+    path: "/",
+  });
+
+  revalidatePath("/poker");
+}
+
+// Join a poker session as a participant
+export async function joinPokerSession(
+  sessionId: string,
+  input: CreatePokerParticipantInput
+): Promise<PokerParticipant> {
+  const supabase = await createClient();
+  const cookieStore = await cookies();
+
+  // Get or create participant cookie
+  let participantCookie = cookieStore.get("scrumkit_poker_participant")?.value;
+  if (!participantCookie) {
+    participantCookie = `poker_participant_${generateSessionUrl()}_${Date.now()}`;
+    cookieStore.set("scrumkit_poker_participant", participantCookie, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 60 * 60 * 24 * 365, // 1 year
+      path: "/",
+    });
+  }
+
+  // Check if participant already exists
+  const { data: existing } = await supabase
+    .from("poker_participants")
+    .select("*")
+    .eq("session_id", sessionId)
+    .eq("participant_cookie", participantCookie)
+    .single();
+
+  if (existing) {
+    // Update last_seen_at
+    const { data: updated, error: updateError } = await supabase
+      .from("poker_participants")
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq("id", existing.id)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error("Error updating participant:", updateError);
+      throw new Error("Failed to rejoin session");
+    }
+
+    return updated as PokerParticipant;
+  }
+
+  // Create new participant
+  const { data: participant, error: participantError } = await supabase
+    .from("poker_participants")
+    .insert({
+      session_id: sessionId,
+      name: input.name,
+      avatar_url: input.avatar_url,
+      is_facilitator: input.is_facilitator || false,
+      is_observer: input.is_observer || false,
+      participant_cookie: participantCookie,
+    })
+    .select()
+    .single();
+
+  if (participantError || !participant) {
+    console.error("Error creating participant:", participantError);
+    throw new Error("Failed to join poker session");
+  }
+
+  return participant as PokerParticipant;
+}
+
+// Get participants for a session
+export async function getSessionParticipants(sessionId: string): Promise<PokerParticipant[]> {
+  const supabase = await createClient();
+
+  const { data: participants, error } = await supabase
+    .from("poker_participants")
+    .select("*")
+    .eq("session_id", sessionId)
+    .order("joined_at", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching participants:", error);
+    return [];
+  }
+
+  return (participants as PokerParticipant[]) || [];
+}

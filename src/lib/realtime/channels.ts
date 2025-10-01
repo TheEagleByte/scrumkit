@@ -7,6 +7,8 @@ export const CHANNEL_NAMES = {
   RETROSPECTIVE: (id: string) => `retrospective:${id}`,
   RETROSPECTIVE_PRESENCE: (id: string) => `retrospective:${id}_presence`,
   RETROSPECTIVE_CURSORS: (id: string) => `retrospective:${id}_cursors`,
+  POKER_SESSION: (id: string) => `poker_session:${id}`,
+  POKER_PRESENCE: (id: string) => `poker_session:${id}_presence`,
   TEAM_PRESENCE: (teamId: string) => `team:${teamId}_presence`,
   SYSTEM_STATUS: "system:status",
 } as const;
@@ -17,6 +19,10 @@ export const BROADCAST_EVENTS = {
   ITEM_FOCUS: "item_focus",
   VOTE_ANIMATION: "vote_animation",
   NOTIFICATION: "notification",
+  POKER_VOTE_REVEAL: "poker_vote_reveal",
+  POKER_STORY_CHANGE: "poker_story_change",
+  POKER_TIMER_START: "poker_timer_start",
+  POKER_TIMER_STOP: "poker_timer_stop",
 } as const;
 
 export const PRESENCE_EVENTS = {
@@ -169,4 +175,83 @@ export async function cleanupChannel(
   } catch (error) {
     logger.error("Error cleaning up channel", error as Error);
   }
+}
+
+// Planning Poker Channel Functions
+export function createPokerSessionChannel(
+  supabase: SupabaseClient<Database>,
+  sessionId: string
+) {
+  const channelName = CHANNEL_NAMES.POKER_SESSION(sessionId);
+  const channel = supabase.channel(channelName);
+  logger.info(`Creating poker session channel: ${channelName}`);
+  return channel;
+}
+
+export function setupPokerSessionSubscriptions(
+  channel: ReturnType<SupabaseClient<Database>["channel"]>,
+  sessionId: string,
+  handlers: {
+    onSessionChange?: (payload: RealtimePayload) => void;
+    onStoryChange?: (payload: RealtimePayload) => void;
+    onParticipantChange?: (payload: RealtimePayload) => void;
+    onVoteChange?: (payload: RealtimePayload) => void;
+  }
+) {
+  if (handlers.onSessionChange) {
+    channel.on(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      "postgres_changes" as any,
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "poker_sessions",
+        filter: `id=eq.${sessionId}`,
+      },
+      handlers.onSessionChange
+    );
+  }
+
+  if (handlers.onStoryChange) {
+    channel.on(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      "postgres_changes" as any,
+      {
+        event: "*",
+        schema: "public",
+        table: "poker_stories",
+        filter: `session_id=eq.${sessionId}`,
+      },
+      handlers.onStoryChange
+    );
+  }
+
+  if (handlers.onParticipantChange) {
+    channel.on(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      "postgres_changes" as any,
+      {
+        event: "*",
+        schema: "public",
+        table: "poker_participants",
+        filter: `session_id=eq.${sessionId}`,
+      },
+      handlers.onParticipantChange
+    );
+  }
+
+  if (handlers.onVoteChange) {
+    channel.on(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      "postgres_changes" as any,
+      {
+        event: "*",
+        schema: "public",
+        table: "poker_votes",
+      },
+      handlers.onVoteChange
+    );
+  }
+
+  return channel;
 }
