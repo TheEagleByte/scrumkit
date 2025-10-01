@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Planning Poker Story/Ticket Management** (Issue #18 - EPIC-003 Story 2)
+  - Add, edit, and delete stories for estimation
+  - Story form with fields: title, description, acceptance criteria, external link
+  - Drag-and-drop story reordering with visual feedback
+  - Set current story being estimated with clear visual indication
+  - Story navigation controls (previous/next/jump to story)
+  - Story status tracking (pending, voting, revealed, estimated, skipped)
+  - Bulk CSV import for stories with validation and preview
+  - CSV template download for easy import
+  - Story queue display with action menus
+  - Delete stories with 5-second undo capability
+  - Real-time story updates across all participants
+  - Support for anonymous sessions via cookie-based permissions
 - **Planning Poker Session Management** (Issue #17 - EPIC-003 Story 1)
   - Create poker sessions with unique shareable URLs
   - Estimation sequence selection (Fibonacci, T-shirt sizes, Linear, Powers of 2)
