@@ -240,11 +240,11 @@ export function BoardCustomizationDialog({
     }
 
     const newColumn: BoardColumn = {
-      id: `temp-${Date.now()}`,
+      id: `temp-${crypto.randomUUID()}`,
       title: "New Column",
       description: "",
       color: AVAILABLE_COLORS[columns.length % AVAILABLE_COLORS.length].value,
-      column_type: `custom-${Date.now()}`,
+      column_type: `custom-${crypto.randomUUID()}`,
       display_order: columns.length,
     };
     setColumns([...columns, newColumn]);
@@ -268,7 +268,7 @@ export function BoardCustomizationDialog({
     );
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Validate
     if (!settings.title.trim()) {
       toast.error("Board title is required");
@@ -285,8 +285,13 @@ export function BoardCustomizationDialog({
       return;
     }
 
-    onSave(settings, columns);
-    onOpenChange(false);
+    try {
+      await onSave(settings, columns);
+      onOpenChange(false);
+    } catch (error) {
+      console.error(error);
+      // Keep dialog open for retry
+    }
   };
 
   const handleCancel = () => {

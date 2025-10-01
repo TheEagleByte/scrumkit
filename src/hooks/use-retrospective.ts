@@ -1116,9 +1116,20 @@ export function useBulkUpdateColumns() {
         )
       );
 
-      const errors = updates.filter((u) => u.error);
-      if (errors.length > 0) {
-        throw new Error("Failed to update some columns");
+      const errorUpdates = updates
+        .map((u, idx) => (u.error ? { id: columns[idx].id, error: u.error } : null))
+        .filter(Boolean) as Array<{ id: string; error: unknown }>;
+
+      if (errorUpdates.length > 0) {
+        const errorDetails = errorUpdates
+          .map((e) => {
+            const errorMsg = e.error && typeof e.error === 'object' && 'message' in e.error
+              ? String(e.error.message)
+              : String(e.error);
+            return `Column ID: ${e.id}, Error: ${errorMsg}`;
+          })
+          .join("; ");
+        throw new Error(`Failed to update some columns: ${errorDetails}`);
       }
 
       return updates.map((u) => u.data);

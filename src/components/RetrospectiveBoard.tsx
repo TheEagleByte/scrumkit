@@ -487,6 +487,23 @@ export function RetrospectiveBoard({
     setActiveItem(null);
   };
 
+  // Memoize board settings to prevent dialog edits from being wiped during real-time updates
+  const boardSettings = useMemo(
+    () => ({
+      title: retrospective?.title || sprintName,
+      description: retrospective?.description || "",
+      is_anonymous: retrospective?.is_anonymous ?? false,
+      max_votes_per_user: retrospective?.max_votes_per_user ?? 5,
+    }),
+    [
+      retrospective?.title,
+      retrospective?.description,
+      retrospective?.is_anonymous,
+      retrospective?.max_votes_per_user,
+      sprintName,
+    ]
+  );
+
   const handleSaveCustomization = async (
     settings: {
       title: string;
@@ -519,32 +536,41 @@ export function RetrospectiveBoard({
       const existingColumnIds = columns.map((c) => c.id);
       const updatedColumnIds = updatedColumns.map((c) => c.id);
 
-      // Delete removed columns
+      // Delete removed columns (run in parallel)
       const deletedColumns = existingColumnIds.filter(
         (id) => !updatedColumnIds.includes(id)
       );
-      for (const columnId of deletedColumns) {
-        await deleteColumnMutation.mutateAsync({
-          columnId,
-          retrospectiveId,
-        });
-      }
+      await Promise.all(
+        deletedColumns.map((columnId) =>
+          deleteColumnMutation.mutateAsync({
+            columnId,
+            retrospectiveId,
+          })
+        )
+      );
 
-      // Create new columns or update existing ones
-      for (const column of updatedColumns) {
-        if (column.id.startsWith("temp-")) {
-          // Create new column
-          await createColumnMutation.mutateAsync({
+      // Separate creates and updates for parallel processing
+      const columnsToCreate = updatedColumns.filter((col) =>
+        col.id.startsWith("temp-")
+      );
+      const columnsToUpdate = updatedColumns.filter(
+        (col) => !col.id.startsWith("temp-")
+      );
+
+      // Run creates and updates in parallel batches
+      await Promise.all([
+        ...columnsToCreate.map((column) =>
+          createColumnMutation.mutateAsync({
             retrospectiveId,
             title: column.title,
             description: column.description,
             color: column.color,
             column_type: column.column_type,
             display_order: column.display_order || 0,
-          });
-        } else {
-          // Update existing column
-          await updateColumnMutation.mutateAsync({
+          })
+        ),
+        ...columnsToUpdate.map((column) =>
+          updateColumnMutation.mutateAsync({
             columnId: column.id,
             retrospectiveId,
             updates: {
@@ -553,9 +579,9 @@ export function RetrospectiveBoard({
               color: column.color,
               display_order: column.display_order,
             },
-          });
-        }
-      }
+          })
+        ),
+      ]);
 
       toast.success("Board customization saved successfully!");
     } catch (error) {
@@ -1047,12 +1073,7 @@ export function RetrospectiveBoard({
       <BoardCustomizationDialog
         open={customizationDialogOpen}
         onOpenChange={setCustomizationDialogOpen}
-        boardSettings={{
-          title: retrospective?.title || sprintName,
-          description: retrospective?.description || "",
-          is_anonymous: retrospective?.is_anonymous || false,
-          max_votes_per_user: retrospective?.max_votes_per_user || 5,
-        }}
+        boardSettings={boardSettings}
         columns={columns}
         onSave={handleSaveCustomization}
         isLoading={

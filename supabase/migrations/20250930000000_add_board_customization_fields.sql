@@ -1,5 +1,5 @@
 -- Board Customization Migration
--- Description: Adds description field to retrospectives table for board-level descriptions
+-- Description: Adds description field to retrospectives table for board-level descriptions and creates a metadata index for faster queries
 
 -- Add description column to retrospectives table
 ALTER TABLE retrospectives
