@@ -66,7 +66,15 @@ export async function createPokerSession(input: CreatePokerSessionInput) {
   // Add session to user's cookie list
   if (!input.teamId) {
     const sessionsList = cookieStore.get("scrumkit_poker_sessions")?.value;
-    const sessions = sessionsList ? JSON.parse(sessionsList) : [];
+    let sessions: string[] = [];
+    if (sessionsList) {
+      try {
+        sessions = JSON.parse(sessionsList);
+      } catch {
+        // Reset corrupted cookie
+        sessions = [];
+      }
+    }
     sessions.unshift(session.unique_url);
     // Keep only last 20 sessions
     const recentSessions = sessions.slice(0, 20);
@@ -115,7 +123,15 @@ export async function getUserPokerSessions(): Promise<PokerSession[]> {
 
   // Get user's sessions from cookies
   const sessionsList = cookieStore.get("scrumkit_poker_sessions")?.value;
-  const sessionUrls = sessionsList ? JSON.parse(sessionsList) : [];
+  let sessionUrls: string[] = [];
+  if (sessionsList) {
+    try {
+      sessionUrls = JSON.parse(sessionsList);
+    } catch {
+      // Reset corrupted cookie
+      sessionUrls = [];
+    }
+  }
 
   if (sessionUrls.length === 0) {
     return [];
@@ -265,7 +281,15 @@ export async function deletePokerSession(uniqueUrl: string) {
 
   // Remove from user's cookie list
   const sessionsList = cookieStore.get("scrumkit_poker_sessions")?.value;
-  const sessions = sessionsList ? JSON.parse(sessionsList) : [];
+  let sessions: string[] = [];
+  if (sessionsList) {
+    try {
+      sessions = JSON.parse(sessionsList);
+    } catch {
+      // Reset corrupted cookie
+      sessions = [];
+    }
+  }
   const filtered = sessions.filter((url: string) => url !== uniqueUrl);
 
   cookieStore.set("scrumkit_poker_sessions", JSON.stringify(filtered), {
