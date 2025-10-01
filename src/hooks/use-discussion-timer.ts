@@ -17,6 +17,10 @@ export interface TimerPreferences {
 }
 
 const STORAGE_KEY = 'scrumkit_timer_preferences';
+const DEFAULT_PREFERENCES: TimerPreferences = {
+  soundEnabled: true,
+  lastPreset: 5,
+};
 
 /**
  * Custom hook for managing discussion timer state and logic
@@ -53,7 +57,7 @@ export function useDiscussionTimer() {
 
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      const current: TimerPreferences = stored ? JSON.parse(stored) : { soundEnabled: true, lastPreset: 5 };
+      const current: TimerPreferences = stored ? JSON.parse(stored) : DEFAULT_PREFERENCES;
       const updated = { ...current, ...prefs };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     } catch (error) {

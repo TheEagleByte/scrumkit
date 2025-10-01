@@ -212,10 +212,16 @@ export function DiscussionTimer({ className }: DiscussionTimerProps) {
                 type="number"
                 min="1"
                 max="60"
+                step="1"
                 value={customMinutes}
                 onChange={(e) => setCustomMinutes(e.target.value)}
                 placeholder="Custom"
-                className="w-20 px-3 py-2 text-sm border border-input rounded-md bg-background"
+                className={cn(
+                  "w-20 px-3 py-2 text-sm border rounded-md bg-background",
+                  customMinutes && (parseInt(customMinutes) < 1 || parseInt(customMinutes) > 60)
+                    ? "border-red-500 focus:ring-red-500"
+                    : "border-input"
+                )}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     handleCustomStart();

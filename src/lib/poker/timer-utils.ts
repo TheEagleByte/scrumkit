@@ -32,6 +32,7 @@ export function getWarningLevel(
   elapsed: number,
   total: number
 ): 'none' | 'low' | 'medium' | 'high' | 'critical' {
+  if (total === 0) return 'none';
   const percentage = (elapsed / total) * 100;
 
   if (percentage >= 100) return 'critical';
