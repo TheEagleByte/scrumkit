@@ -14,6 +14,7 @@ import type {
   UpdatePokerStoryInput,
   PokerStory,
   PokerVote,
+  StorySessionInfo,
 } from "./types";
 
 // Create a new poker session
@@ -944,4 +945,115 @@ export async function getParticipantVote(storyId: string): Promise<PokerVote | n
     .single();
 
   return vote as PokerVote | null;
+}
+
+// ===========================
+// Vote Reveal Actions
+// ===========================
+
+// Reveal all votes for a story
+export async function revealStoryVotes(storyId: string): Promise<void> {
+  const supabase = await createClient();
+  const cookieStore = await cookies();
+
+  // Check if user has permission (via creator_cookie for anonymous sessions)
+  const creatorCookie = cookieStore.get("scrumkit_poker_creator")?.value;
+
+  // Get the story and session info
+  const { data: story, error: storyError } = await supabase
+    .from("poker_stories")
+    .select("id, session_id, status, poker_sessions!inner(id, unique_url, creator_cookie, team_id)")
+    .eq("id", storyId)
+    .single();
+
+  if (storyError || !story) {
+    throw new Error("Story not found");
+  }
+
+  const session = story.poker_sessions as unknown as StorySessionInfo;
+
+  // Check permission for anonymous sessions
+  if (!session.team_id && session.creator_cookie !== creatorCookie) {
+    throw new Error("You don't have permission to reveal votes for this story");
+  }
+
+  // Check if story is in voting state
+  if (story.status !== "voting") {
+    throw new Error("Story is not in voting state");
+  }
+
+  // Update all votes to revealed
+  const { error: voteError } = await supabase
+    .from("poker_votes")
+    .update({ is_revealed: true })
+    .eq("story_id", storyId);
+
+  if (voteError) {
+    console.error("Error revealing votes:", voteError);
+    throw new Error("Failed to reveal votes");
+  }
+
+  // Update story status to revealed
+  const { error: storyUpdateError } = await supabase
+    .from("poker_stories")
+    .update({ status: "revealed" })
+    .eq("id", storyId);
+
+  if (storyUpdateError) {
+    console.error("Error updating story status:", storyUpdateError);
+    throw new Error("Failed to update story status");
+  }
+
+  revalidatePath(`/poker/${session.unique_url}`);
+}
+
+// Reset votes for a story (allow revoting)
+export async function resetStoryVotes(storyId: string): Promise<void> {
+  const supabase = await createClient();
+  const cookieStore = await cookies();
+
+  // Check if user has permission (via creator_cookie for anonymous sessions)
+  const creatorCookie = cookieStore.get("scrumkit_poker_creator")?.value;
+
+  // Get the story and session info
+  const { data: story, error: storyError } = await supabase
+    .from("poker_stories")
+    .select("id, session_id, status, poker_sessions!inner(id, unique_url, creator_cookie, team_id)")
+    .eq("id", storyId)
+    .single();
+
+  if (storyError || !story) {
+    throw new Error("Story not found");
+  }
+
+  const session = story.poker_sessions as unknown as StorySessionInfo;
+
+  // Check permission for anonymous sessions
+  if (!session.team_id && session.creator_cookie !== creatorCookie) {
+    throw new Error("You don't have permission to reset votes for this story");
+  }
+
+  // Delete all votes for this story
+  const { error: deleteError } = await supabase
+    .from("poker_votes")
+    .delete()
+    .eq("story_id", storyId);
+
+  if (deleteError) {
+    console.error("Error deleting votes:", deleteError);
+    throw new Error("Failed to delete votes");
+  }
+
+  // Update story status back to voting
+  const { error: storyUpdateError } = await supabase
+    .from("poker_stories")
+    .update({ status: "voting" })
+    .eq("id", storyId);
+
+  if (storyUpdateError) {
+    console.error("Error updating story status:", storyUpdateError);
+    throw new Error("Failed to update story status");
+  }
+
+  revalidatePath(`/poker/${session.unique_url}`);
 }

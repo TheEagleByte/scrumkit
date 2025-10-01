@@ -199,6 +199,8 @@ export function StoryManager({ session }: StoryManagerProps) {
             story={currentStory}
             sequence={sequence}
             sessionId={session.id}
+            showVoterNames={session.show_voter_names}
+            autoReveal={session.auto_reveal}
           />
         </>
       )}
