@@ -76,7 +76,7 @@ export function StoryManager({ session }: StoryManagerProps) {
   const reorderStories = useReorderStories();
   const [addStoryOpen, setAddStoryOpen] = useState(false);
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [, setActiveId] = useState<string | null>(null);
   const [localStories, setLocalStories] = useState<PokerStory[]>([]);
 
   const sensors = useSensors(

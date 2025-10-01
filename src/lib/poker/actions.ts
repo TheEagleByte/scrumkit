@@ -715,7 +715,7 @@ export async function bulkImportStories(
     .limit(1)
     .single();
 
-  let nextOrder = (maxOrderStory?.display_order ?? 0) + 1;
+  const nextOrder = (maxOrderStory?.display_order ?? 0) + 1;
 
   // Prepare story inserts
   const storyInserts = stories.map((story, index) => ({

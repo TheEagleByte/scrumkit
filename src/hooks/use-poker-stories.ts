@@ -96,7 +96,7 @@ export function useCreatePokerStory() {
       }
       toast.error("Failed to create story");
     },
-    onSuccess: (data, variables) => {
+    onSuccess: () => {
       toast.success("Story created successfully!");
     },
     onSettled: (data, error, variables) => {
@@ -389,4 +389,35 @@ export function useBulkImportStories() {
       toast.error("Failed to import stories");
     },
   });
+}
+
+// Hook to navigate to next/previous story
+export function useNavigateStory(sessionId: string, stories: PokerStory[], currentStoryId: string | null) {
+  const setCurrentStory = useSetCurrentStory();
+
+  const currentIndex = currentStoryId
+    ? stories.findIndex((s) => s.id === currentStoryId)
+    : -1;
+
+  const goToNext = () => {
+    if (currentIndex < stories.length - 1) {
+      const nextStory = stories[currentIndex + 1];
+      setCurrentStory.mutate({ sessionId, storyId: nextStory.id });
+    }
+  };
+
+  const goToPrevious = () => {
+    if (currentIndex > 0) {
+      const previousStory = stories[currentIndex - 1];
+      setCurrentStory.mutate({ sessionId, storyId: previousStory.id });
+    }
+  };
+
+  return {
+    goToNext,
+    goToPrevious,
+    canGoNext: currentIndex < stories.length - 1,
+    canGoPrevious: currentIndex > 0,
+    currentIndex,
+  };
 }
