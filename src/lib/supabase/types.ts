@@ -7,663 +7,72 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
-  }
   public: {
     Tables: {
-      action_items: {
+      poker_sessions: {
         Row: {
-          assigned_to: string | null
-          created_at: string | null
-          description: string | null
-          due_date: string | null
           id: string
-          item_id: string | null
-          retrospective_id: string
-          status: string | null
+          unique_url: string
           title: string
-          updated_at: string | null
-        }
-        Insert: {
-          assigned_to?: string | null
-          created_at?: string | null
-          description?: string | null
-          due_date?: string | null
-          id?: string
-          item_id?: string | null
-          retrospective_id: string
-          status?: string | null
-          title: string
-          updated_at?: string | null
-        }
-        Update: {
-          assigned_to?: string | null
-          created_at?: string | null
-          description?: string | null
-          due_date?: string | null
-          id?: string
-          item_id?: string | null
-          retrospective_id?: string
-          status?: string | null
-          title?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "action_items_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "action_items_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "retrospective_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "action_items_retrospective_id_fkey"
-            columns: ["retrospective_id"]
-            isOneToOne: false
-            referencedRelation: "retrospectives"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      custom_templates: {
-        Row: {
-          columns: Json
-          created_at: string | null
-          created_by: string | null
           description: string | null
-          id: string
-          is_public: boolean | null
-          name: string
-          organization_id: string | null
           team_id: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          columns: Json
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          is_public?: boolean | null
-          name: string
-          organization_id?: string | null
-          team_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          columns?: Json
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          is_public?: boolean | null
-          name?: string
-          organization_id?: string | null
-          team_id?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "custom_templates_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "custom_templates_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "custom_templates_team_id_fkey"
-            columns: ["team_id"]
-            isOneToOne: false
-            referencedRelation: "teams"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      organizations: {
-        Row: {
-          created_at: string | null
-          id: string
-          name: string
-          slug: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          name: string
-          slug: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          name?: string
-          slug?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      profiles: {
-        Row: {
-          avatar_url: string | null
-          created_at: string | null
-          email: string
-          full_name: string | null
-          id: string
-          organization_id: string | null
-          preferred_template_id: string | null
-          template_preferences: Json | null
-          updated_at: string | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string | null
-          email: string
-          full_name?: string | null
-          id: string
-          organization_id?: string | null
-          preferred_template_id?: string | null
-          template_preferences?: Json | null
-          updated_at?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string | null
-          email?: string
-          full_name?: string | null
-          id?: string
-          organization_id?: string | null
-          preferred_template_id?: string | null
-          template_preferences?: Json | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      retrospective_columns: {
-        Row: {
-          color: string | null
-          column_type: string
-          created_at: string | null
-          description: string | null
-          display_order: number | null
-          id: string
-          retrospective_id: string
-          title: string
-        }
-        Insert: {
-          color?: string | null
-          column_type: string
-          created_at?: string | null
-          description?: string | null
-          display_order?: number | null
-          id?: string
-          retrospective_id: string
-          title: string
-        }
-        Update: {
-          color?: string | null
-          column_type?: string
-          created_at?: string | null
-          description?: string | null
-          display_order?: number | null
-          id?: string
-          retrospective_id?: string
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "retrospective_columns_retrospective_id_fkey"
-            columns: ["retrospective_id"]
-            isOneToOne: false
-            referencedRelation: "retrospectives"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      retrospective_items: {
-        Row: {
-          author_id: string | null
-          author_name: string
-          color: string | null
-          column_id: string
-          created_at: string | null
-          id: string
-          position: number | null
-          text: string
-          updated_at: string | null
-        }
-        Insert: {
-          author_id?: string | null
-          author_name: string
-          color?: string | null
-          column_id: string
-          created_at?: string | null
-          id?: string
-          position?: number | null
-          text: string
-          updated_at?: string | null
-        }
-        Update: {
-          author_id?: string | null
-          author_name?: string
-          color?: string | null
-          column_id?: string
-          created_at?: string | null
-          id?: string
-          position?: number | null
-          text?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "retrospective_items_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "retrospective_items_column_id_fkey"
-            columns: ["column_id"]
-            isOneToOne: false
-            referencedRelation: "retrospective_columns"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      retrospectives: {
-        Row: {
-          completed_at: string | null
-          created_at: string | null
           created_by: string | null
           creator_cookie: string | null
-          description: string | null
-          id: string
-          is_anonymous: boolean | null
-          is_archived: boolean | null
-          is_deleted: boolean | null
-          max_votes_per_user: number | null
-          settings: Json | null
-          sprint_name: string | null
-          sprint_number: number | null
+          estimation_sequence: string | null
+          custom_sequence: Json | null
+          auto_reveal: boolean | null
+          allow_revote: boolean | null
+          show_voter_names: boolean | null
           status: string | null
-          team_id: string | null
-          template: string | null
-          title: string | null
-          unique_url: string | null
+          current_story_id: string | null
+          is_anonymous: boolean | null
+          is_deleted: boolean | null
+          created_at: string | null
           updated_at: string | null
-          voting_limit: number | null
+          ended_at: string | null
         }
-        Insert: {
-          completed_at?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          creator_cookie?: string | null
-          description?: string | null
-          id?: string
-          is_anonymous?: boolean | null
-          is_archived?: boolean | null
-          is_deleted?: boolean | null
-          max_votes_per_user?: number | null
-          settings?: Json | null
-          sprint_name?: string | null
-          sprint_number?: number | null
-          status?: string | null
-          team_id?: string | null
-          template?: string | null
-          title?: string | null
-          unique_url?: string | null
-          updated_at?: string | null
-          voting_limit?: number | null
-        }
-        Update: {
-          completed_at?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          creator_cookie?: string | null
-          description?: string | null
-          id?: string
-          is_anonymous?: boolean | null
-          is_archived?: boolean | null
-          is_deleted?: boolean | null
-          max_votes_per_user?: number | null
-          settings?: Json | null
-          sprint_name?: string | null
-          sprint_number?: number | null
-          status?: string | null
-          team_id?: string | null
-          template?: string | null
-          title?: string | null
-          unique_url?: string | null
-          updated_at?: string | null
-          voting_limit?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "retrospectives_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "retrospectives_team_id_fkey"
-            columns: ["team_id"]
-            isOneToOne: false
-            referencedRelation: "teams"
-            referencedColumns: ["id"]
-          },
-        ]
       }
-      team_members: {
+      poker_stories: {
         Row: {
           id: string
-          joined_at: string | null
-          profile_id: string
-          role: string | null
-          team_id: string
-        }
-        Insert: {
-          id?: string
-          joined_at?: string | null
-          profile_id: string
-          role?: string | null
-          team_id: string
-        }
-        Update: {
-          id?: string
-          joined_at?: string | null
-          profile_id?: string
-          role?: string | null
-          team_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "team_members_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "team_members_team_id_fkey"
-            columns: ["team_id"]
-            isOneToOne: false
-            referencedRelation: "teams"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      teams: {
-        Row: {
-          created_at: string | null
+          session_id: string
+          title: string
           description: string | null
-          id: string
-          name: string
-          organization_id: string
+          acceptance_criteria: string | null
+          external_link: string | null
+          status: string | null
+          final_estimate: string | null
+          display_order: number | null
+          created_at: string | null
           updated_at: string | null
         }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          name: string
-          organization_id: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          name?: string
-          organization_id?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "teams_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
       }
-      votes: {
+      poker_participants: {
         Row: {
-          created_at: string | null
           id: string
-          item_id: string
-          profile_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          item_id: string
-          profile_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          item_id?: string
-          profile_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "votes_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "retrospective_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "votes_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-    }
-    Views: {
-      retrospective_vote_stats: {
-        Row: {
-          max_votes_per_user: number | null
+          session_id: string
           profile_id: string | null
-          retrospective_id: string | null
-          votes_remaining: number | null
-          votes_used: number | null
+          name: string
+          avatar_url: string | null
+          is_facilitator: boolean | null
+          participant_cookie: string | null
+          is_observer: boolean | null
+          last_seen_at: string | null
+          joined_at: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "retrospective_columns_retrospective_id_fkey"
-            columns: ["retrospective_id"]
-            isOneToOne: false
-            referencedRelation: "retrospectives"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "votes_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
-    }
-    Functions: {
-      can_user_vote: {
-        Args: {
-          p_item_id: string
-          p_retrospective_id: string
-          p_user_id: string
+      poker_votes: {
+        Row: {
+          id: string
+          story_id: string
+          participant_id: string
+          session_id: string
+          vote_value: string
+          is_revealed: boolean | null
+          created_at: string | null
+          updated_at: string | null
         }
-        Returns: boolean
       }
-      generate_unique_url: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_user_vote_count: {
-        Args: { p_retrospective_id: string; p_user_id: string }
-        Returns: number
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
     }
   }
 }
-
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
-
-export type Tables<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
-    }
-    ? R
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
-
-export type TablesInsert<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
-
-export type TablesUpdate<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
-
-export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
-
-export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
-
-export const Constants = {
-  public: {
-    Enums: {},
-  },
-} as const
