@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Planning Poker Statistics & Analytics** (Issue #23 - EPIC-003 Story 7)
+  - Comprehensive session statistics with key metrics dashboard
+  - Consensus percentage calculation and display (votes within 1 step of mode)
+  - Estimation velocity tracking (stories per hour, average time per story)
+  - Participant contribution breakdown with vote counts
+  - Estimate distribution visualization with bar charts
+  - Session summary component showing:
+    - Stories completed (estimated/pending/skipped)
+    - Average and median estimation time per story
+    - Overall consensus rate across all stories
+    - Active participant count
+    - Most common estimates
+  - CSV export functionality for session data including:
+    - Story details (title, estimate, votes, time taken)
+    - Vote distribution and consensus metrics
+    - Participant contributions
+    - Session summary statistics
+  - Real-time statistics updates as stories are estimated
+  - Export button with loading states and validation
+  - Visual indicators for high consensus (≥70%)
 - **Planning Poker Custom Estimation Sequences** (Issue #22 - EPIC-003 Story 6)
   - Custom sequence creator in session setup form
   - Support for numbers, text, and emoji values in custom sequences
