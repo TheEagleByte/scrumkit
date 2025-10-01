@@ -153,3 +153,55 @@ export interface StorySessionInfo {
   creator_cookie: string;
   team_id: string | null;
 }
+
+// Statistics and Analytics types
+export interface StoryStatistics {
+  storyId: string;
+  title: string;
+  finalEstimate: string | null;
+  voteCount: number;
+  averageVote: number | null;
+  medianVote: number | null;
+  consensusPercentage: number;
+  estimationTimeMinutes: number | null;
+  participants: string[];
+  votes: { participantName: string; voteValue: string }[];
+}
+
+export interface SessionStatistics {
+  sessionId: string;
+  totalStories: number;
+  estimatedStories: number;
+  pendingStories: number;
+  skippedStories: number;
+  averageEstimationTimeMinutes: number | null;
+  medianEstimationTimeMinutes: number | null;
+  overallConsensusRate: number;
+  storiesPerHour: number | null;
+  participantStats: ParticipantStatistics[];
+  storyStats: StoryStatistics[];
+  mostCommonEstimates: { estimate: string; count: number }[];
+}
+
+export interface ParticipantStatistics {
+  participantId: string;
+  name: string;
+  totalVotes: number;
+  storiesVoted: number;
+  averageVoteValue: number | null;
+}
+
+export interface ExportData {
+  session: {
+    title: string;
+    description: string | null;
+    createdAt: string;
+    estimationSequence: string;
+  };
+  stories: StoryStatistics[];
+  summary: {
+    totalStories: number;
+    averageTime: number | null;
+    consensusRate: number;
+  };
+}

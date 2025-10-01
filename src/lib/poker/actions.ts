@@ -15,7 +15,11 @@ import type {
   PokerStory,
   PokerVote,
   StorySessionInfo,
+  SessionStatistics,
+  EstimationSequenceType,
 } from "./types";
+import { calculateSessionStatistics } from "./statistics";
+import { getSequenceByType } from "./utils";
 
 // Create a new poker session
 export async function createPokerSession(input: CreatePokerSessionInput) {
@@ -1056,4 +1060,99 @@ export async function resetStoryVotes(storyId: string): Promise<void> {
   }
 
   revalidatePath(`/poker/${session.unique_url}`);
+}
+
+// ===========================
+// Statistics & Analytics Actions
+// ===========================
+
+/**
+ * Get comprehensive statistics for a poker session
+ * Includes story-level metrics, participant stats, and session-wide analytics
+ */
+export async function getSessionStatistics(sessionId: string): Promise<SessionStatistics> {
+  const supabase = await createClient();
+
+  // Fetch session to get estimation sequence
+  const { data: session, error: sessionError } = await supabase
+    .from("poker_sessions")
+    .select("id, estimation_sequence, custom_sequence")
+    .eq("id", sessionId)
+    .single();
+
+  if (sessionError || !session) {
+    throw new Error("Session not found");
+  }
+
+  // Get estimation sequence for consensus calculations
+  const sequence = getSequenceByType(
+    (session.estimation_sequence || "fibonacci") as EstimationSequenceType,
+    session.custom_sequence as (string | number)[] | undefined
+  );
+
+  // Fetch all stories for the session
+  const { data: stories, error: storiesError } = await supabase
+    .from("poker_stories")
+    .select("*")
+    .eq("session_id", sessionId)
+    .order("display_order", { ascending: true });
+
+  if (storiesError) {
+    console.error("Error fetching stories:", storiesError);
+    throw new Error("Failed to fetch stories");
+  }
+
+  if (!stories || stories.length === 0) {
+    // Return empty statistics for sessions with no stories
+    return {
+      sessionId,
+      totalStories: 0,
+      estimatedStories: 0,
+      pendingStories: 0,
+      skippedStories: 0,
+      averageEstimationTimeMinutes: null,
+      medianEstimationTimeMinutes: null,
+      overallConsensusRate: 0,
+      storiesPerHour: null,
+      participantStats: [],
+      storyStats: [],
+      mostCommonEstimates: [],
+    };
+  }
+
+  // Fetch all votes for all stories with participant information
+  const { data: votes, error: votesError } = await supabase
+    .from("poker_votes")
+    .select(`
+      *,
+      participant:poker_participants(*)
+    `)
+    .eq("session_id", sessionId)
+    .order("created_at", { ascending: true });
+
+  if (votesError) {
+    console.error("Error fetching votes:", votesError);
+    throw new Error("Failed to fetch votes");
+  }
+
+  // Group votes by story ID
+  const votesMap = new Map<
+    string,
+    (PokerVote & { participant: PokerParticipant })[]
+  >();
+
+  (votes as unknown as (PokerVote & { participant: PokerParticipant })[])?.forEach((vote) => {
+    const storyVotes = votesMap.get(vote.story_id) || [];
+    storyVotes.push(vote);
+    votesMap.set(vote.story_id, storyVotes);
+  });
+
+  // Calculate statistics using the statistics utility
+  const statistics = calculateSessionStatistics(
+    stories as PokerStory[],
+    votesMap,
+    sequence.values
+  );
+
+  return statistics;
 }
