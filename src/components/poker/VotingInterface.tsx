@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { VotingCard } from "./VotingCard";
 import { VoteResults } from "./VoteResults";
 import { ParticipantStatus } from "./ParticipantStatus";
+import { DiscussionTimer } from "./DiscussionTimer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -295,6 +296,11 @@ export function VotingInterface({
     <div className="space-y-6">
       {/* Participant Status Section */}
       <ParticipantStatus story={story} sessionId={sessionId} />
+
+      {/* Discussion Timer - Only show for facilitators during voting */}
+      {isFacilitator && canVote && (
+        <DiscussionTimer />
+      )}
 
       {/* Voting Cards Section */}
       <Card className="border-indigo-200 dark:border-indigo-800">
