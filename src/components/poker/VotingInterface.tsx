@@ -73,6 +73,10 @@ export function VotingInterface({
     if (!canVote) return;
 
     const valueStr = String(value);
+
+    // Early return if selecting the same value to avoid unnecessary API calls
+    if (selectedValue === valueStr) return;
+
     setSelectedValue(valueStr);
 
     // Auto-submit vote
@@ -80,7 +84,7 @@ export function VotingInterface({
       storyId: story.id,
       voteValue: valueStr,
     });
-  }, [canVote, story.id, submitVote]);
+  }, [canVote, story.id, submitVote, selectedValue]);
 
   // Keyboard shortcuts
   const handleKeyPress = useCallback(
@@ -207,7 +211,7 @@ export function VotingInterface({
             <CardDescription>
               {canVote ? (
                 hasVoted ? (
-                  "You can change your vote anytime before reveal"
+                  "You can change your vote at any time before reveal"
                 ) : (
                   "Click a card or use keyboard shortcuts to vote"
                 )
@@ -275,7 +279,7 @@ export function VotingInterface({
           <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
             <p className="text-sm text-green-900 dark:text-green-200 flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4" />
-              Your vote has been submitted! You can change it anytime before reveal.
+              Your vote has been submitted! You can change it at any time before reveal.
             </p>
           </div>
         )}
