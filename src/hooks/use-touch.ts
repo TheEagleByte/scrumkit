@@ -90,6 +90,7 @@ export function useTouch(config: TouchGestureConfig) {
       const absX = Math.abs(deltaX);
       const absY = Math.abs(deltaY);
 
+      // Gesture priority: long-press > tap > swipe
       // If it was a long press, don't process other gestures
       if (isLongPress) {
         touchState.current = null;

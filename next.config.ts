@@ -121,6 +121,7 @@ export default withPWA({
       {
         urlPattern: /.*/i,
         handler: "NetworkFirst",
+        method: "GET",
         options: {
           cacheName: "others",
           expiration: {

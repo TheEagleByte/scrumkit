@@ -245,6 +245,7 @@ export function StoryManager({ session }: StoryManagerProps) {
                 size={isMobile ? "default" : "sm"}
                 onClick={() => setBulkImportOpen(true)}
                 className="touch-manipulation"
+                aria-label="Import CSV"
               >
                 <FileUp className="mr-2 h-4 w-4" />
                 {!isMobile && "Import CSV"}
@@ -254,6 +255,7 @@ export function StoryManager({ session }: StoryManagerProps) {
                 size={isMobile ? "default" : "sm"}
                 onClick={() => setAddStoryOpen(true)}
                 className="touch-manipulation"
+                aria-label="Add Story"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 {!isMobile && "Add Story"}
@@ -277,16 +279,24 @@ export function StoryManager({ session }: StoryManagerProps) {
                 Add stories to start your planning poker session
               </p>
               <div className="flex justify-center gap-2">
-                <Button onClick={() => setAddStoryOpen(true)}>
+                <Button
+                  onClick={() => setAddStoryOpen(true)}
+                  size={isMobile ? "default" : "sm"}
+                  className="touch-manipulation"
+                >
                   <Plus className="mr-2 h-4 w-4" />
-                  Add First Story
+                  {!isMobile && "Add First Story"}
+                  {isMobile && "Add Story"}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => setBulkImportOpen(true)}
+                  size={isMobile ? "default" : "sm"}
+                  className="touch-manipulation"
                 >
                   <FileUp className="mr-2 h-4 w-4" />
-                  Import from CSV
+                  {!isMobile && "Import from CSV"}
+                  {isMobile && "Import"}
                 </Button>
               </div>
             </div>

@@ -216,6 +216,17 @@ export function VotingInterface({
     (event: KeyboardEvent) => {
       if (!canVote) return;
 
+      // Don't capture keyboard shortcuts while typing in inputs
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          (target as HTMLElement).isContentEditable)
+      ) {
+        return;
+      }
+
       const key = event.key.toLowerCase();
       const shiftKey = event.shiftKey;
 
@@ -473,6 +484,7 @@ export function VotingInterface({
               <div
                 {...swipeHandlers}
                 ref={carouselRef}
+                id="voting-cards-carousel"
                 className="touch-pan-y overflow-hidden"
               >
                 <div
@@ -502,12 +514,14 @@ export function VotingInterface({
                   onClick={goToPreviousPage}
                   disabled={carouselIndex === 0}
                   className="h-12 w-12 touch-manipulation p-0"
+                  aria-label="Previous cards"
+                  aria-controls="voting-cards-carousel"
                 >
                   <ChevronLeft className="h-6 w-6" />
                 </Button>
 
                 {/* Page Indicators */}
-                <div className="flex gap-2">
+                <div className="flex gap-2" role="tablist" aria-label="Card pages">
                   {Array.from({ length: totalPages }).map((_, idx) => (
                     <button
                       key={idx}
@@ -522,6 +536,9 @@ export function VotingInterface({
                           ? "w-8 bg-indigo-600"
                           : "w-2 bg-slate-300 dark:bg-slate-600"
                       )}
+                      role="tab"
+                      aria-selected={idx === carouselIndex}
+                      aria-current={idx === carouselIndex ? "page" : undefined}
                       aria-label={`Go to page ${idx + 1}`}
                     />
                   ))}
@@ -533,6 +550,8 @@ export function VotingInterface({
                   onClick={goToNextPage}
                   disabled={carouselIndex === totalPages - 1}
                   className="h-12 w-12 touch-manipulation p-0"
+                  aria-label="Next cards"
+                  aria-controls="voting-cards-carousel"
                 >
                   <ChevronRight className="h-6 w-6" />
                 </Button>

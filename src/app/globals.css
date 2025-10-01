@@ -205,6 +205,10 @@
   @media (max-width: 768px) {
     /* Fix for iOS Safari viewport height */
     .mobile-vh-fix {
+      /* Modern dynamic viewport units first */
+      min-height: 100dvh;
+      height: 100dvh;
+      /* Fallback for older browsers */
       min-height: -webkit-fill-available;
     }
 

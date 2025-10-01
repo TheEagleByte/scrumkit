@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "ScrumKit - Agile Planning Tools",
   "short_name": "ScrumKit",
   "start_url": "/",
@@ -44,7 +45,6 @@
       "purpose": "any maskable"
     }
   ],
-  "screenshots": [],
   "shortcuts": [
     {
       "name": "New Planning Poker Session",
