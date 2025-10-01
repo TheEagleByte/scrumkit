@@ -8,6 +8,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+- **Planning Poker Mobile Optimization** (Issue #25 - EPIC-003 Story 9)
+  - Mobile-optimized voting card layout with larger touch targets (44x44px minimum)
+  - Swipeable carousel for card selection on mobile devices
+    - Shows 3 cards in portrait mode, 5 in landscape mode
+    - Navigation buttons and page indicators for easy browsing
+  - Haptic feedback integration for touch interactions
+    - Selection, success, error, and custom vibration patterns
+    - User preference stored in localStorage
+    - Graceful fallback on unsupported devices
+  - Custom React hooks for mobile interactions:
+    - `useTouch`: Detects swipe, tap, and long-press gestures
+    - `useOrientation`: Tracks portrait/landscape orientation changes
+  - Progressive Web App (PWA) capabilities
+    - Offline support with service worker caching
+    - Installable on mobile devices
+    - Comprehensive workbox caching strategies for assets and API calls
+  - Responsive design enhancements:
+    - Touch-optimized button sizes and spacing
+    - Landscape mode CSS optimizations for compact viewports
+    - Mobile viewport fixes for iOS Safari
+    - Safe area insets for notched devices
+  - Enhanced web manifest with shortcuts and categories
+  - Hidden keyboard shortcuts on mobile (touch-only interface)
 - **Planning Poker Timer & Discussion Tools** (Issue #24 - EPIC-003 Story 8)
   - Discussion timer with preset durations (2, 5, 10 minutes)
   - Break timer mode with presets (5, 10, 15 minutes)

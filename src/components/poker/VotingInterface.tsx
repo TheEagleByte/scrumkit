@@ -1,15 +1,33 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useSwipeable } from "react-swipeable";
 import { VotingCard } from "./VotingCard";
 import { VoteResults } from "./VoteResults";
 import { ParticipantStatus } from "./ParticipantStatus";
 import { DiscussionTimer } from "./DiscussionTimer";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Users, AlertCircle, Eye } from "lucide-react";
-import { useSubmitVote, useParticipantVote, useStoryVotes } from "@/hooks/use-poker-votes";
+import {
+  CheckCircle2,
+  Users,
+  AlertCircle,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import {
+  useSubmitVote,
+  useParticipantVote,
+  useStoryVotes,
+} from "@/hooks/use-poker-votes";
 import { useRevealVotes } from "@/hooks/use-poker-reveal";
 import { useSessionParticipants } from "@/hooks/use-poker-participants";
 import type { EstimationSequence, PokerStory } from "@/lib/poker/types";
@@ -19,6 +37,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { pokerVoteKeys } from "@/hooks/use-poker-votes";
 import { pokerStoryKeys } from "@/hooks/use-poker-stories";
 import { getCookie } from "@/lib/utils/cookies";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useOrientation } from "@/hooks/use-orientation";
+import {
+  triggerHaptic,
+  HapticFeedbackType,
+  getHapticPreference,
+} from "@/lib/utils/haptics";
+import { cn } from "@/lib/utils";
 
 interface VotingInterfaceProps {
   story: PokerStory;
@@ -40,12 +66,12 @@ const getKeyboardShortcut = (value: string | number): string | undefined => {
 
   // T-shirt sizes
   const tshirtMap: Record<string, string> = {
-    'xs': 'X',
-    's': 'S',
-    'm': 'M',
-    'l': 'L',
-    'xl': 'Shift+X',
-    'xxl': 'Shift+2',
+    xs: "X",
+    s: "S",
+    m: "M",
+    l: "L",
+    xl: "Shift+X",
+    xxl: "Shift+2",
   };
 
   if (tshirtMap[valueStr]) {
@@ -53,8 +79,8 @@ const getKeyboardShortcut = (value: string | number): string | undefined => {
   }
 
   // Special values
-  if (valueStr === '?') return '?';
-  if (valueStr === '☕') return 'C';
+  if (valueStr === "?") return "?";
+  if (valueStr === "☕") return "C";
 
   return undefined;
 };
@@ -69,15 +95,33 @@ export function VotingInterface({
 }: VotingInterfaceProps) {
   const [selectedValue, setSelectedValue] = useState<string | null>(null);
   const [isFacilitator, setIsFacilitator] = useState(false);
+  const [carouselIndex, setCarouselIndex] = useState(0);
   const submitVote = useSubmitVote();
   const revealVotes = useRevealVotes();
   const { data: currentVote } = useParticipantVote(story.id);
   const { data: allVotes } = useStoryVotes(story.id);
   const { data: participants = [] } = useSessionParticipants(sessionId);
+  const isMobile = useIsMobile();
+  const { isLandscape } = useOrientation();
+  const carouselRef = useRef<HTMLDivElement>(null);
 
   const canVote = canVoteOnStory(story.status) && !isObserver;
   const hasVoted = !!currentVote;
-  const isRevealed = story.status === "revealed" || story.status === "estimated";
+  const isRevealed =
+    story.status === "revealed" || story.status === "estimated";
+
+  // Combine all cards (regular + special)
+  const allCards = [...sequence.values, ...(sequence.specialValues || [])];
+
+  // Cards to show in carousel view (mobile)
+  const cardsPerPage = isMobile ? (isLandscape ? 5 : 3) : allCards.length;
+  const totalPages = Math.ceil(allCards.length / cardsPerPage);
+  const currentPageCards = isMobile
+    ? allCards.slice(
+        carouselIndex * cardsPerPage,
+        (carouselIndex + 1) * cardsPerPage
+      )
+    : allCards;
 
   // Check if current user is facilitator
   useEffect(() => {
@@ -89,13 +133,10 @@ export function VotingInterface({
 
       // Check if user is facilitator/creator
       const currentParticipant = participants.find(
-        p => p.participant_cookie === participantCookie
+        (p) => p.participant_cookie === participantCookie
       );
 
-      setIsFacilitator(
-        !!currentParticipant?.is_facilitator ||
-        !!creatorCookie
-      );
+      setIsFacilitator(!!currentParticipant?.is_facilitator || !!creatorCookie);
     };
 
     checkFacilitator();
@@ -108,23 +149,67 @@ export function VotingInterface({
     }
   }, [currentVote]);
 
+  // Swipe handlers for mobile carousel
+  const handleSwipeLeft = useCallback(() => {
+    if (isMobile && carouselIndex < totalPages - 1) {
+      setCarouselIndex((prev) => prev + 1);
+      const hapticEnabled = getHapticPreference();
+      triggerHaptic(HapticFeedbackType.LIGHT, hapticEnabled);
+    }
+  }, [isMobile, carouselIndex, totalPages]);
+
+  const handleSwipeRight = useCallback(() => {
+    if (isMobile && carouselIndex > 0) {
+      setCarouselIndex((prev) => prev - 1);
+      const hapticEnabled = getHapticPreference();
+      triggerHaptic(HapticFeedbackType.LIGHT, hapticEnabled);
+    }
+  }, [isMobile, carouselIndex]);
+
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: handleSwipeLeft,
+    onSwipedRight: handleSwipeRight,
+    trackMouse: false,
+    preventScrollOnSwipe: true,
+  });
+
   // Handle card selection
-  const handleCardClick = useCallback((value: string | number) => {
-    if (!canVote) return;
+  const handleCardClick = useCallback(
+    (value: string | number) => {
+      if (!canVote) return;
 
-    const valueStr = String(value);
+      const valueStr = String(value);
 
-    // Early return if selecting the same value to avoid unnecessary API calls
-    if (selectedValue === valueStr) return;
+      // Early return if selecting the same value to avoid unnecessary API calls
+      if (selectedValue === valueStr) return;
 
-    setSelectedValue(valueStr);
+      setSelectedValue(valueStr);
 
-    // Auto-submit vote
-    submitVote.mutate({
-      storyId: story.id,
-      voteValue: valueStr,
-    });
-  }, [canVote, story.id, submitVote, selectedValue]);
+      // Auto-submit vote
+      submitVote.mutate({
+        storyId: story.id,
+        voteValue: valueStr,
+      });
+    },
+    [canVote, story.id, submitVote, selectedValue]
+  );
+
+  // Navigation functions for mobile carousel
+  const goToPreviousPage = useCallback(() => {
+    if (carouselIndex > 0) {
+      setCarouselIndex((prev) => prev - 1);
+      const hapticEnabled = getHapticPreference();
+      triggerHaptic(HapticFeedbackType.LIGHT, hapticEnabled);
+    }
+  }, [carouselIndex]);
+
+  const goToNextPage = useCallback(() => {
+    if (carouselIndex < totalPages - 1) {
+      setCarouselIndex((prev) => prev + 1);
+      const hapticEnabled = getHapticPreference();
+      triggerHaptic(HapticFeedbackType.LIGHT, hapticEnabled);
+    }
+  }, [carouselIndex, totalPages]);
 
   // Keyboard shortcuts
   const handleKeyPress = useCallback(
@@ -145,8 +230,8 @@ export function VotingInterface({
         const shortcutLower = shortcut.toLowerCase();
 
         // Handle shift key combinations
-        if (shortcutLower.includes('shift+')) {
-          const shortcutKey = shortcutLower.replace('shift+', '');
+        if (shortcutLower.includes("shift+")) {
+          const shortcutKey = shortcutLower.replace("shift+", "");
           if (shiftKey && key === shortcutKey) {
             matchedValue = value;
             break;
@@ -160,11 +245,11 @@ export function VotingInterface({
       // Check special values
       if (sequence.specialValues) {
         for (const value of sequence.specialValues) {
-          if (value === '?' && key === '?') {
+          if (value === "?" && key === "?") {
             matchedValue = value;
             break;
           }
-          if (value === '☕' && key === 'c') {
+          if (value === "☕" && key === "c") {
             matchedValue = value;
             break;
           }
@@ -181,9 +266,9 @@ export function VotingInterface({
 
   // Register keyboard event listener
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyPress);
+    window.addEventListener("keydown", handleKeyPress);
     return () => {
-      window.removeEventListener('keydown', handleKeyPress);
+      window.removeEventListener("keydown", handleKeyPress);
     };
   }, [handleKeyPress]);
 
@@ -197,11 +282,11 @@ export function VotingInterface({
     const votesChannel = supabase
       .channel(`poker-votes:${story.id}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'poker_votes',
+          event: "*",
+          schema: "public",
+          table: "poker_votes",
           filter: `story_id=eq.${story.id}`,
         },
         () => {
@@ -220,11 +305,11 @@ export function VotingInterface({
     const storyChannel = supabase
       .channel(`poker-story:${story.id}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'poker_stories',
+          event: "UPDATE",
+          schema: "public",
+          table: "poker_stories",
           filter: `id=eq.${story.id}`,
         },
         () => {
@@ -244,13 +329,19 @@ export function VotingInterface({
   }, [story.id, queryClient]);
 
   // Calculate voting progress
-  const votingParticipants = participants.filter(p => !p.is_observer);
+  const votingParticipants = participants.filter((p) => !p.is_observer);
   const votedCount = allVotes?.length || 0;
-  const allVoted = votingParticipants.length > 0 && votedCount === votingParticipants.length;
+  const allVoted =
+    votingParticipants.length > 0 && votedCount === votingParticipants.length;
 
   // Auto-reveal when all participants have voted
   useEffect(() => {
-    if (autoReveal && allVoted && story.status === "voting" && !revealVotes.isPending) {
+    if (
+      autoReveal &&
+      allVoted &&
+      story.status === "voting" &&
+      !revealVotes.isPending
+    ) {
       // Small delay to allow last vote to be visible
       const timer = setTimeout(() => {
         revealVotes.mutate(story.id);
@@ -262,13 +353,9 @@ export function VotingInterface({
 
   const handleReveal = () => {
     revealVotes.mutate(story.id);
+    const hapticEnabled = getHapticPreference();
+    triggerHaptic(HapticFeedbackType.MEDIUM, hapticEnabled);
   };
-
-  // Combine all cards (regular + special)
-  const allCards = [
-    ...sequence.values,
-    ...(sequence.specialValues || []),
-  ];
 
   const voteCount = allVotes?.length || 0;
 
@@ -298,9 +385,7 @@ export function VotingInterface({
       <ParticipantStatus story={story} sessionId={sessionId} />
 
       {/* Discussion Timer - Only show for facilitators during voting */}
-      {isFacilitator && canVote && (
-        <DiscussionTimer />
-      )}
+      {isFacilitator && canVote && <DiscussionTimer />}
 
       {/* Voting Cards Section */}
       <Card className="border-indigo-200 dark:border-indigo-800">
@@ -321,17 +406,13 @@ export function VotingInterface({
                 )}
               </CardTitle>
               <CardDescription>
-                {canVote ? (
-                  hasVoted ? (
-                    "You can change your vote at any time before reveal"
-                  ) : (
-                    "Click a card or use keyboard shortcuts to vote"
-                  )
-                ) : isObserver ? (
-                  "You are an observer and cannot vote"
-                ) : (
-                  "Voting is not open for this story"
-                )}
+                {canVote
+                  ? hasVoted
+                    ? "You can change your vote at any time before reveal"
+                    : "Click a card or use keyboard shortcuts to vote"
+                  : isObserver
+                    ? "You are an observer and cannot vote"
+                    : "Voting is not open for this story"}
               </CardDescription>
             </div>
 
@@ -339,7 +420,7 @@ export function VotingInterface({
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="flex items-center gap-2">
                 <Users className="h-3 w-3" />
-                {voteCount} {voteCount === 1 ? 'vote' : 'votes'}
+                {voteCount} {voteCount === 1 ? "vote" : "votes"}
               </Badge>
               {isFacilitator && canVote && voteCount > 0 && (
                 <Button
@@ -348,7 +429,7 @@ export function VotingInterface({
                   disabled={revealVotes.isPending}
                   className="bg-green-600 hover:bg-green-700"
                 >
-                  <Eye className="h-4 w-4 mr-2" />
+                  <Eye className="mr-2 h-4 w-4" />
                   Reveal Votes
                 </Button>
               )}
@@ -356,68 +437,163 @@ export function VotingInterface({
           </div>
         </CardHeader>
 
-      <CardContent>
-        {!canVote && !isObserver && (
-          <div className="mb-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
-                Voting is not open
-              </p>
-              <p className="text-sm text-amber-700 dark:text-amber-300">
-                The facilitator needs to start voting for this story.
+        <CardContent>
+          {!canVote && !isObserver && (
+            <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
+              <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600 dark:text-amber-500" />
+              <div>
+                <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                  Voting is not open
+                </p>
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  The facilitator needs to start voting for this story.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {isObserver && (
+            <div className="mb-4 flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+              <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-500" />
+              <div>
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
+                  Observer Mode
+                </p>
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  You are observing this session and cannot submit votes.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Voting Cards - Mobile Carousel or Desktop Grid */}
+          {isMobile && totalPages > 1 ? (
+            <div className="relative">
+              {/* Swipeable Carousel Container */}
+              <div
+                {...swipeHandlers}
+                ref={carouselRef}
+                className="touch-pan-y overflow-hidden"
+              >
+                <div
+                  className={cn(
+                    "flex items-center justify-center gap-3 transition-transform duration-300",
+                    isLandscape ? "min-h-[120px]" : "min-h-[140px]"
+                  )}
+                >
+                  {currentPageCards.map((value) => (
+                    <VotingCard
+                      key={String(value)}
+                      value={value}
+                      isSelected={selectedValue === String(value)}
+                      isDisabled={!canVote}
+                      onClick={() => handleCardClick(value)}
+                      keyboardShortcut={getKeyboardShortcut(value)}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Navigation Buttons */}
+              <div className="mt-4 flex items-center justify-center gap-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToPreviousPage}
+                  disabled={carouselIndex === 0}
+                  className="h-12 w-12 touch-manipulation p-0"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </Button>
+
+                {/* Page Indicators */}
+                <div className="flex gap-2">
+                  {Array.from({ length: totalPages }).map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        setCarouselIndex(idx);
+                        const hapticEnabled = getHapticPreference();
+                        triggerHaptic(HapticFeedbackType.LIGHT, hapticEnabled);
+                      }}
+                      className={cn(
+                        "h-2 touch-manipulation rounded-full transition-all",
+                        idx === carouselIndex
+                          ? "w-8 bg-indigo-600"
+                          : "w-2 bg-slate-300 dark:bg-slate-600"
+                      )}
+                      aria-label={`Go to page ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToNextPage}
+                  disabled={carouselIndex === totalPages - 1}
+                  className="h-12 w-12 touch-manipulation p-0"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </Button>
+              </div>
+
+              {/* Swipe Hint - Show on first load */}
+              {isMobile && (
+                <p className="mt-3 text-center text-xs text-slate-500 dark:text-slate-400">
+                  Swipe left or right to see more cards
+                </p>
+              )}
+            </div>
+          ) : (
+            // Desktop Grid or Mobile with few cards
+            <div
+              className={cn(
+                "grid justify-items-center gap-3",
+                isMobile
+                  ? "grid-cols-3" // Mobile with few enough cards
+                  : isLandscape
+                    ? "grid-cols-8 lg:grid-cols-10" // Landscape desktop
+                    : "grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8" // Portrait desktop
+              )}
+            >
+              {allCards.map((value) => (
+                <VotingCard
+                  key={String(value)}
+                  value={value}
+                  isSelected={selectedValue === String(value)}
+                  isDisabled={!canVote}
+                  onClick={() => handleCardClick(value)}
+                  keyboardShortcut={getKeyboardShortcut(value)}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Vote confirmation message */}
+          {hasVoted && canVote && (
+            <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-900/20">
+              <p className="flex items-center gap-2 text-sm text-green-900 dark:text-green-200">
+                <CheckCircle2 className="h-4 w-4" />
+                Your vote has been submitted! You can change it at any time
+                before reveal.
               </p>
             </div>
-          </div>
-        )}
+          )}
 
-        {isObserver && (
-          <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
-                Observer Mode
-              </p>
-              <p className="text-sm text-blue-700 dark:text-blue-300">
-                You are observing this session and cannot submit votes.
+          {/* Keyboard shortcuts help - Desktop only */}
+          {!isMobile && (
+            <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-700">
+              <p className="text-center text-xs text-slate-500 dark:text-slate-400">
+                <span className="font-medium">Keyboard shortcuts:</span> Press
+                the number/letter shown on each card
+                {sequence.specialValues?.includes("?") && " | ? for Unsure"}
+                {sequence.specialValues?.includes("☕") &&
+                  " | C for Coffee Break"}
               </p>
             </div>
-          </div>
-        )}
-
-        {/* Voting Cards Grid */}
-        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-3 justify-items-center">
-          {allCards.map((value) => (
-            <VotingCard
-              key={String(value)}
-              value={value}
-              isSelected={selectedValue === String(value)}
-              isDisabled={!canVote}
-              onClick={() => handleCardClick(value)}
-              keyboardShortcut={getKeyboardShortcut(value)}
-            />
-          ))}
-        </div>
-
-        {/* Vote confirmation message */}
-        {hasVoted && canVote && (
-          <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-            <p className="text-sm text-green-900 dark:text-green-200 flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4" />
-              Your vote has been submitted! You can change it at any time before reveal.
-            </p>
-          </div>
-        )}
-
-        {/* Keyboard shortcuts help */}
-        <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-          <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
-            <span className="font-medium">Keyboard shortcuts:</span> Press the number/letter shown on each card
-            {sequence.specialValues?.includes('?') && ' | ? for Unsure'}
-            {sequence.specialValues?.includes('☕') && ' | C for Coffee Break'}
-          </p>
-        </div>
-      </CardContent>
+          )}
+        </CardContent>
       </Card>
     </div>
   );

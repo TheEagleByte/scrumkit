@@ -21,7 +21,13 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { usePokerStories, useReorderStories } from "@/hooks/use-poker-stories";
 import type { PokerStory, PokerSession } from "@/lib/poker/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, FileUp, ListOrdered } from "lucide-react";
@@ -31,6 +37,7 @@ import { BulkImportDialog } from "./BulkImportDialog";
 import { StoryNavigation } from "./StoryNavigation";
 import { VotingInterface } from "./VotingInterface";
 import { getSequenceByType } from "@/lib/poker/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface StoryManagerProps {
   session: PokerSession;
@@ -83,7 +90,10 @@ export function StoryManager({ session }: StoryManagerProps) {
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [, setActiveId] = useState<string | null>(null);
   const [localStories, setLocalStories] = useState<PokerStory[]>([]);
-  const [currentStoryId, setCurrentStoryId] = useState<string | null>(session.current_story_id ?? null);
+  const [currentStoryId, setCurrentStoryId] = useState<string | null>(
+    session.current_story_id ?? null
+  );
+  const isMobile = useIsMobile();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -148,7 +158,7 @@ export function StoryManager({ session }: StoryManagerProps) {
       {/* Current Story Section */}
       {currentStory && (
         <>
-          <Card className="border-indigo-200 dark:border-indigo-800 bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-950/20 dark:to-background">
+          <Card className="dark:to-background border-indigo-200 bg-gradient-to-br from-indigo-50 to-white dark:border-indigo-800 dark:from-indigo-950/20">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
@@ -163,16 +173,20 @@ export function StoryManager({ session }: StoryManagerProps) {
             <CardContent>
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-2xl font-bold mb-2">{currentStory.title}</h3>
+                  <h3 className="mb-2 text-2xl font-bold">
+                    {currentStory.title}
+                  </h3>
                   {currentStory.description && (
-                    <p className="text-muted-foreground">{currentStory.description}</p>
+                    <p className="text-muted-foreground">
+                      {currentStory.description}
+                    </p>
                   )}
                 </div>
 
                 {currentStory.acceptance_criteria && (
                   <div>
-                    <h4 className="font-semibold mb-2">Acceptance Criteria:</h4>
-                    <p className="text-sm whitespace-pre-wrap text-muted-foreground">
+                    <h4 className="mb-2 font-semibold">Acceptance Criteria:</h4>
+                    <p className="text-muted-foreground text-sm whitespace-pre-wrap">
                       {currentStory.acceptance_criteria}
                     </p>
                   </div>
@@ -184,7 +198,7 @@ export function StoryManager({ session }: StoryManagerProps) {
                       href={currentStory.external_link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-indigo-600 dark:text-indigo-400 hover:underline"
+                      className="text-indigo-600 hover:underline dark:text-indigo-400"
                     >
                       View in external tracker →
                     </a>
@@ -228,15 +242,22 @@ export function StoryManager({ session }: StoryManagerProps) {
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                size="sm"
+                size={isMobile ? "default" : "sm"}
                 onClick={() => setBulkImportOpen(true)}
+                className="touch-manipulation"
               >
-                <FileUp className="h-4 w-4 mr-2" />
-                Import CSV
+                <FileUp className="mr-2 h-4 w-4" />
+                {!isMobile && "Import CSV"}
+                {isMobile && "Import"}
               </Button>
-              <Button size="sm" onClick={() => setAddStoryOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Story
+              <Button
+                size={isMobile ? "default" : "sm"}
+                onClick={() => setAddStoryOpen(true)}
+                className="touch-manipulation"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                {!isMobile && "Add Story"}
+                {isMobile && "Add"}
               </Button>
             </div>
           </div>
@@ -249,19 +270,22 @@ export function StoryManager({ session }: StoryManagerProps) {
               ))}
             </div>
           ) : localStories.length === 0 ? (
-            <div className="text-center py-12">
-              <ListOrdered className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No stories yet</h3>
+            <div className="py-12 text-center">
+              <ListOrdered className="text-muted-foreground mx-auto mb-4 h-12 w-12" />
+              <h3 className="mb-2 text-lg font-medium">No stories yet</h3>
               <p className="text-muted-foreground mb-4">
                 Add stories to start your planning poker session
               </p>
-              <div className="flex gap-2 justify-center">
+              <div className="flex justify-center gap-2">
                 <Button onClick={() => setAddStoryOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Plus className="mr-2 h-4 w-4" />
                   Add First Story
                 </Button>
-                <Button variant="outline" onClick={() => setBulkImportOpen(true)}>
-                  <FileUp className="h-4 w-4 mr-2" />
+                <Button
+                  variant="outline"
+                  onClick={() => setBulkImportOpen(true)}
+                >
+                  <FileUp className="mr-2 h-4 w-4" />
                   Import from CSV
                 </Button>
               </div>
