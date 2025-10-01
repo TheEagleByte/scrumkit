@@ -33,10 +33,24 @@ import { Loader2 } from "lucide-react";
 const formSchema = z.object({
   title: z.string().min(1, "Title is required").max(255, "Title is too long"),
   description: z.string().max(1000, "Description is too long").optional(),
-  estimationSequence: z.enum(["fibonacci", "tshirt", "linear", "powers-of-2"]),
+  estimationSequence: z.enum(["fibonacci", "tshirt", "linear", "powers-of-2", "custom"]),
+  customSequence: z.string().optional(),
   autoReveal: z.boolean(),
   allowRevote: z.boolean(),
   showVoterNames: z.boolean(),
+}).refine((data) => {
+  // If custom sequence is selected, customSequence must be provided and valid
+  if (data.estimationSequence === "custom") {
+    if (!data.customSequence || data.customSequence.trim().length === 0) {
+      return false;
+    }
+    const values = data.customSequence.split(",").map(v => v.trim()).filter(v => v.length > 0);
+    return values.length >= 3 && values.length <= 20;
+  }
+  return true;
+}, {
+  message: "Custom sequence must have between 3 and 20 comma-separated values",
+  path: ["customSequence"],
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -54,20 +68,38 @@ export function PokerSessionForm() {
       title: "",
       description: "",
       estimationSequence: "fibonacci",
+      customSequence: "",
       autoReveal: false,
       allowRevote: true,
       showVoterNames: true,
     },
   });
 
+  const selectedSequence = form.watch("estimationSequence");
+
   async function onSubmit(values: FormValues) {
     setIsSubmitting(true);
     try {
+      // Parse custom sequence if provided
+      let customSequence: (string | number)[] | undefined;
+      if (values.estimationSequence === "custom" && values.customSequence) {
+        customSequence = values.customSequence
+          .split(",")
+          .map(v => v.trim())
+          .filter(v => v.length > 0)
+          .map(v => {
+            // Try to parse as number, otherwise keep as string
+            const num = parseFloat(v);
+            return isNaN(num) ? v : num;
+          });
+      }
+
       const result = await createSession.mutateAsync({
         title: values.title,
         description: values.description,
         settings: {
           estimationSequence: values.estimationSequence,
+          customSequence,
           autoReveal: values.autoReveal,
           allowRevote: values.allowRevote,
           showVoterNames: values.showVoterNames,
@@ -167,6 +199,14 @@ export function PokerSessionForm() {
                           </div>
                         </SelectItem>
                       ))}
+                      <SelectItem value="custom">
+                        <div className="flex flex-col">
+                          <span className="font-medium">Custom Sequence</span>
+                          <span className="text-xs text-muted-foreground">
+                            Create your own estimation values
+                          </span>
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <FormDescription>
@@ -176,6 +216,35 @@ export function PokerSessionForm() {
                 </FormItem>
               )}
             />
+
+            {/* Custom Sequence Input */}
+            {selectedSequence === "custom" && (
+              <FormField
+                control={form.control}
+                name="customSequence"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Custom Values</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Enter values separated by commas (e.g., 1, 2, 3, 5, 8, 🚀, 🐌, ?, ☕)"
+                        {...field}
+                        disabled={isSubmitting}
+                        rows={3}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Enter 3-20 values separated by commas. You can use numbers, text, or emojis!
+                      <br />
+                      <span className="text-xs">
+                        Examples: 1, 2, 3, 5, 8 • XS, S, M, L, XL • 🚀, 🏃, 🚶, 🐌, ☕
+                      </span>
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             {/* Session Settings */}
             <div className="space-y-4">

@@ -53,11 +53,12 @@ npm run lint
 
 **Planning Poker** (`src/app/poker/*`):
 - Session creation with customizable settings
-- Estimation sequences (Fibonacci, T-shirt, Linear, Powers of 2)
+- Estimation sequences (Fibonacci, T-shirt, Linear, Powers of 2, Custom)
+- Custom sequence creator with emoji support (numbers, text, emojis: 🚀, 🏃, 🚶, 🐌, etc.)
 - Session management and history
 - Cookie-based anonymous session tracking
-- Real-time participant presence (future stories)
-- Voting and reveal system (future stories)
+- Real-time participant presence
+- Voting and reveal system with auto-reveal
 
 ## Supabase Configuration
 

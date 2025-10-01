@@ -10,6 +10,9 @@ import {
   canJoinSession,
   canVoteOnStory,
   canRevealVotes,
+  parseCustomSequence,
+  validateCustomSequence,
+  getEmojiSuggestions,
 } from '../utils';
 
 describe('getSequenceByType', () => {
@@ -395,5 +398,138 @@ describe('canRevealVotes', () => {
 
   it('should not allow revealing votes for revealed stories', () => {
     expect(canRevealVotes('revealed')).toBe(false);
+  });
+});
+
+describe('parseCustomSequence', () => {
+  it('should parse numeric values', () => {
+    const result = parseCustomSequence('1, 2, 3, 5, 8');
+    expect(result).toEqual([1, 2, 3, 5, 8]);
+  });
+
+  it('should parse text values', () => {
+    const result = parseCustomSequence('XS, S, M, L, XL');
+    expect(result).toEqual(['XS', 'S', 'M', 'L', 'XL']);
+  });
+
+  it('should parse emoji values', () => {
+    const result = parseCustomSequence('🚀, 🏃, 🚶, 🐌, ☕');
+    expect(result).toEqual(['🚀', '🏃', '🚶', '🐌', '☕']);
+  });
+
+  it('should parse mixed values', () => {
+    const result = parseCustomSequence('1, 2, 3, XL, 🚀, ?');
+    expect(result).toEqual([1, 2, 3, 'XL', '🚀', '?']);
+  });
+
+  it('should trim whitespace', () => {
+    const result = parseCustomSequence('  1  ,  2  ,  3  ');
+    expect(result).toEqual([1, 2, 3]);
+  });
+
+  it('should filter empty values', () => {
+    const result = parseCustomSequence('1, , 2, , 3');
+    expect(result).toEqual([1, 2, 3]);
+  });
+
+  it('should handle single value', () => {
+    const result = parseCustomSequence('5');
+    expect(result).toEqual([5]);
+  });
+
+  it('should handle empty string', () => {
+    const result = parseCustomSequence('');
+    expect(result).toEqual([]);
+  });
+
+  it('should parse decimal numbers', () => {
+    const result = parseCustomSequence('0.5, 1, 1.5, 2');
+    expect(result).toEqual([0.5, 1, 1.5, 2]);
+  });
+
+  it('should handle special characters', () => {
+    const result = parseCustomSequence('?, ☕, 💤');
+    expect(result).toEqual(['?', '☕', '💤']);
+  });
+});
+
+describe('validateCustomSequence', () => {
+  it('should validate sequence with 3 values', () => {
+    expect(validateCustomSequence([1, 2, 3])).toBe(true);
+  });
+
+  it('should validate sequence with 20 values', () => {
+    const values = Array.from({ length: 20 }, (_, i) => i + 1);
+    expect(validateCustomSequence(values)).toBe(true);
+  });
+
+  it('should reject sequence with less than 3 values', () => {
+    expect(validateCustomSequence([1, 2])).toBe(false);
+  });
+
+  it('should reject sequence with more than 20 values', () => {
+    const values = Array.from({ length: 21 }, (_, i) => i + 1);
+    expect(validateCustomSequence(values)).toBe(false);
+  });
+
+  it('should validate mixed types', () => {
+    expect(validateCustomSequence([1, 'XL', '🚀'])).toBe(true);
+  });
+
+  it('should validate emoji values', () => {
+    expect(validateCustomSequence(['🚀', '🏃', '🚶', '🐌'])).toBe(true);
+  });
+
+  it('should reject empty string values', () => {
+    expect(validateCustomSequence([1, '', 3])).toBe(false);
+  });
+
+  it('should reject whitespace-only string values', () => {
+    expect(validateCustomSequence([1, '  ', 3])).toBe(false);
+  });
+
+  it('should validate decimal numbers', () => {
+    expect(validateCustomSequence([0.5, 1, 1.5, 2])).toBe(true);
+  });
+
+  it('should reject NaN values', () => {
+    expect(validateCustomSequence([1, NaN, 3])).toBe(false);
+  });
+
+  it('should handle special characters', () => {
+    expect(validateCustomSequence(['?', '☕', '💤'])).toBe(true);
+  });
+});
+
+describe('getEmojiSuggestions', () => {
+  it('should return emoji suggestions', () => {
+    const suggestions = getEmojiSuggestions();
+    expect(suggestions).toBeInstanceOf(Array);
+    expect(suggestions.length).toBeGreaterThan(0);
+  });
+
+  it('should have category and values for each suggestion', () => {
+    const suggestions = getEmojiSuggestions();
+    suggestions.forEach(suggestion => {
+      expect(suggestion).toHaveProperty('category');
+      expect(suggestion).toHaveProperty('values');
+      expect(Array.isArray(suggestion.values)).toBe(true);
+      expect(suggestion.values.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('should include speed category', () => {
+    const suggestions = getEmojiSuggestions();
+    const speedCategory = suggestions.find(s => s.category === 'Speed');
+    expect(speedCategory).toBeDefined();
+    expect(speedCategory?.values).toContain('🚀');
+  });
+
+  it('should include common category', () => {
+    const suggestions = getEmojiSuggestions();
+    const commonCategory = suggestions.find(s => s.category === 'Common');
+    expect(commonCategory).toBeDefined();
+    expect(commonCategory?.values).toContain('?');
+    expect(commonCategory?.values).toContain('☕');
   });
 });
