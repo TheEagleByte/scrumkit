@@ -43,6 +43,7 @@ export async function createPokerSession(input: CreatePokerSessionInput) {
       title: input.title,
       description: input.description,
       team_id: input.teamId || null,
+      unique_url: "", // Will be set by trigger
       creator_cookie: creatorCookie,
       is_anonymous: !input.teamId, // Anonymous if no team
       estimation_sequence: settings.estimationSequence,
