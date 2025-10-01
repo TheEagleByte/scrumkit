@@ -160,6 +160,253 @@ export type Database = {
         }
         Relationships: []
       }
+      poker_participants: {
+        Row: {
+          avatar_url: string | null
+          id: string
+          is_facilitator: boolean | null
+          is_observer: boolean | null
+          joined_at: string | null
+          last_seen_at: string | null
+          name: string
+          participant_cookie: string | null
+          profile_id: string | null
+          session_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          id?: string
+          is_facilitator?: boolean | null
+          is_observer?: boolean | null
+          joined_at?: string | null
+          last_seen_at?: string | null
+          name: string
+          participant_cookie?: string | null
+          profile_id?: string | null
+          session_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          id?: string
+          is_facilitator?: boolean | null
+          is_observer?: boolean | null
+          joined_at?: string | null
+          last_seen_at?: string | null
+          name?: string
+          participant_cookie?: string | null
+          profile_id?: string | null
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poker_participants_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poker_participants_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "poker_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poker_sessions: {
+        Row: {
+          allow_revote: boolean | null
+          auto_reveal: boolean | null
+          created_at: string | null
+          created_by: string | null
+          creator_cookie: string | null
+          current_story_id: string | null
+          custom_sequence: Json | null
+          description: string | null
+          ended_at: string | null
+          estimation_sequence: string | null
+          id: string
+          is_anonymous: boolean | null
+          is_deleted: boolean | null
+          show_voter_names: boolean | null
+          status: string | null
+          team_id: string | null
+          title: string
+          unique_url: string
+          updated_at: string | null
+        }
+        Insert: {
+          allow_revote?: boolean | null
+          auto_reveal?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          creator_cookie?: string | null
+          current_story_id?: string | null
+          custom_sequence?: Json | null
+          description?: string | null
+          ended_at?: string | null
+          estimation_sequence?: string | null
+          id?: string
+          is_anonymous?: boolean | null
+          is_deleted?: boolean | null
+          show_voter_names?: boolean | null
+          status?: string | null
+          team_id?: string | null
+          title: string
+          unique_url: string
+          updated_at?: string | null
+        }
+        Update: {
+          allow_revote?: boolean | null
+          auto_reveal?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          creator_cookie?: string | null
+          current_story_id?: string | null
+          custom_sequence?: Json | null
+          description?: string | null
+          ended_at?: string | null
+          estimation_sequence?: string | null
+          id?: string
+          is_anonymous?: boolean | null
+          is_deleted?: boolean | null
+          show_voter_names?: boolean | null
+          status?: string | null
+          team_id?: string | null
+          title?: string
+          unique_url?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_current_story"
+            columns: ["current_story_id"]
+            isOneToOne: false
+            referencedRelation: "poker_stories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poker_sessions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poker_sessions_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poker_stories: {
+        Row: {
+          acceptance_criteria: string | null
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          external_link: string | null
+          final_estimate: string | null
+          id: string
+          session_id: string
+          status: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          acceptance_criteria?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          external_link?: string | null
+          final_estimate?: string | null
+          id?: string
+          session_id: string
+          status?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          acceptance_criteria?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          external_link?: string | null
+          final_estimate?: string | null
+          id?: string
+          session_id?: string
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poker_stories_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "poker_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poker_votes: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_revealed: boolean | null
+          participant_id: string
+          session_id: string
+          story_id: string
+          updated_at: string | null
+          vote_value: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_revealed?: boolean | null
+          participant_id: string
+          session_id: string
+          story_id: string
+          updated_at?: string | null
+          vote_value: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_revealed?: boolean | null
+          participant_id?: string
+          session_id?: string
+          story_id?: string
+          updated_at?: string | null
+          vote_value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_vote_session"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "poker_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poker_votes_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "poker_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poker_votes_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "poker_stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -302,7 +549,6 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           creator_cookie: string | null
-          description: string | null
           id: string
           is_anonymous: boolean | null
           is_archived: boolean | null
@@ -324,7 +570,6 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           creator_cookie?: string | null
-          description?: string | null
           id?: string
           is_anonymous?: boolean | null
           is_archived?: boolean | null
@@ -346,7 +591,6 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           creator_cookie?: string | null
-          description?: string | null
           id?: string
           is_anonymous?: boolean | null
           is_archived?: boolean | null
