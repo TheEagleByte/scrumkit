@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   DndContext,
   closestCenter,
@@ -39,10 +39,12 @@ function SortableStoryCard({
   story,
   sessionId,
   isCurrentStory,
+  onSetCurrent,
 }: {
   story: PokerStory;
   sessionId: string;
   isCurrentStory: boolean;
+  onSetCurrent?: (id: string | null) => void;
 }) {
   const {
     attributes,
@@ -66,6 +68,7 @@ function SortableStoryCard({
         isCurrentStory={isCurrentStory}
         isDragging={isDragging}
         dragHandleProps={listeners}
+        onSetCurrent={onSetCurrent}
       />
     </div>
   );
@@ -78,6 +81,7 @@ export function StoryManager({ session }: StoryManagerProps) {
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [, setActiveId] = useState<string | null>(null);
   const [localStories, setLocalStories] = useState<PokerStory[]>([]);
+  const [currentStoryId, setCurrentStoryId] = useState<string | null>(session.current_story_id ?? null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -87,9 +91,16 @@ export function StoryManager({ session }: StoryManagerProps) {
   );
 
   // Update local stories when data changes
-  if (stories && stories !== localStories) {
-    setLocalStories(stories);
-  }
+  useEffect(() => {
+    if (stories) {
+      setLocalStories(stories);
+    }
+  }, [stories]);
+
+  // Sync currentStoryId with session prop
+  useEffect(() => {
+    setCurrentStoryId(session.current_story_id ?? null);
+  }, [session.current_story_id]);
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
@@ -124,7 +135,7 @@ export function StoryManager({ session }: StoryManagerProps) {
     reorderStories.mutate({ sessionId: session.id, storyOrders });
   };
 
-  const currentStory = localStories.find((s) => s.id === session.current_story_id);
+  const currentStory = localStories.find((s) => s.id === currentStoryId);
 
   return (
     <div className="space-y-6">
@@ -181,8 +192,9 @@ export function StoryManager({ session }: StoryManagerProps) {
       {localStories.length > 0 && (
         <StoryNavigation
           stories={localStories}
-          currentStoryId={session.current_story_id ?? null}
+          currentStoryId={currentStoryId}
           sessionId={session.id}
+          onSetCurrent={setCurrentStoryId}
         />
       )}
 
@@ -254,7 +266,8 @@ export function StoryManager({ session }: StoryManagerProps) {
                       key={story.id}
                       story={story}
                       sessionId={session.id}
-                      isCurrentStory={story.id === session.current_story_id}
+                      isCurrentStory={story.id === currentStoryId}
+                      onSetCurrent={setCurrentStoryId}
                     />
                   ))}
                 </div>

@@ -41,10 +41,17 @@ export function BulkImportDialog({
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Reset previous state
+    setParsedData(null);
+
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target?.result as string;
       setCsvText(text);
+    };
+    reader.onerror = () => {
+      console.error("Error reading CSV file");
+      setParsedData(null);
     };
     reader.readAsText(file);
   };
@@ -132,8 +139,15 @@ export function BulkImportDialog({
               </div>
               <Textarea
                 value={csvText}
-                onChange={(e) => setCsvText(e.target.value)}
-                placeholder="Paste your CSV content here...&#10;&#10;Example:&#10;title,description,acceptance_criteria,external_link&#10;&quot;User Login&quot;,&quot;Implement authentication&quot;,&quot;Users can login&quot;,&quot;https://example.com&quot;"
+                onChange={(e) => {
+                  setCsvText(e.target.value);
+                  setParsedData(null);
+                }}
+                placeholder={`Paste your CSV content here...
+
+Example:
+title,description,acceptance_criteria,external_link
+"User Login","Implement authentication","Users can login","https://example.com"`}
                 rows={10}
                 className="font-mono text-sm"
               />

@@ -199,7 +199,9 @@ export function useDeletePokerStory() {
         sessionId,
         scheduledFor: Date.now() + 5000, // Delete after 5 seconds
       };
-      localStorage.setItem(deletionKey, JSON.stringify(deletionData));
+      if (typeof window !== "undefined") {
+        localStorage.setItem(deletionKey, JSON.stringify(deletionData));
+      }
 
       return { previousStories, storyToDelete, deletionKey, storyId, sessionId };
     },
@@ -213,7 +215,7 @@ export function useDeletePokerStory() {
       }
 
       // Clean up localStorage
-      if (context?.deletionKey) {
+      if (context?.deletionKey && typeof window !== "undefined") {
         localStorage.removeItem(context.deletionKey);
       }
 
@@ -221,7 +223,7 @@ export function useDeletePokerStory() {
     },
     onSuccess: (data, variables, context) => {
       const message = `Story "${context?.storyToDelete?.title}" deleted`;
-      let deletionTimeoutId: NodeJS.Timeout | null = null;
+      let deletionTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
       // Show undo toast
       toast.success(message, {
@@ -235,7 +237,7 @@ export function useDeletePokerStory() {
             }
 
             // Remove from localStorage
-            if (context?.deletionKey) {
+            if (context?.deletionKey && typeof window !== "undefined") {
               localStorage.removeItem(context.deletionKey);
             }
 
@@ -257,6 +259,7 @@ export function useDeletePokerStory() {
         // Check if deletion was cancelled
         if (
           context?.deletionKey &&
+          typeof window !== "undefined" &&
           !localStorage.getItem(context.deletionKey)
         ) {
           return;
@@ -267,7 +270,7 @@ export function useDeletePokerStory() {
           await deletePokerStory(context?.storyId || variables.storyId);
 
           // Clean up localStorage
-          if (context?.deletionKey) {
+          if (context?.deletionKey && typeof window !== "undefined") {
             localStorage.removeItem(context.deletionKey);
           }
 

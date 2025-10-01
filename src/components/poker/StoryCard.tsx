@@ -31,6 +31,7 @@ interface StoryCardProps {
   isCurrentStory?: boolean;
   isDragging?: boolean;
   dragHandleProps?: Record<string, unknown>;
+  onSetCurrent?: (id: string | null) => void;
 }
 
 export function StoryCard({
@@ -39,6 +40,7 @@ export function StoryCard({
   isCurrentStory,
   isDragging,
   dragHandleProps,
+  onSetCurrent,
 }: StoryCardProps) {
   const [editOpen, setEditOpen] = useState(false);
   const deleteStory = useDeletePokerStory();
@@ -49,6 +51,8 @@ export function StoryCard({
   };
 
   const handleSetCurrent = async () => {
+    // Update UI immediately if callback provided
+    onSetCurrent?.(story.id);
     await setCurrentStory.mutateAsync({ sessionId, storyId: story.id });
   };
 

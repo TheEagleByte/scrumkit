@@ -16,12 +16,14 @@ interface StoryNavigationProps {
   stories: PokerStory[];
   currentStoryId: string | null;
   sessionId: string;
+  onSetCurrent?: (id: string | null) => void;
 }
 
 export function StoryNavigation({
   stories,
   currentStoryId,
   sessionId,
+  onSetCurrent,
 }: StoryNavigationProps) {
   const setCurrentStory = useSetCurrentStory();
 
@@ -39,6 +41,8 @@ export function StoryNavigation({
   const handlePrevious = async () => {
     if (hasPrevious) {
       const previousStory = stories[currentIndex - 1];
+      // Update UI immediately if callback provided
+      onSetCurrent?.(previousStory.id);
       await setCurrentStory.mutateAsync({
         sessionId,
         storyId: previousStory.id,
@@ -49,6 +53,8 @@ export function StoryNavigation({
   const handleNext = async () => {
     if (hasNext) {
       const nextStory = stories[currentIndex + 1];
+      // Update UI immediately if callback provided
+      onSetCurrent?.(nextStory.id);
       await setCurrentStory.mutateAsync({
         sessionId,
         storyId: nextStory.id,
@@ -57,6 +63,8 @@ export function StoryNavigation({
   };
 
   const handleSelectStory = async (storyId: string) => {
+    // Update UI immediately if callback provided
+    onSetCurrent?.(storyId);
     await setCurrentStory.mutateAsync({
       sessionId,
       storyId,

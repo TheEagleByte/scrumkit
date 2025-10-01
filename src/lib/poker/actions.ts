@@ -407,7 +407,7 @@ export async function createPokerStory(input: CreatePokerStoryInput): Promise<Po
   // Fetch the session to verify permissions
   const { data: session, error: sessionError } = await supabase
     .from("poker_sessions")
-    .select("creator_cookie, team_id, id")
+    .select("creator_cookie, team_id, id, unique_url")
     .eq("id", input.sessionId)
     .single();
 
@@ -465,7 +465,7 @@ export async function createPokerStory(input: CreatePokerStoryInput): Promise<Po
       .eq("id", input.sessionId);
   }
 
-  revalidatePath(`/poker/${session.id}`);
+  revalidatePath(`/poker/${session.unique_url}`);
 
   return story as PokerStory;
 }
@@ -502,7 +502,7 @@ export async function updatePokerStory(
   // Get the story's session to check permissions
   const { data: story, error: fetchError } = await supabase
     .from("poker_stories")
-    .select("session_id, poker_sessions!inner(creator_cookie, team_id)")
+    .select("session_id, poker_sessions!inner(creator_cookie, team_id, unique_url)")
     .eq("id", storyId)
     .single();
 
@@ -510,7 +510,11 @@ export async function updatePokerStory(
     throw new Error("Poker story not found");
   }
 
-  const session = story.poker_sessions as unknown as { creator_cookie: string; team_id: string | null };
+  const session = story.poker_sessions as unknown as {
+    creator_cookie: string;
+    team_id: string | null;
+    unique_url: string;
+  };
 
   // Check permission for anonymous sessions
   if (!session.team_id && session.creator_cookie !== creatorCookie) {
@@ -540,7 +544,8 @@ export async function updatePokerStory(
     throw new Error("Failed to update poker story");
   }
 
-  revalidatePath(`/poker`);
+  revalidatePath(`/poker/${session.unique_url}`);
+  revalidatePath("/poker");
 }
 
 // Delete a story
@@ -554,7 +559,7 @@ export async function deletePokerStory(storyId: string): Promise<void> {
   // Get the story's session to check permissions
   const { data: story, error: fetchError } = await supabase
     .from("poker_stories")
-    .select("session_id, poker_sessions!inner(creator_cookie, team_id, current_story_id)")
+    .select("session_id, poker_sessions!inner(creator_cookie, team_id, current_story_id, unique_url)")
     .eq("id", storyId)
     .single();
 
@@ -566,6 +571,7 @@ export async function deletePokerStory(storyId: string): Promise<void> {
     creator_cookie: string;
     team_id: string | null;
     current_story_id: string | null;
+    unique_url: string;
   };
 
   // Check permission for anonymous sessions
@@ -592,7 +598,8 @@ export async function deletePokerStory(storyId: string): Promise<void> {
     throw new Error("Failed to delete poker story");
   }
 
-  revalidatePath(`/poker`);
+  revalidatePath(`/poker/${session.unique_url}`);
+  revalidatePath("/poker");
 }
 
 // Reorder stories
@@ -608,7 +615,7 @@ export async function reorderStories(
 
   const { data: session, error: sessionError } = await supabase
     .from("poker_sessions")
-    .select("creator_cookie, team_id")
+    .select("creator_cookie, team_id, unique_url")
     .eq("id", sessionId)
     .single();
 
@@ -637,7 +644,8 @@ export async function reorderStories(
     throw new Error("Failed to reorder stories");
   }
 
-  revalidatePath(`/poker`);
+  revalidatePath(`/poker/${session.unique_url}`);
+  revalidatePath("/poker");
 }
 
 // Set current story
@@ -653,7 +661,7 @@ export async function setCurrentStory(
 
   const { data: session, error: sessionError } = await supabase
     .from("poker_sessions")
-    .select("creator_cookie, team_id")
+    .select("creator_cookie, team_id, unique_url")
     .eq("id", sessionId)
     .single();
 
@@ -677,7 +685,8 @@ export async function setCurrentStory(
     throw new Error("Failed to set current story");
   }
 
-  revalidatePath(`/poker`);
+  revalidatePath(`/poker/${session.unique_url}`);
+  revalidatePath("/poker");
 }
 
 // Bulk import stories from array
@@ -693,7 +702,7 @@ export async function bulkImportStories(
 
   const { data: session, error: sessionError } = await supabase
     .from("poker_sessions")
-    .select("creator_cookie, team_id, id")
+    .select("creator_cookie, team_id, id, unique_url")
     .eq("id", sessionId)
     .single();
 
@@ -753,7 +762,8 @@ export async function bulkImportStories(
       .eq("id", sessionId);
   }
 
-  revalidatePath(`/poker`);
+  revalidatePath(`/poker/${session.unique_url}`);
+  revalidatePath("/poker");
 
   return insertedStories as PokerStory[];
 }
