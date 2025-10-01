@@ -164,3 +164,58 @@ export function canVoteOnStory(storyStatus: string): boolean {
 export function canRevealVotes(storyStatus: string): boolean {
   return storyStatus === 'voting';
 }
+
+// Parse custom sequence from comma-separated string
+export function parseCustomSequence(input: string): (string | number)[] {
+  return input
+    .split(",")
+    .map(v => v.trim())
+    .filter(v => v.length > 0)
+    .map(v => {
+      // Try to parse as number, otherwise keep as string (including emojis)
+      const num = parseFloat(v);
+      return isNaN(num) ? v : num;
+    });
+}
+
+// Validate custom sequence values
+export function validateCustomSequence(values: (string | number)[]): boolean {
+  // Must have between 3 and 20 values
+  if (values.length < 3 || values.length > 20) {
+    return false;
+  }
+
+  // All values must be non-empty
+  return values.every(v => {
+    if (typeof v === 'string') {
+      return v.trim().length > 0;
+    }
+    return !isNaN(v);
+  });
+}
+
+// Get emoji suggestions for fun sequences
+export function getEmojiSuggestions(): { category: string; values: string[] }[] {
+  return [
+    {
+      category: 'Speed',
+      values: ['🚀', '🏃', '🚶', '🐌', '🐢'],
+    },
+    {
+      category: 'Size',
+      values: ['🦐', '🐁', '🐈', '🐕', '🐘', '🦕'],
+    },
+    {
+      category: 'Temperature',
+      values: ['🔥', '🌡️', '❄️', '🧊'],
+    },
+    {
+      category: 'Common',
+      values: ['✅', '❌', '?', '☕', '💤'],
+    },
+    {
+      category: 'Effort',
+      values: ['😴', '😊', '😰', '😱', '💀'],
+    },
+  ];
+}
