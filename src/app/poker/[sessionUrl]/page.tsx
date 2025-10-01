@@ -3,9 +3,10 @@ import { getPokerSession } from "@/lib/poker/actions";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Calendar, Settings, Users } from "lucide-react";
+import { TrendingUp, Calendar, Settings } from "lucide-react";
 import { getSequenceByType } from "@/lib/poker/utils";
 import { format } from "date-fns";
+import { StoryManager } from "@/components/poker/StoryManager";
 
 export default async function PokerSessionPage({
   params,
@@ -120,28 +121,8 @@ export default async function PokerSessionPage({
           </CardContent>
         </Card>
 
-        {/* Coming Soon Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Session Features Coming Soon
-            </CardTitle>
-            <CardDescription>
-              This is Story 1: Session Management. Additional features will be added in upcoming stories.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
-              <li>Story/Ticket Management (Story 2)</li>
-              <li>Voting Interface (Story 3)</li>
-              <li>Real-time Voting Status (Story 4)</li>
-              <li>Vote Reveal System (Story 5)</li>
-              <li>Statistics & Analytics (Story 7)</li>
-              <li>Timer & Discussion Tools (Story 8)</li>
-            </ul>
-          </CardContent>
-        </Card>
+        {/* Story Management */}
+        <StoryManager session={session} />
       </div>
     </main>
   );
