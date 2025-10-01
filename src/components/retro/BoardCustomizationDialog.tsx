@@ -64,7 +64,6 @@ interface BoardColumn {
 
 interface BoardSettings {
   title: string;
-  description: string;
   is_anonymous: boolean;
   max_votes_per_user: number;
 }
@@ -335,19 +334,6 @@ export function BoardCustomizationDialog({
                     setSettings({ ...settings, title: e.target.value })
                   }
                   placeholder="e.g., Sprint 23 Retrospective"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="board-description">Board Description</Label>
-                <Textarea
-                  id="board-description"
-                  value={settings.description}
-                  onChange={(e) =>
-                    setSettings({ ...settings, description: e.target.value })
-                  }
-                  placeholder="Add a description to help participants understand the board&apos;s purpose..."
-                  rows={4}
                 />
               </div>
             </TabsContent>

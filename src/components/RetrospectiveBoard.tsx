@@ -491,13 +491,11 @@ export function RetrospectiveBoard({
   const boardSettings = useMemo(
     () => ({
       title: retrospective?.title || sprintName,
-      description: retrospective?.description || "",
       is_anonymous: retrospective?.is_anonymous ?? false,
       max_votes_per_user: retrospective?.max_votes_per_user ?? 5,
     }),
     [
       retrospective?.title,
-      retrospective?.description,
       retrospective?.is_anonymous,
       retrospective?.max_votes_per_user,
       sprintName,
@@ -507,7 +505,6 @@ export function RetrospectiveBoard({
   const handleSaveCustomization = async (
     settings: {
       title: string;
-      description: string;
       is_anonymous: boolean;
       max_votes_per_user: number;
     },
@@ -526,7 +523,6 @@ export function RetrospectiveBoard({
         retrospectiveId,
         updates: {
           title: settings.title,
-          description: settings.description,
           is_anonymous: settings.is_anonymous,
           max_votes_per_user: settings.max_votes_per_user,
         },
@@ -619,11 +615,6 @@ export function RetrospectiveBoard({
           <h1 className="text-3xl font-bold mb-1">
             {retrospective?.title || sprintName}
           </h1>
-          {retrospective?.description && (
-            <p className="text-sm text-muted-foreground mb-1">
-              {retrospective.description}
-            </p>
-          )}
           <p className="text-muted-foreground">{teamName}</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
