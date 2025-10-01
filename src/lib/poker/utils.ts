@@ -128,7 +128,7 @@ export function calculateVotingStats(votes: string[]): VotingStats {
 }
 
 // Format estimate value for display
-export function formatEstimateValue(value: string, sequenceType: EstimationSequenceType): string {
+export function formatEstimateValue(value: string): string {
   switch (value) {
     case '?':
       return 'Unsure';

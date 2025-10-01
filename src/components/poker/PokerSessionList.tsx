@@ -33,10 +33,8 @@ import {
   Trash2,
   MoreVertical,
   Clock,
-  Users,
   TrendingUp,
   CheckCircle2,
-  XCircle,
 } from "lucide-react";
 
 interface PokerSessionListProps {

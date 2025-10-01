@@ -132,7 +132,7 @@ export function PokerSessionForm() {
                     />
                   </FormControl>
                   <FormDescription>
-                    Add context about what you'll be estimating
+                    Add context about what you&apos;ll be estimating
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

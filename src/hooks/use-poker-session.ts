@@ -13,10 +13,12 @@ import {
   deletePokerSession,
   endPokerSession,
   archivePokerSession,
+} from "@/lib/poker/actions";
+import type {
   CreatePokerSessionInput,
   UpdatePokerSessionInput,
   PokerSession,
-} from "@/lib/poker/actions";
+} from "@/lib/poker/types";
 import { toast } from "sonner";
 
 // Query keys factory
