@@ -43,14 +43,21 @@ npm run lint
 
 3. **Path Aliases**: Uses `@/*` alias for `./src/*` imports
 
-### Core Application Flow
+### Core Application Features
 
-The main retrospective board (`src/components/RetrospectiveBoard.tsx`) implements:
-
+**Retrospective Board** (`src/components/RetrospectiveBoard.tsx`):
 - Four-column layout (What went well, What could be improved, Blockers, Action items)
 - Real-time item creation and deletion
 - Voting system for prioritization
 - Author attribution for accountability
+
+**Planning Poker** (`src/app/poker/*`):
+- Session creation with customizable settings
+- Estimation sequences (Fibonacci, T-shirt, Linear, Powers of 2)
+- Session management and history
+- Cookie-based anonymous session tracking
+- Real-time participant presence (future stories)
+- Voting and reveal system (future stories)
 
 ## Supabase Configuration
 
@@ -58,14 +65,21 @@ The main retrospective board (`src/components/RetrospectiveBoard.tsx`) implement
 
 The application uses the following database structure:
 
+**Retrospective Features:**
 - **organizations**: Multi-tenant organizations
 - **teams**: Development teams within organizations
 - **profiles**: User profiles linked to auth.users
 - **retrospectives**: Sprint retrospective sessions
 - **retrospective_columns**: Column types for each retrospective
 - **retrospective_items**: Individual items in each column
-- **votes**: User votes on items
+- **votes**: User votes on retrospective items
 - **action_items**: Follow-up tasks from retrospectives
+
+**Planning Poker Features:**
+- **poker_sessions**: Planning poker estimation sessions
+- **poker_stories**: Stories/tickets to be estimated
+- **poker_participants**: Session participants
+- **poker_votes**: Story estimate votes
 
 ### Environment Variables
 
@@ -83,10 +97,18 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ### Real-time Features
 
 The following tables have real-time enabled:
+
+**Retrospectives:**
 - `retrospective_items` - Live updates for board items
 - `votes` - Real-time vote tracking
 - `retrospectives` - Session status updates
 - `action_items` - Action item tracking
+
+**Planning Poker:**
+- `poker_sessions` - Session state changes
+- `poker_stories` - Story updates
+- `poker_participants` - Participant presence
+- `poker_votes` - Vote submissions and reveals
 
 ### Seed Data
 
