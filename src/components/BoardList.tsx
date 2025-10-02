@@ -14,6 +14,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import {
   MoreVertical,
@@ -45,6 +55,8 @@ interface BoardListProps {
 
 export function BoardList({ boards, showArchived = false, onArchiveStatusChange }: BoardListProps) {
   const [loadingBoardId, setLoadingBoardId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [boardToDelete, setBoardToDelete] = useState<Board | null>(null);
 
   // Use TanStack Query mutations
   const updateBoardMutation = useUpdateBoard();
@@ -68,9 +80,15 @@ export function BoardList({ boards, showArchived = false, onArchiveStatusChange 
     }
   }
 
-  function handleDelete(board: Board) {
+  async function handleDelete() {
+    if (!boardToDelete) return;
+
     // TanStack Query mutation handles optimistic updates and undo
-    deleteBoardMutation.mutate(board.unique_url);
+    deleteBoardMutation.mutate(boardToDelete.unique_url);
+
+    // Close dialog and reset state
+    setDeleteDialogOpen(false);
+    setBoardToDelete(null);
   }
 
   async function copyLink(board: Board) {
@@ -173,8 +191,12 @@ export function BoardList({ boards, showArchived = false, onArchiveStatusChange 
                           Restore Board
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => handleDelete(board)}
+                          onClick={() => {
+                            setBoardToDelete(board);
+                            setDeleteDialogOpen(true);
+                          }}
                           className="text-destructive focus:text-destructive"
+                          data-testid="delete-button"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
                           Delete Permanently
@@ -199,8 +221,12 @@ export function BoardList({ boards, showArchived = false, onArchiveStatusChange 
                           Archive
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => handleDelete(board)}
+                          onClick={() => {
+                            setBoardToDelete(board);
+                            setDeleteDialogOpen(true);
+                          }}
                           className="text-destructive focus:text-destructive"
+                          data-testid="delete-button"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
                           Delete
@@ -233,6 +259,30 @@ export function BoardList({ boards, showArchived = false, onArchiveStatusChange 
         ))}
       </div>
 
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Board?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete &quot;{boardToDelete?.title}&quot;? This action cannot be undone.
+              The board and all its items, votes, and action items will be permanently deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setBoardToDelete(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="confirm-delete"
+            >
+              Delete Board
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
