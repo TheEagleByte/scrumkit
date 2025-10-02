@@ -230,11 +230,21 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
       <CardFooter>
         <p className="text-xs text-center text-muted-foreground w-full">
           By continuing, you agree to our{" "}
-          <Link href="/terms" className="text-violet-400 hover:text-violet-300 underline">
+          <Link
+            href="/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-violet-400 hover:text-violet-300 underline"
+          >
             Terms of Service
           </Link>{" "}
           and{" "}
-          <Link href="/privacy" className="text-violet-400 hover:text-violet-300 underline">
+          <Link
+            href="/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-violet-400 hover:text-violet-300 underline"
+          >
             Privacy Policy
           </Link>
         </p>
