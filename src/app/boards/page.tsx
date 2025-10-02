@@ -89,7 +89,7 @@ export default function BoardsPage() {
       <div className="container max-w-7xl mx-auto py-8 px-4 pt-24 relative z-10">
         {/* Email Verification Banner */}
         <EmailVerificationBanner
-          user={user}
+          user={user ?? null}
           onResendEmail={() => resendEmail()}
           isResending={isResending}
         />
