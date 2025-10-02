@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Settings Page** (Issue #93)
+  - Comprehensive Settings page at `/settings` with tabbed layout
+  - Four main settings categories:
+    - **Account**: Profile link, email preferences (UI ready for future backend)
+    - **Notifications**: Email/in-app notification controls (UI ready for future backend)
+    - **Appearance**: Fully functional theme switcher (Light/Dark/System) using next-themes
+    - **Privacy**: Data management and privacy controls (UI ready for future backend)
+  - Fully functional theme switcher component:
+    - Three theme options: Light, Dark, and System
+    - Persists user preference across sessions
+    - Hydration-safe implementation prevents flash of unstyled content
+  - Mobile-responsive design with icon-only tabs on small screens
+  - Accessibility features:
+    - Proper ARIA labels and roles for tab navigation
+    - Keyboard navigation support
+    - Screen reader compatible
+  - Settings link in UserMenu now properly navigates to `/settings`
+  - Authentication guard redirects unauthenticated users to login
+  - Comprehensive Cypress E2E test coverage:
+    - Navigation from UserMenu to Settings
+    - Tab switching and content visibility
+    - Theme switcher functionality and persistence
+    - Mobile responsiveness and accessibility
+  - Settings infrastructure ready for future feature expansion
+  - Note: Most settings are UI placeholders pending backend implementation
+
 ### Fixed
 
 - **Dropdown Description Text Visibility** (Issue #92)
