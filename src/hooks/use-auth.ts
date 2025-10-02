@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
-import type { Profile, Database } from "@/lib/supabase/types-enhanced";
+import type { Profile } from "@/lib/supabase/types-enhanced";
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -14,10 +14,10 @@ export function useAuth() {
   const supabase = createClient();
 
   // Helper function to fetch profile with retry logic
-  const fetchProfile = async (userId: string, retries = 3, delay = 500): Promise<Profile | null> => {
+  const fetchProfile = useCallback(async (userId: string, retries = 3, delay = 500): Promise<Profile | null> => {
     for (let i = 0; i < retries; i++) {
       try {
-        const { data: profileData, error } = await supabase
+        const { data: profileData } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", userId)
@@ -39,7 +39,7 @@ export function useAuth() {
       }
     }
     return null;
-  };
+  }, [supabase]);
 
   useEffect(() => {
     // Get initial session
@@ -87,7 +87,7 @@ export function useAuth() {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchProfile, supabase.auth]);
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
