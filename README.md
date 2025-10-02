@@ -61,13 +61,6 @@ npm run dev
 # Open http://localhost:3000
 ```
 
-### One-Click Deploy
-
-Deploy your own instance with one click:
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/TheEagleByte/scrumkit)
-[![Deploy to Railway](https://railway.app/button.svg)](https://railway.app/template/scrumkit)
-
 ## 🛠️ Tech Stack
 
 - **Framework:** [Next.js 15](https://nextjs.org/) with App Router
