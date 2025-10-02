@@ -411,3 +411,39 @@ export function useIsAuthenticated() {
     isLoading,
   };
 }
+
+// Resend verification email
+export function useResendVerificationEmail() {
+  const { data: user } = useUser();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!user?.email) {
+        throw new Error("No user email found");
+      }
+
+      const supabase = createClient();
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: user.email,
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Verification email sent!", {
+        description: "Please check your inbox for the verification link.",
+      });
+    },
+    onError: (error: AuthError) => {
+      // Handle rate limit errors more gracefully
+      if (error.message?.toLowerCase().includes("rate limit")) {
+        toast.error("Too many requests", {
+          description: "Please wait a moment before requesting another verification email.",
+        });
+      } else {
+        toast.error(error.message || "Failed to send verification email");
+      }
+    },
+  });
+}

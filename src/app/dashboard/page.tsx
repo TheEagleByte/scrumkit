@@ -11,10 +11,14 @@ import Magnet from "@/components/Magnet";
 import StarBorder from "@/components/StarBorder";
 import InteractiveAnimatedLogo from "@/components/InteractiveAnimatedLogo";
 import { toast } from "sonner";
+import { useUser, useResendVerificationEmail } from "@/hooks/use-auth-query";
+import { EmailVerificationBanner } from "@/components/auth/EmailVerificationBanner";
 
 export default function DashboardPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { data: user } = useUser();
+  const { mutate: resendEmail, isPending: isResending } = useResendVerificationEmail();
 
   useEffect(() => {
     // Check if user just confirmed their email
@@ -40,6 +44,12 @@ export default function DashboardPage() {
       <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-blue-500/5" />
 
       <div className="container max-w-7xl mx-auto py-8 px-4 pt-24 relative z-10">
+        {/* Email Verification Banner */}
+        <EmailVerificationBanner
+          user={user}
+          onResendEmail={() => resendEmail()}
+          isResending={isResending}
+        />
         {/* Hero Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
