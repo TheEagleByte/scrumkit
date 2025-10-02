@@ -36,8 +36,10 @@ interface AuthFormWithQueryProps {
 export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQueryProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [activeTab, setActiveTab] = useState<string>("signin");
+  const [passwordError, setPasswordError] = useState("");
 
   const router = useRouter();
 
@@ -63,6 +65,19 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
   };
 
   /**
+   * Validate that password and confirm password match
+   * @returns true if passwords match, false otherwise
+   */
+  const validatePasswords = () => {
+    if (confirmPassword && password !== confirmPassword) {
+      setPasswordError("Passwords do not match");
+      return false;
+    }
+    setPasswordError("");
+    return true;
+  };
+
+  /**
    * Handle email/password sign-up form submission
    *
    * If a duplicate email is detected:
@@ -75,6 +90,11 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate passwords match before submitting
+    if (!validatePasswords()) {
+      return;
+    }
+
     try {
       await signUpMutation.mutateAsync({
         email,
@@ -84,8 +104,9 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
     } catch (error) {
       // Check if this is a duplicate email error using shared utility
       if (isDuplicateEmailError(error)) {
-        // Clear password field for security
+        // Clear password fields for security
         setPassword("");
+        setConfirmPassword("");
 
         // Auto-switch to Sign In tab and keep email pre-filled
         setActiveTab("signin");
@@ -250,10 +271,30 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
                   Password must be at least 6 characters
                 </p>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="signup-confirm-password">Confirm Password</Label>
+                <Input
+                  id="signup-confirm-password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onBlur={validatePasswords}
+                  required
+                  disabled={isLoading}
+                  aria-invalid={passwordError ? "true" : "false"}
+                  aria-describedby={passwordError ? "password-error" : undefined}
+                />
+                {passwordError && (
+                  <p id="password-error" className="text-sm text-destructive" role="alert">
+                    {passwordError}
+                  </p>
+                )}
+              </div>
               <Button
                 type="submit"
                 className="w-full"
-                disabled={isLoading}
+                disabled={isLoading || !!passwordError}
               >
                 {signUpMutation.isPending ? (
                   <>
