@@ -22,10 +22,16 @@ describe('OAuth Button Layout', () => {
   });
 
   it('should display Google button before GitHub button', () => {
-    // Get all OAuth buttons
-    cy.get('button').contains('Google').parent().parent().within(() => {
-      cy.get('button').first().should('contain', 'Google');
-      cy.get('button').last().should('contain', 'GitHub');
+    // Verify Google button appears in DOM before GitHub button
+    cy.contains('button', 'Google').then(($google) => {
+      cy.contains('button', 'GitHub').then(($github) => {
+        // Get the index of each button in the container
+        const googleIndex = $google.index();
+        const githubIndex = $github.index();
+
+        // Google should have a lower index (appear first)
+        expect(googleIndex).to.be.lessThan(githubIndex);
+      });
     });
   });
 
