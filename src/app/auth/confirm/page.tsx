@@ -21,7 +21,6 @@ export default function AuthConfirmPage() {
         // Get the token hash from the URL
         const token_hash = searchParams.get("token_hash");
         const type = searchParams.get("type");
-        const redirectTo = searchParams.get("redirectTo") || "/dashboard";
 
         if (!token_hash || !type) {
           throw new Error("Invalid confirmation link");
@@ -37,11 +36,13 @@ export default function AuthConfirmPage() {
 
         setStatus("success");
 
-        // Redirect after a short delay
-        setTimeout(() => {
-          router.push(redirectTo);
-          router.refresh();
-        }, 2000);
+        // Check if user is authenticated after verification
+        const { data: { user } } = await supabase.auth.getUser();
+
+        // Redirect immediately based on auth status with confirmation flag
+        const redirectUrl = user ? "/dashboard?confirmed=true" : "/auth?confirmed=true";
+        router.push(redirectUrl);
+        router.refresh();
       } catch (error) {
         console.error("Auth confirmation error:", error);
         setStatus("error");

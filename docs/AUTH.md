@@ -31,6 +31,18 @@ ScrumKit uses Supabase Auth for user authentication with email/password and emai
 - Users can resend verification email from `/auth/verify-email`
 - Profile is created automatically after verification via database trigger
 
+**Confirmation Feedback Flow:**
+1. User clicks email verification link
+2. Redirected to `/auth/confirm` with token parameters
+3. Token is verified via Supabase Auth
+4. On success:
+   - If user is authenticated → redirect to `/dashboard?confirmed=true`
+   - If user is not authenticated → redirect to `/auth?confirmed=true`
+5. Toast notification shows: "Email confirmed successfully!"
+   - Auth page: "You can now sign in to your account."
+   - Dashboard: "You can now access all features."
+6. URL parameter is cleared after toast is displayed
+
 ### Password Reset
 
 - Users can request password reset via "Forgot password" link
@@ -146,6 +158,7 @@ Test coverage:
 - **auth-signin.cy.ts**: Signin form, validation, loading states
 - **auth-verification.cy.ts**: Email verification flow, error handling
 - **auth-session.cy.ts**: Session management, guest access, redirects
+- **auth-email-confirmation.cy.ts**: Email confirmation toast notifications, redirect behavior
 
 ### Test Users
 
