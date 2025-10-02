@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { CheckCircle, Calendar, CreditCard, Activity, ArrowRight, Sparkles } from "lucide-react";
@@ -8,8 +10,27 @@ import { Header } from "@/components/layout/Header";
 import Magnet from "@/components/Magnet";
 import StarBorder from "@/components/StarBorder";
 import InteractiveAnimatedLogo from "@/components/InteractiveAnimatedLogo";
+import { toast } from "sonner";
 
 export default function DashboardPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  useEffect(() => {
+    // Check if user just confirmed their email
+    const confirmed = searchParams.get("confirmed");
+
+    if (confirmed === "true") {
+      // Show success toast
+      toast.success("Email confirmed successfully!", {
+        description: "You can now access all features.",
+      });
+
+      // Clear the URL parameter after showing the toast
+      router.replace("/dashboard");
+    }
+  }, [searchParams, router]);
+
   return (
     <main className="min-h-screen bg-background relative">
       {/* Header */}

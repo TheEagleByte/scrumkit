@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getUserFromServer } from "@/lib/supabase/auth";
-import { AuthFormWithQuery } from "@/components/auth/AuthFormWithQuery";
-import InteractiveAnimatedLogo from "@/components/InteractiveAnimatedLogo";
+import { Suspense } from "react";
+import { AuthPageClient } from "./AuthPageClient";
 
 export default async function AuthPage({
   searchParams,
@@ -16,26 +16,8 @@ export default async function AuthPage({
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-purple-500/5" />
-      <div className="relative z-10">
-        <div className="mb-8 text-center">
-          <div className="flex justify-center mb-4">
-            <InteractiveAnimatedLogo
-              size={64}
-              playOnMount={true}
-              enableHover={true}
-              sessionKey="auth-logo-animated"
-              className="drop-shadow-lg"
-            />
-          </div>
-          <h1 className="text-3xl font-bold mb-2">ScrumKit</h1>
-          <p className="text-muted-foreground">
-            Sign in to unlock all features
-          </p>
-        </div>
-        <AuthFormWithQuery redirectTo={searchParams.redirectTo} />
-      </div>
-    </div>
+    <Suspense fallback={null}>
+      <AuthPageClient redirectTo={searchParams.redirectTo} />
+    </Suspense>
   );
 }
