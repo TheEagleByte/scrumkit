@@ -55,7 +55,7 @@ export function UserMenu({ user, profile }: UserMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+        <Button variant="ghost" className="relative h-8 w-8 rounded-full" data-testid="user-menu-trigger">
           <Avatar className="h-8 w-8">
             <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || "User"} />
             <AvatarFallback>{getInitials()}</AvatarFallback>
