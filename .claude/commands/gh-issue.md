@@ -13,7 +13,6 @@ Follow these steps:
 - Use a branch name that follows the format `issue-<issue-number>-<short-description>` for the changes
 - Make sure to commit often with clear commit messages so you can track your progress and revert if necessary.
 - Create a descriptive commit message
-- IMPORTANT: Before a pull request is created, run `coderabbit --prompt-only` in the background, let it run as long as it needs and fix any issues.
 - Create a pull request with the changes
 - If the issue is a bug, ensure to test the fix thoroughly
 - If the issue is a feature request, ensure to implement it according to the specifications
