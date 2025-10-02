@@ -12,10 +12,27 @@ import { Loader2, ArrowRight, Github } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { isDuplicateEmailError } from "@/lib/utils/auth-utils";
 
+/**
+ * Props for the AuthFormWithQuery component
+ */
 interface AuthFormWithQueryProps {
+  /** The URL to redirect to after successful authentication */
   redirectTo?: string;
 }
 
+/**
+ * Authentication form component with TanStack Query integration
+ *
+ * Provides both sign-in and sign-up functionality with:
+ * - Email/password authentication
+ * - OAuth providers (Google, GitHub)
+ * - Duplicate email detection with auto-switch to sign-in
+ * - Password clearing on duplicate email errors
+ * - Toast notifications for user feedback
+ *
+ * @param props - Component props
+ * @returns React component
+ */
 export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQueryProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,6 +48,10 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
   const signUpMutation = useSignUp();
   const signInWithProviderMutation = useSignInWithProvider();
 
+  /**
+   * Handle email/password sign-in form submission
+   * @param e - Form submission event
+   */
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -43,6 +64,16 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
     }
   };
 
+  /**
+   * Handle email/password sign-up form submission
+   *
+   * If a duplicate email is detected:
+   * - Clears the password field for security
+   * - Auto-switches to the Sign In tab
+   * - Pre-fills the email field for user convenience
+   *
+   * @param e - Form submission event
+   */
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -67,6 +98,10 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
     }
   };
 
+  /**
+   * Handle OAuth provider sign-in
+   * @param provider - The OAuth provider to use (google or github)
+   */
   const handleOAuthSignIn = async (provider: "google" | "github") => {
     try {
       await signInWithProviderMutation.mutateAsync(provider);
