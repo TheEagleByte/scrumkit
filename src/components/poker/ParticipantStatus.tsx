@@ -63,13 +63,13 @@ export function ParticipantStatus({ story, sessionId }: ParticipantStatusProps) 
         })
         .on("presence", { event: "join" }, ({ key, newPresences }) => {
           if (process.env.NODE_ENV !== "production") {
-            // eslint-disable-next-line no-console
+             
             console.debug("Participant joined:", key, newPresences);
           }
         })
         .on("presence", { event: "leave" }, ({ key, leftPresences }) => {
           if (process.env.NODE_ENV !== "production") {
-            // eslint-disable-next-line no-console
+             
             console.debug("Participant left:", key, leftPresences);
           }
         })
