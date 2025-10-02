@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,9 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [activeTab, setActiveTab] = useState<string>("signin");
+
+  const passwordRef = useRef<HTMLInputElement>(null);
 
   const router = useRouter();
 
@@ -49,7 +52,23 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
         fullName
       });
     } catch (error) {
-      // Error is handled by the mutation
+      // Check if this is a duplicate email error
+      const errorMessage = error instanceof Error ? error.message : '';
+      const isDuplicateEmail =
+        errorMessage.toLowerCase().includes('already') ||
+        errorMessage.toLowerCase().includes('registered') ||
+        errorMessage.toLowerCase().includes('exists');
+
+      if (isDuplicateEmail) {
+        // Clear password field for security
+        setPassword("");
+        if (passwordRef.current) {
+          passwordRef.current.value = "";
+        }
+
+        // Auto-switch to Sign In tab and keep email pre-filled
+        setActiveTab("signin");
+      }
     }
   };
 
@@ -73,7 +92,7 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="signin" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="signin">Sign In</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -193,6 +212,7 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
               <div className="space-y-2">
                 <Label htmlFor="signup-password">Password</Label>
                 <Input
+                  ref={passwordRef}
                   id="signup-password"
                   type="password"
                   placeholder="••••••••"

@@ -155,7 +155,19 @@ export function useSignUp() {
       toast.success("Account created! Please check your email to verify your account.");
     },
     onError: (error: AuthError) => {
-      toast.error(error.message || "Failed to sign up");
+      // Check for duplicate email error
+      const isDuplicateEmail =
+        error.message?.toLowerCase().includes('already') ||
+        error.message?.toLowerCase().includes('registered') ||
+        error.message?.toLowerCase().includes('exists');
+
+      if (isDuplicateEmail) {
+        toast.error("Account already exists", {
+          description: "Please sign in instead or use a different email."
+        });
+      } else {
+        toast.error(error.message || "Failed to sign up");
+      }
     },
   });
 }
