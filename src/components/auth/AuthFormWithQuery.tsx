@@ -10,15 +10,34 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSignIn, useSignUp, useSignInWithProvider } from "@/hooks/use-auth-query";
 import { Loader2, ArrowRight, Github } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { isDuplicateEmailError } from "@/lib/utils/auth-utils";
 
+/**
+ * Props for the AuthFormWithQuery component
+ */
 interface AuthFormWithQueryProps {
+  /** The URL to redirect to after successful authentication */
   redirectTo?: string;
 }
 
+/**
+ * Authentication form component with TanStack Query integration
+ *
+ * Provides both sign-in and sign-up functionality with:
+ * - Email/password authentication
+ * - OAuth providers (Google, GitHub)
+ * - Duplicate email detection with auto-switch to sign-in
+ * - Password clearing on duplicate email errors
+ * - Toast notifications for user feedback
+ *
+ * @param props - Component props
+ * @returns React component
+ */
 export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQueryProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [activeTab, setActiveTab] = useState<string>("signin");
 
   const router = useRouter();
 
@@ -27,6 +46,10 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
   const signUpMutation = useSignUp();
   const signInWithProviderMutation = useSignInWithProvider();
 
+  /**
+   * Handle email/password sign-in form submission
+   * @param e - Form submission event
+   */
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -39,6 +62,16 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
     }
   };
 
+  /**
+   * Handle email/password sign-up form submission
+   *
+   * If a duplicate email is detected:
+   * - Clears the password field for security
+   * - Auto-switches to the Sign In tab
+   * - Pre-fills the email field for user convenience
+   *
+   * @param e - Form submission event
+   */
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -49,10 +82,21 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
         fullName
       });
     } catch (error) {
-      // Error is handled by the mutation
+      // Check if this is a duplicate email error using shared utility
+      if (isDuplicateEmailError(error)) {
+        // Clear password field for security
+        setPassword("");
+
+        // Auto-switch to Sign In tab and keep email pre-filled
+        setActiveTab("signin");
+      }
     }
   };
 
+  /**
+   * Handle OAuth provider sign-in
+   * @param provider - The OAuth provider to use (google or github)
+   */
   const handleOAuthSignIn = async (provider: "google" | "github") => {
     try {
       await signInWithProviderMutation.mutateAsync(provider);
@@ -73,7 +117,7 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="signin" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="signin">Sign In</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>
