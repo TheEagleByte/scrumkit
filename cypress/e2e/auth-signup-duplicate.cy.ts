@@ -10,6 +10,9 @@ describe('Signup Duplicate Email', () => {
   })
 
   it('should prevent signup with existing email and auto-switch to sign in', () => {
+    // Intercept the signup API call
+    cy.intercept('POST', '**/auth/v1/signup').as('signupRequest')
+
     // First, create an account with the unique email
     cy.contains('Sign Up').click()
     cy.get('#signup-name').type(testFullName)
@@ -17,8 +20,11 @@ describe('Signup Duplicate Email', () => {
     cy.get('#signup-password').type(testPassword)
     cy.contains('Create Account').click()
 
-    // Wait for signup to complete (success or error)
-    cy.wait(1000)
+    // Wait for the first signup to complete
+    cy.wait('@signupRequest')
+
+    // Wait for success message or toast to appear
+    cy.contains('check your email', { matchCase: false, timeout: 5000 }).should('be.visible')
 
     // Now visit the page again and try to sign up with the same email
     cy.visit('/auth')
@@ -28,6 +34,9 @@ describe('Signup Duplicate Email', () => {
     cy.get('#signup-email').type(uniqueEmail)
     cy.get('#signup-password').type('newpassword123')
     cy.contains('Create Account').click()
+
+    // Wait for the duplicate signup request to complete
+    cy.wait('@signupRequest')
 
     // Should show error message about account already existing
     cy.contains('already exists', { matchCase: false }).should('be.visible')
@@ -46,6 +55,9 @@ describe('Signup Duplicate Email', () => {
   })
 
   it('should display user-friendly error notification', () => {
+    // Intercept the signup API call
+    cy.intercept('POST', '**/auth/v1/signup').as('signupRequest')
+
     // Create an account first
     cy.contains('Sign Up').click()
     const timestamp = Date.now()
@@ -56,7 +68,8 @@ describe('Signup Duplicate Email', () => {
     cy.get('#signup-password').type(testPassword)
     cy.contains('Create Account').click()
 
-    cy.wait(1000)
+    // Wait for the first signup to complete
+    cy.wait('@signupRequest')
 
     // Try to sign up again with same email
     cy.visit('/auth')
@@ -67,12 +80,18 @@ describe('Signup Duplicate Email', () => {
     cy.get('#signup-password').type('differentpassword')
     cy.contains('Create Account').click()
 
+    // Wait for the duplicate signup request to complete
+    cy.wait('@signupRequest')
+
     // Verify error toast appears with helpful message
     cy.contains('Account already exists').should('be.visible')
     cy.contains('sign in instead', { matchCase: false }).should('be.visible')
   })
 
   it('should handle duplicate email with different casing', () => {
+    // Intercept the signup API call
+    cy.intercept('POST', '**/auth/v1/signup').as('signupRequest')
+
     // Create account with lowercase email
     cy.contains('Sign Up').click()
     const timestamp = Date.now()
@@ -84,7 +103,8 @@ describe('Signup Duplicate Email', () => {
     cy.get('#signup-password').type(testPassword)
     cy.contains('Create Account').click()
 
-    cy.wait(1000)
+    // Wait for the first signup to complete
+    cy.wait('@signupRequest')
 
     // Try to sign up with uppercase version of same email
     cy.visit('/auth')
@@ -94,6 +114,9 @@ describe('Signup Duplicate Email', () => {
     cy.get('#signup-email').type(upperEmail)
     cy.get('#signup-password').type('newpassword')
     cy.contains('Create Account').click()
+
+    // Wait for the duplicate signup request to complete
+    cy.wait('@signupRequest')
 
     // Should still detect as duplicate (Supabase handles email normalization)
     cy.contains('already exists', { matchCase: false }).should('be.visible')

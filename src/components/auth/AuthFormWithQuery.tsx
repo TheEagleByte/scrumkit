@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,8 +38,6 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [activeTab, setActiveTab] = useState<string>("signin");
-
-  const passwordRef = useRef<HTMLInputElement>(null);
 
   const router = useRouter();
 
@@ -88,9 +86,6 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
       if (isDuplicateEmailError(error)) {
         // Clear password field for security
         setPassword("");
-        if (passwordRef.current) {
-          passwordRef.current.value = "";
-        }
 
         // Auto-switch to Sign In tab and keep email pre-filled
         setActiveTab("signin");
@@ -242,7 +237,6 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
               <div className="space-y-2">
                 <Label htmlFor="signup-password">Password</Label>
                 <Input
-                  ref={passwordRef}
                   id="signup-password"
                   type="password"
                   placeholder="••••••••"

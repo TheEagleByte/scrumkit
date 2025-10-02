@@ -14,8 +14,20 @@ export function isDuplicateEmailError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
   const lowerMessage = message.toLowerCase();
 
-  // Check for common duplicate email error patterns
-  const duplicateKeywords = ['already', 'registered', 'exists'];
+  // Check for specific duplicate email error patterns from Supabase and PostgreSQL
+  // Using more specific phrases to avoid false positives
+  const duplicatePatterns = [
+    'already registered',
+    'email already',
+    'email already exists',
+    'account already exists',
+    'user already exists',
+    'email exists',
+    'duplicate key value violates unique constraint',
+    'duplicate email',
+    'email address is already in use',
+    'user with email already exists',
+  ];
 
-  return duplicateKeywords.some((keyword) => lowerMessage.includes(keyword));
+  return duplicatePatterns.some((pattern) => lowerMessage.includes(pattern));
 }
