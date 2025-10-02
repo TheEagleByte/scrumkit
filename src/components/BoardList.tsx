@@ -262,25 +262,29 @@ export function BoardList({ boards, showArchived = false, onArchiveStatusChange 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Board?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete &quot;{boardToDelete?.title}&quot;? This action cannot be undone.
-              The board and all its items, votes, and action items will be permanently deleted.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setBoardToDelete(null)}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              data-testid="confirm-delete"
-            >
-              Delete Board
-            </AlertDialogAction>
-          </AlertDialogFooter>
+          {boardToDelete && (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Board?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete &quot;{boardToDelete.title}&quot;? This action cannot be undone.
+                  The board and all its items, votes, and action items will be permanently deleted.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setBoardToDelete(null)}>
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  data-testid="confirm-delete"
+                >
+                  Delete Board
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          )}
         </AlertDialogContent>
       </AlertDialog>
     </>

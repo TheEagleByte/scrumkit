@@ -19,6 +19,11 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 DROP POLICY IF EXISTS "Creators can update their anonymous retrospectives" ON retrospectives;
 
 -- Create a corrected policy that properly validates creator_cookie
+-- NOTE: This policy only checks that creator_cookie exists, not that it matches.
+-- Actual ownership validation (board.creator_cookie === request.cookie) is enforced
+-- in the application layer by server actions (see src/lib/boards/actions.ts:deleteBoard
+-- and updateBoard functions). This design keeps the RLS layer simple while maintaining
+-- security through server-side validation.
 CREATE POLICY "Creators can update their anonymous retrospectives"
   ON retrospectives FOR UPDATE
   USING (

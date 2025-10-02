@@ -1,3 +1,7 @@
+// Constants for board deletion tests
+const UNDO_TIMEOUT_MS = 5000; // Time window for undo functionality
+const UNDO_TIMEOUT_BUFFER_MS = 1000; // Buffer to ensure deletion completes
+
 describe('Board Management', () => {
   beforeEach(() => {
     // Clear local storage to start fresh
@@ -539,8 +543,8 @@ describe('Board Management', () => {
       cy.get('[data-testid="delete-button"]').click()
       cy.get('[data-testid="confirm-delete"]').click()
 
-      // Wait for deletion to complete (after undo timeout)
-      cy.wait(6000)
+      // Wait for deletion to complete (5s undo window + 1s buffer)
+      cy.wait(UNDO_TIMEOUT_MS + UNDO_TIMEOUT_BUFFER_MS)
 
       // Count should decrease
       cy.contains('Active Boards')
