@@ -12,12 +12,13 @@ import { useRouter } from 'next/navigation';
 
 // Mock the hooks
 jest.mock('@/hooks/use-auth-query');
-jest.mock('next/navigation');
+jest.mock('next/navigation', () => ({
+  useRouter: jest.fn(),
+}));
 
 const mockUseSignIn = useSignIn as jest.MockedFunction<typeof useSignIn>;
 const mockUseSignUp = useSignUp as jest.MockedFunction<typeof useSignUp>;
 const mockUseSignInWithProvider = useSignInWithProvider as jest.MockedFunction<typeof useSignInWithProvider>;
-const mockUseRouter = useRouter as jest.MockedFunction<typeof useRouter>;
 
 describe('AuthFormWithQuery - Password Confirmation', () => {
   const mockPush = jest.fn();
@@ -27,10 +28,10 @@ describe('AuthFormWithQuery - Password Confirmation', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockUseRouter.mockReturnValue({
+    (useRouter as jest.Mock).mockReturnValue({
       push: mockPush,
       refresh: mockRefresh,
-    } as any);
+    });
 
     mockUseSignIn.mockReturnValue({
       mutateAsync: mockMutateAsync,
