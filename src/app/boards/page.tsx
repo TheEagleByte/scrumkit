@@ -11,9 +11,13 @@ import Magnet from "@/components/Magnet";
 import StarBorder from "@/components/StarBorder";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Header } from "@/components/layout/Header";
+import { useUser, useResendVerificationEmail } from "@/hooks/use-auth-query";
+import { EmailVerificationBanner } from "@/components/auth/EmailVerificationBanner";
 
 export default function BoardsPage() {
   const [showArchived, setShowArchived] = useState(false);
+  const { data: user } = useUser();
+  const { mutate: resendEmail, isPending: isResending } = useResendVerificationEmail();
 
   // Use TanStack Query to fetch boards
   const { data: boards = [], isLoading, error } = useBoards();
@@ -83,6 +87,13 @@ export default function BoardsPage() {
       <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-blue-500/5" />
 
       <div className="container max-w-7xl mx-auto py-8 px-4 pt-24 relative z-10">
+        {/* Email Verification Banner */}
+        <EmailVerificationBanner
+          user={user ?? null}
+          onResendEmail={() => resendEmail()}
+          isResending={isResending}
+        />
+
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

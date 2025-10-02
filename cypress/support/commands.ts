@@ -134,6 +134,22 @@ Cypress.Commands.add('navigateWithKeyboard', (times: number = 1, key: string = '
   }
 })
 
+// Command to login as an unverified user (from test fixtures)
+Cypress.Commands.add('loginAsUnverified', () => {
+  cy.fixture('test-users.json').then((users) => {
+    const { email, password } = users.unverifiedUser
+    cy.login(email, password)
+  })
+})
+
+// Command to create an unverified user account
+Cypress.Commands.add('createUnverifiedUser', (email: string, password: string, fullName: string) => {
+  // Note: This requires Supabase to be configured to allow unverified login
+  cy.signup(email, password, fullName)
+  // Login immediately without waiting for email confirmation
+  cy.login(email, password)
+})
+
 // Type declarations for TypeScript
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -151,6 +167,8 @@ declare global {
       waitForAnimation(): Chainable<void>
       checkA11y(selector?: string): Chainable<void>
       navigateWithKeyboard(times?: number, key?: string): Chainable<void>
+      loginAsUnverified(): Chainable<void>
+      createUnverifiedUser(email: string, password: string, fullName: string): Chainable<void>
     }
   }
 }

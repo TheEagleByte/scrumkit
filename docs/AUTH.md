@@ -12,24 +12,28 @@ ScrumKit uses Supabase Auth for user authentication with email/password and emai
 2. Clicks "Sign Up" tab
 3. Enters full name, email, and password (minimum 6 characters)
 4. Submits form
-5. Receives email with verification link
-6. Clicks verification link
-7. Account is activated and profile created automatically via database trigger
-8. User is redirected to `/retro`
+5. Profile is created immediately via database trigger
+6. Receives email with verification link
+7. User can login immediately (verification not required for sign-in)
+8. Verification banner shows on dashboard/protected pages until email is verified
 
 ### Sign In Flow
 
 1. User navigates to `/auth`
 2. Enters email and password
 3. Submits form
-4. Authenticated and redirected to intended destination
+4. Authenticated and redirected to intended destination (works for both verified and unverified users)
+5. If unverified, user sees verification banner on protected pages
 
 ### Email Verification
 
-- Required for all new accounts
-- Verification link sent via email
-- Users can resend verification email from `/auth/verify-email`
-- Profile is created automatically after verification via database trigger
+- **Recommended but not required** for login
+- Verification link sent via email after signup
+- Users can resend verification email from the banner on dashboard/boards pages
+- Profile is created immediately after signup (not after verification)
+- Verification status tracked via `auth.users.email_confirmed_at`
+- Unverified users see a prominent orange banner reminding them to verify
+- Banner is dismissible but reappears on page refresh
 
 **Confirmation Feedback Flow:**
 1. User clicks email verification link
@@ -70,11 +74,13 @@ Unauthenticated users are redirected to `/auth` with a `redirectTo` parameter.
 
 ## Security Features
 
-- **Email Verification**: Required for all new accounts
+- **Email Verification**: Recommended for all accounts (soft requirement, not blocking)
 - **Password Requirements**: Minimum 6 characters
-- **Database Trigger**: Profiles created only after email confirmation
+- **Database Trigger**: Profiles created immediately after signup for all users
 - **Row Level Security**: All database operations protected by RLS policies
 - **Minimal Permissions**: Anonymous and authenticated users have SELECT-only access to most tables
+- **Verification Tracking**: Email verification status tracked via `auth.users.email_confirmed_at`
+- **User Experience**: Prominent reminders for unverified users to complete email verification
 
 ## Development
 
@@ -87,12 +93,13 @@ Unauthenticated users are redirected to `/auth` with a `redirectTo` parameter.
 
 ### Database Trigger
 
-Profile creation is automated via database trigger in `supabase/migrations/20250928000000_create_profile_trigger.sql`:
+Profile creation is automated via database trigger in `supabase/migrations/20251002000000_allow_unverified_login.sql`:
 
-- Trigger fires after INSERT or UPDATE on `auth.users`
-- Only creates profile when `email_confirmed_at` is NOT NULL
+- Trigger fires after INSERT on `auth.users` for all new users
+- Creates profile immediately regardless of email verification status
 - Prevents duplicate profiles with `ON CONFLICT DO NOTHING`
 - Uses SECURITY DEFINER for proper permissions
+- Email verification status tracked separately via `auth.users.email_confirmed_at`
 
 ### Troubleshooting
 
@@ -115,10 +122,16 @@ Profile creation is automated via database trigger in `supabase/migrations/20250
 - Check browser console for auth errors
 
 **Profile not created:**
-- Verify email has been confirmed
-- Check database trigger exists and is enabled
+- Check database trigger exists and is enabled (`handle_new_user` function)
 - Review Supabase logs for trigger errors
-- Ensure user has confirmed their email
+- Verify migration `20251002000000_allow_unverified_login.sql` has been applied
+- Profile should be created immediately after signup, even for unverified users
+
+**Verification banner not showing:**
+- Ensure user is logged in but email is not verified
+- Check that `user.email_confirmed_at` is null
+- Verify EmailVerificationBanner component is imported on the page
+- Check browser console for React errors
 
 ## API Reference
 
@@ -159,6 +172,7 @@ Test coverage:
 - **auth-verification.cy.ts**: Email verification flow, error handling
 - **auth-session.cy.ts**: Session management, guest access, redirects
 - **auth-email-confirmation.cy.ts**: Email confirmation toast notifications, redirect behavior
+- **auth-unverified-login.cy.ts**: Unverified user login, verification banner display, resend functionality
 
 ### Test Users
 
@@ -190,13 +204,15 @@ The authentication system was simplified to remove magic link authentication:
 
 ## Best Practices
 
-1. **Always verify email**: Don't trust unverified users
+1. **Encourage email verification**: While not required for login, prompt users to verify with banners
 2. **Use strong passwords**: Enforce minimum 6 characters (consider increasing)
 3. **Handle errors gracefully**: Show clear, helpful error messages
 4. **Test auth flows**: Use Cypress tests to prevent regressions
 5. **Monitor logs**: Check Supabase dashboard for auth issues
 6. **Secure sessions**: Use HTTP-only cookies, refresh tokens properly
 7. **Follow least privilege**: Grant minimal database permissions
+8. **Track verification status**: Use `user.email_confirmed_at` to differentiate verified/unverified users
+9. **Provide easy resend**: Make it simple for users to resend verification emails
 
 ## Future Enhancements
 
