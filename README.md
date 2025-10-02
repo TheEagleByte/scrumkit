@@ -61,16 +61,6 @@ npm run dev
 # Open http://localhost:3000
 ```
 
-### Deployment
-
-Deployment options coming soon. Stay tuned!
-
-<!-- TODO: Re-enable deployment options once production-ready (issue #78)
-For self-hosting instructions, see our [Self-Hosting Guide](SELF_HOSTING.md).
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/TheEagleByte/scrumkit)
-[![Deploy to Railway](https://railway.app/button.svg)](https://railway.app/template/scrumkit)
--->
-
 ## 🛠️ Tech Stack
 
 - **Framework:** [Next.js 15](https://nextjs.org/) with App Router
