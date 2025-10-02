@@ -51,3 +51,5 @@ next-env.d.ts
 
 PROJECT.md
 roadmap/
+
+.playwright-mcp/
