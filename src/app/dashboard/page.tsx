@@ -150,17 +150,18 @@ export default function DashboardPage() {
             </Magnet>
           </motion.div>
 
-          {/* Planning Poker Feature - Coming Soon */}
+          {/* Planning Poker Feature - Available */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.5 }}
-            className="group relative p-8 rounded-2xl bg-gradient-to-br from-blue-950/30 to-cyan-950/30 border border-blue-500/20 opacity-75"
+            whileHover={{ scale: 1.02 }}
+            className="group relative p-8 rounded-2xl bg-gradient-to-br from-blue-950/30 to-cyan-950/30 border border-blue-500/20 hover:border-blue-500/40 transition-all"
           >
             <div className="absolute top-4 right-4">
-              <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-medium">Coming Soon</span>
+              <span className="px-3 py-1 rounded-full bg-green-500/10 text-green-400 text-xs font-medium">Available Now</span>
             </div>
-            <div className="w-14 h-14 rounded-xl bg-blue-500/10 flex items-center justify-center mb-4">
+            <div className="w-14 h-14 rounded-xl bg-blue-500/10 flex items-center justify-center mb-4 group-hover:bg-blue-500/20 transition-colors">
               <CreditCard className="w-7 h-7 text-blue-500" />
             </div>
             <h3 className="text-2xl font-semibold mb-3">ScrumKit Poker</h3>
@@ -181,9 +182,20 @@ export default function DashboardPage() {
                 Velocity tracking
               </li>
             </ul>
-            <Button className="w-full bg-blue-500/10 hover:bg-blue-500/10 text-blue-400 border-blue-500/20 cursor-not-allowed" disabled>
-              Coming Soon
-            </Button>
+            <Magnet padding={20} magnetStrength={2}>
+              <Link href="/poker" className="block">
+                <StarBorder
+                  color="#3b82f6"
+                  speed="3s"
+                  className="w-full hover:scale-105 transition-transform duration-200"
+                >
+                  <span className="flex items-center justify-center px-4 py-2.5 font-medium text-blue-400">
+                    View Sessions
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </span>
+                </StarBorder>
+              </Link>
+            </Magnet>
           </motion.div>
 
           {/* Daily Standup Feature - Coming Soon */}
