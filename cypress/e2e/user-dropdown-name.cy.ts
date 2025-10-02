@@ -45,11 +45,11 @@ describe('User Dropdown Display Name', () => {
       cy.visit('/dashboard')
 
       // Open user menu dropdown
-      cy.get('button[class*="rounded-full"]').first().click()
+      cy.get('[data-testid="user-menu-trigger"]').click()
 
       // Should show actual full name, not 'User' fallback
       cy.contains(testFullName).should('be.visible')
-      cy.get('[class*="dropdown"]').contains('User').should('not.exist')
+      cy.get('[role="menu"]').contains('User').should('not.exist')
     })
 
     it('should show email username as fallback when full name is missing', () => {
@@ -69,7 +69,7 @@ describe('User Dropdown Display Name', () => {
       cy.visit('/dashboard')
 
       // Open user menu dropdown
-      cy.get('button[class*="rounded-full"]').first().click()
+      cy.get('[data-testid="user-menu-trigger"]').click()
 
       // Email should be visible in dropdown
       cy.contains(testEmail).should('be.visible')
@@ -104,15 +104,13 @@ describe('User Dropdown Display Name', () => {
       cy.url().should('not.include', '/auth')
       cy.visit('/dashboard')
 
-      // Wait for profile to load (retry logic should handle this)
-      // Give it a bit more time to handle retries
-      cy.wait(2000)
-
-      // Open user menu dropdown
-      cy.get('button[class*="rounded-full"]').first().click()
+      // Open user menu dropdown (with increased timeout to allow for retry logic)
+      cy.get('[data-testid="user-menu-trigger"]', { timeout: 10000 })
+        .should('be.visible')
+        .click()
 
       // Should show the name, proving retry logic worked
-      cy.contains(retryTestName).should('be.visible')
+      cy.contains(retryTestName, { timeout: 10000 }).should('be.visible')
     })
   })
 
