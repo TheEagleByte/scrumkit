@@ -76,11 +76,17 @@ export function UserMenu({ user, profile }: UserMenuProps) {
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => router.push("/profile")}>
           <UserCircle className="mr-2 h-4 w-4" />
-          <span>Profile</span>
+          <div className="flex flex-col">
+            <span>Profile</span>
+            <span className="text-xs text-muted-foreground">View and edit profile</span>
+          </div>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => router.push("/settings")}>
           <Settings className="mr-2 h-4 w-4" />
-          <span>Settings</span>
+          <div className="flex flex-col">
+            <span>Settings</span>
+            <span className="text-xs text-muted-foreground">Manage preferences</span>
+          </div>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} disabled={signOutMutation.isPending}>
