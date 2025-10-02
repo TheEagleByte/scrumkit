@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Password Confirmation Field on Signup Form** (Issue #89)
+  - Added "Confirm Password" field to signup form to prevent password typos
+  - Real-time validation to ensure passwords match before submission
+  - Error messages displayed when passwords don't match
+  - Submit button disabled when passwords don't match
+  - Accessibility features:
+    - `aria-invalid` attribute on confirm password field when passwords mismatch
+    - `aria-describedby` linking to error message for screen readers
+    - Error messages with `role="alert"` for proper announcement
+  - Proper tab order: Name → Email → Password → Confirm Password
+  - Both password fields cleared on duplicate email error for security
+  - Comprehensive Cypress E2E test coverage for password confirmation validation
+  - Jest unit tests for password confirmation logic
+  - Updated existing signup tests to include confirm password field
 - **Terms of Service Page** (Issue #81)
   - Comprehensive Terms of Service page at `/terms`
   - Detailed sections covering all legal requirements:
