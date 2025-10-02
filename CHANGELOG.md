@@ -37,6 +37,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **User Full Name Display in Dropdown** (Issue #94)
+  - Improved fallback logic in UserMenu to display email username instead of generic "User" when full_name is not available
+  - Added retry logic (3 attempts with 500ms delay) for profile fetching to handle race conditions with database trigger
+  - Made full name field required during signup to ensure users always provide their name
+  - Fixed potential timing issue where profile might not load immediately after authentication
+  - Added comprehensive Cypress E2E tests for:
+    - Full name display after signup
+    - Email username fallback when full name is missing
+    - Profile retry logic with brief delays
+    - Full name required field validation during signup
+
 - **Dropdown Description Text Visibility** (Issue #92)
   - Improved visibility of description text in dropdown menus and select components on hover
   - Updated SelectItem component with hover state styling for better contrast
