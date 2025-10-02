@@ -232,7 +232,7 @@ describe('Home Page', () => {
     expect(screen.getByText('100% Open Source')).toBeInTheDocument()
     expect(screen.getByText('Built by the community, for the community')).toBeInTheDocument()
     expect(screen.getAllByText('Self-Hostable')[1]).toBeInTheDocument() // Second occurrence in open source section
-    expect(screen.getByText('One-Click Deploy')).toBeInTheDocument()
+    expect(screen.getByText('Quick Setup')).toBeInTheDocument()
     expect(screen.getByText('Community Driven')).toBeInTheDocument()
   })
 
