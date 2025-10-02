@@ -118,7 +118,7 @@ export default function Home() {
                     </Link>
                   </Magnet>
                   <Magnet padding={15} magnetStrength={2}>
-                    <a href="https://github.com/scrumkit/scrumkit" target="_blank" rel="noopener noreferrer">
+                    <a href="https://github.com/TheEagleByte/scrumkit" target="_blank" rel="noopener noreferrer">
                       <Button size="lg" variant="outline" className="border-gray-800 text-white hover:bg-gray-900 px-8 h-12 text-base">
                         <GithubIcon className="mr-2 h-4 w-4" />
                         View on GitHub
@@ -707,13 +707,13 @@ export default function Home() {
                 transition={{ delay: 0.3 }}
                 className="mt-12 flex flex-col sm:flex-row gap-4 justify-center"
               >
-                <a href="https://github.com/scrumkit/scrumkit" target="_blank" rel="noopener noreferrer">
+                <a href="https://github.com/TheEagleByte/scrumkit" target="_blank" rel="noopener noreferrer">
                   <Button size="lg" variant="outline" className="border-gray-800 text-white hover:bg-gray-900">
                     <GithubIcon className="mr-2 h-5 w-5" />
                     Star on GitHub
                   </Button>
                 </a>
-                <a href="https://vercel.com/new/clone?repository-url=https://github.com/scrumkit/scrumkit" target="_blank" rel="noopener noreferrer">
+                <a href="https://vercel.com/new/clone?repository-url=https://github.com/TheEagleByte/scrumkit" target="_blank" rel="noopener noreferrer">
                   <Button size="lg" className="bg-violet-600 hover:bg-violet-700">
                     <Zap className="mr-2 h-5 w-5" />
                     Deploy to Vercel
@@ -802,10 +802,10 @@ export default function Home() {
               <div>
                 <h3 className="font-semibold mb-4 text-gray-300">Resources</h3>
                 <ul className="space-y-2">
-                  <li><a href="https://github.com/scrumkit/scrumkit/wiki" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-white transition">Documentation</a></li>
-                  <li><a href="https://github.com/scrumkit/scrumkit/blob/main/SELF_HOSTING.md" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-white transition">Self-Hosting Guide</a></li>
-                  <li><a href="https://github.com/scrumkit/scrumkit/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-white transition">Contributing</a></li>
-                  <li><a href="https://github.com/scrumkit/scrumkit/releases" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-white transition">Changelog</a></li>
+                  <li><a href="https://github.com/TheEagleByte/scrumkit/wiki" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-white transition">Documentation</a></li>
+                  <li><a href="https://github.com/TheEagleByte/scrumkit/blob/main/SELF_HOSTING.md" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-white transition">Self-Hosting Guide</a></li>
+                  <li><a href="https://github.com/TheEagleByte/scrumkit/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-white transition">Contributing</a></li>
+                  <li><a href="https://github.com/TheEagleByte/scrumkit/releases" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-white transition">Changelog</a></li>
                 </ul>
               </div>
 
@@ -813,7 +813,7 @@ export default function Home() {
               <div>
                 <h3 className="font-semibold mb-4 text-gray-300">Community</h3>
                 <ul className="space-y-2">
-                  <li><a href="https://github.com/scrumkit/scrumkit" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-white transition flex items-center gap-1">
+                  <li><a href="https://github.com/TheEagleByte/scrumkit" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-white transition flex items-center gap-1">
                     <GithubIcon className="w-3 h-3" /> GitHub
                   </a></li>
                   <li><a href="https://discord.gg/scrumkit" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-white transition flex items-center gap-1">
@@ -829,7 +829,7 @@ export default function Home() {
                 <ul className="space-y-2">
                   <li><a href="/privacy" className="text-sm text-gray-400 hover:text-white transition">Privacy Policy</a></li>
                   <li><a href="/terms" className="text-sm text-gray-400 hover:text-white transition">Terms of Service</a></li>
-                  <li><a href="https://github.com/scrumkit/scrumkit/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-white transition">License</a></li>
+                  <li><a href="https://github.com/TheEagleByte/scrumkit/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-white transition">License</a></li>
                 </ul>
               </div>
             </div>
@@ -840,7 +840,7 @@ export default function Home() {
                   © 2024 ScrumKit. Built with ❤️ by the community.
                 </p>
                 <div className="flex items-center gap-4">
-                  <a href="https://github.com/scrumkit/scrumkit" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-white transition">
+                  <a href="https://github.com/TheEagleByte/scrumkit" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-white transition">
                     <GithubIcon className="w-5 h-5" />
                   </a>
                   <a href="https://discord.gg/scrumkit" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-white transition">
