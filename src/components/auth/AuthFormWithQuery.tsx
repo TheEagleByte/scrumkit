@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -333,7 +334,14 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
       </CardContent>
       <CardFooter>
         <p className="text-xs text-center text-muted-foreground w-full">
-          By continuing, you agree to our Terms of Service and Privacy Policy
+          By continuing, you agree to our{" "}
+          <Link href="/terms" className="text-violet-400 hover:text-violet-300 underline">
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" className="text-violet-400 hover:text-violet-300 underline">
+            Privacy Policy
+          </Link>
         </p>
       </CardFooter>
     </Card>

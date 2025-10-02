@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Terms of Service Page** (Issue #81)
+  - Comprehensive Terms of Service page at `/terms`
+  - Detailed sections covering all legal requirements:
+    - Acceptance of Terms (user agreement, scope of application)
+    - Description of Service (ScrumKit features, open-source nature, self-hosting)
+    - User Accounts (creation requirements, security responsibilities, termination)
+    - Acceptable Use (prohibited activities, content restrictions, legal compliance)
+    - Intellectual Property (MIT License terms, user content ownership, trademarks)
+    - Disclaimers & Limitations (as-is provision, no warranty, liability limits)
+    - Modifications to Terms (update rights, notification process)
+    - Governing Law (jurisdiction, dispute resolution, severability)
+  - Full MIT License text included in Intellectual Property section
+  - Open-source specific legal guidance for self-hosted instances
+  - Mobile-responsive layout with proper accessibility
+  - Links back to home page for easy navigation
+  - Comprehensive Cypress E2E test coverage
+  - Updated footer links: Privacy and Terms now properly linked to respective pages
+  - Updated auth form: Terms and Privacy Policy now clickable links
 - **Privacy Policy Page** (Issue #80)
   - Comprehensive Privacy Policy page at `/privacy`
   - GDPR and CCPA compliance information
