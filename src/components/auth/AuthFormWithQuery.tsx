@@ -7,10 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
 import { useSignIn, useSignUp, useSignInWithProvider } from "@/hooks/use-auth-query";
-import { createClient } from "@/lib/supabase/client";
-import { Mail, Loader2, ArrowRight, Github } from "lucide-react";
+import { Loader2, ArrowRight, Github } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface AuthFormWithQueryProps {
@@ -21,41 +19,13 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [isMagicLinkSent, setIsMagicLinkSent] = useState(false);
-  const [isMagicLinkLoading, setIsMagicLinkLoading] = useState(false);
 
   const router = useRouter();
-  const supabase = createClient();
 
   // Use TanStack Query mutations
   const signInMutation = useSignIn();
   const signUpMutation = useSignUp();
   const signInWithProviderMutation = useSignInWithProvider();
-
-  const handleMagicLink = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsMagicLinkLoading(true);
-
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/confirm?redirectTo=${encodeURIComponent(redirectTo)}`,
-        },
-      });
-
-      if (error) throw error;
-
-      setIsMagicLinkSent(true);
-      toast.success("Check your email", {
-        description: "We've sent you a magic link to sign in.",
-      });
-    } catch (error) {
-      toast.error((error as Error).message || "Failed to send magic link");
-    } finally {
-      setIsMagicLinkLoading(false);
-    }
-  };
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +48,6 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
         password,
         fullName
       });
-      setIsMagicLinkSent(true);
     } catch (error) {
       // Error is handled by the mutation
     }
@@ -93,39 +62,7 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
   };
 
   const isLoading = signInMutation.isPending || signUpMutation.isPending ||
-                   signInWithProviderMutation.isPending || isMagicLinkLoading;
-
-  if (isMagicLinkSent) {
-    return (
-      <Card>
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <Mail className="h-6 w-6 text-primary" />
-          </div>
-          <CardTitle>Check your email</CardTitle>
-          <CardDescription>
-            We&apos;ve sent you a {password ? "confirmation" : "magic"} link to <strong>{email}</strong>
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-center">
-          <p className="text-sm text-muted-foreground mb-4">
-            Click the link in your email to continue.
-            The link will expire in 1 hour.
-          </p>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setIsMagicLinkSent(false);
-              setEmail("");
-              setPassword("");
-            }}
-          >
-            Back to sign in
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
+                   signInWithProviderMutation.isPending;
 
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -183,48 +120,6 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
                   <>
                     Sign In
                     <ArrowRight className="ml-2 h-4 w-4" />
-                  </>
-                )}
-              </Button>
-            </form>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Or sign in with
-                </span>
-              </div>
-            </div>
-
-            <form onSubmit={handleMagicLink} className="space-y-4">
-              <div className="space-y-2">
-                <Input
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-              <Button
-                type="submit"
-                variant="outline"
-                className="w-full"
-                disabled={isLoading || !email}
-              >
-                {isMagicLinkLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <Mail className="mr-2 h-4 w-4" />
-                    Send Magic Link
                   </>
                 )}
               </Button>
