@@ -1,17 +1,19 @@
 describe('Signup Duplicate Email', () => {
-  const testEmail = 'test.duplicate@example.com'
   const testPassword = 'password123'
   const testFullName = 'Test User'
+  let uniqueEmail: string
 
   beforeEach(() => {
+    // Generate unique email for each test run to avoid conflicts
+    uniqueEmail = `test.${Date.now()}@example.com`
     cy.visit('/auth')
   })
 
   it('should prevent signup with existing email and auto-switch to sign in', () => {
-    // First, create an account with the test email
+    // First, create an account with the unique email
     cy.contains('Sign Up').click()
     cy.get('#signup-name').type(testFullName)
-    cy.get('#signup-email').type(testEmail)
+    cy.get('#signup-email').type(uniqueEmail)
     cy.get('#signup-password').type(testPassword)
     cy.contains('Create Account').click()
 
@@ -23,7 +25,7 @@ describe('Signup Duplicate Email', () => {
     cy.contains('Sign Up').click()
 
     cy.get('#signup-name').type('Another User')
-    cy.get('#signup-email').type(testEmail)
+    cy.get('#signup-email').type(uniqueEmail)
     cy.get('#signup-password').type('newpassword123')
     cy.contains('Create Account').click()
 
@@ -37,7 +39,7 @@ describe('Signup Duplicate Email', () => {
     cy.get('input[id="signin-email"]').should('be.visible')
 
     // Email should be pre-filled from signup attempt
-    cy.get('input[id="signin-email"]').should('have.value', testEmail)
+    cy.get('input[id="signin-email"]').should('have.value', uniqueEmail)
 
     // Password field should be empty (cleared for security)
     cy.get('input[id="signin-password"]').should('have.value', '')

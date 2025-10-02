@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSignIn, useSignUp, useSignInWithProvider } from "@/hooks/use-auth-query";
 import { Loader2, ArrowRight, Github } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { isDuplicateEmailError } from "@/lib/utils/auth-utils";
 
 interface AuthFormWithQueryProps {
   redirectTo?: string;
@@ -52,14 +53,8 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
         fullName
       });
     } catch (error) {
-      // Check if this is a duplicate email error
-      const errorMessage = error instanceof Error ? error.message : '';
-      const isDuplicateEmail =
-        errorMessage.toLowerCase().includes('already') ||
-        errorMessage.toLowerCase().includes('registered') ||
-        errorMessage.toLowerCase().includes('exists');
-
-      if (isDuplicateEmail) {
+      // Check if this is a duplicate email error using shared utility
+      if (isDuplicateEmailError(error)) {
         // Clear password field for security
         setPassword("");
         if (passwordRef.current) {

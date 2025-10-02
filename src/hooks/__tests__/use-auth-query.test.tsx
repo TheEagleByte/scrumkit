@@ -8,6 +8,15 @@ import { toast } from "sonner";
 // Mock dependencies
 jest.mock("@/lib/supabase/client");
 jest.mock("sonner");
+jest.mock("@/lib/utils/auth-utils", () => ({
+  isDuplicateEmailError: (error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    const lowerMessage = message.toLowerCase();
+    return lowerMessage.includes('already') ||
+           lowerMessage.includes('registered') ||
+           lowerMessage.includes('exists');
+  }
+}));
 
 const mockCreateClient = createClient as jest.MockedFunction<typeof createClient>;
 const mockToast = toast as jest.Mocked<typeof toast>;
@@ -52,10 +61,8 @@ describe("use-auth-query hooks", () => {
 
   describe("useSignUp", () => {
     it("should handle duplicate email error", async () => {
-      const duplicateError = {
-        message: "User already registered",
-        status: 400,
-      };
+      const duplicateError = new Error("User already registered");
+      (duplicateError as any).status = 400;
 
       mockSupabase.auth.signUp.mockResolvedValue({
         data: null,
@@ -87,10 +94,8 @@ describe("use-auth-query hooks", () => {
     });
 
     it("should handle 'already exists' error message", async () => {
-      const existsError = {
-        message: "Email address already exists",
-        status: 400,
-      };
+      const existsError = new Error("Email address already exists");
+      (existsError as any).status = 400;
 
       mockSupabase.auth.signUp.mockResolvedValue({
         data: null,
@@ -120,10 +125,8 @@ describe("use-auth-query hooks", () => {
     });
 
     it("should handle other signup errors normally", async () => {
-      const genericError = {
-        message: "Invalid password format",
-        status: 400,
-      };
+      const genericError = new Error("Invalid password format");
+      (genericError as any).status = 400;
 
       mockSupabase.auth.signUp.mockResolvedValue({
         data: null,
@@ -212,10 +215,8 @@ describe("use-auth-query hooks", () => {
     });
 
     it("should detect duplicate with case-insensitive matching", async () => {
-      const duplicateError = {
-        message: "This email ALREADY has an account",
-        status: 400,
-      };
+      const duplicateError = new Error("This email ALREADY has an account");
+      (duplicateError as any).status = 400;
 
       mockSupabase.auth.signUp.mockResolvedValue({
         data: null,

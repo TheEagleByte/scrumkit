@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import type { User, AuthError } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types-enhanced";
+import { isDuplicateEmailError } from "@/lib/utils/auth-utils";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type ProfileInsert = Database["public"]["Tables"]["profiles"]["Insert"];
@@ -155,13 +156,8 @@ export function useSignUp() {
       toast.success("Account created! Please check your email to verify your account.");
     },
     onError: (error: AuthError) => {
-      // Check for duplicate email error
-      const isDuplicateEmail =
-        error.message?.toLowerCase().includes('already') ||
-        error.message?.toLowerCase().includes('registered') ||
-        error.message?.toLowerCase().includes('exists');
-
-      if (isDuplicateEmail) {
+      // Check for duplicate email error using shared utility
+      if (isDuplicateEmailError(error)) {
         toast.error("Account already exists", {
           description: "Please sign in instead or use a different email."
         });
