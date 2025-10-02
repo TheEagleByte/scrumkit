@@ -44,8 +44,8 @@ describe('Footer', () => {
     const expectedLinks = [
       { text: 'Features', href: '#features' },
       { text: 'Pricing', href: '#pricing' },
-      { text: 'Privacy', href: '#' },
-      { text: 'Terms', href: '#' },
+      { text: 'Privacy', href: '/privacy' },
+      { text: 'Terms', href: '/terms' },
       { text: 'Contact', href: '#' },
     ];
 
@@ -136,12 +136,15 @@ describe('Footer', () => {
     expect(navLinksWrapper).toBeInTheDocument();
   });
 
-  it('handles missing href gracefully', () => {
+  it('has proper hrefs for Privacy and Terms pages', () => {
     render(<Footer />);
 
-    // Links with href="#" should still render properly
+    // Privacy and Terms links should have proper hrefs
     const privacyLink = screen.getByRole('link', { name: 'Privacy' });
-    expect(privacyLink).toHaveAttribute('href', '#');
+    expect(privacyLink).toHaveAttribute('href', '/privacy');
+
+    const termsLink = screen.getByRole('link', { name: 'Terms' });
+    expect(termsLink).toHaveAttribute('href', '/terms');
   });
 
   it('renders all elements in correct order', () => {
