@@ -37,6 +37,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Board Deletion Error and Confirmation Dialog** (Issue #98)
+  - Added confirmation dialog before deleting retrospective boards to prevent accidental deletion
+  - Fixed RLS policy for anonymous board deletion by simplifying the WITH CHECK clause
+  - Confirmation dialog displays board title and warns about permanent deletion
+  - Cancel button allows users to abort deletion safely
+  - Delete button styled as destructive action for clear visual indication
+  - Added data-testid attributes for easier E2E testing
+  - Comprehensive Cypress E2E test coverage for:
+    - Confirmation dialog appearance and content
+    - Cancellation flow
+    - Successful deletion with confirmation
+    - Undo functionality within 5 seconds
+    - Archived board deletion
+    - Board count updates after deletion
+  - Follows same pattern as PokerSessionList for consistency
+  - Improves UX by requiring explicit user confirmation before destructive action
+
 - **User Full Name Display in Dropdown** (Issue #94)
   - Improved fallback logic in UserMenu to display email username instead of generic "User" when full_name is not available
   - Added retry logic (3 attempts with 500ms delay) for profile fetching to handle race conditions with database trigger

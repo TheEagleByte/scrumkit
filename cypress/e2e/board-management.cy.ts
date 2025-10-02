@@ -1,3 +1,7 @@
+// Constants for board deletion tests
+const UNDO_TIMEOUT_MS = 5000; // Time window for undo functionality
+const UNDO_TIMEOUT_BUFFER_MS = 1000; // Buffer to ensure deletion completes
+
 describe('Board Management', () => {
   beforeEach(() => {
     // Clear local storage to start fresh
@@ -406,6 +410,148 @@ describe('Board Management', () => {
       cy.contains('button', 'Create Board').click()
 
       cy.url().should('include', '/retro/')
+    })
+  })
+
+  describe('Board Deletion', () => {
+    beforeEach(() => {
+      // Create a test board to delete
+      cy.visit('/boards/new')
+      cy.get('input[id="title"]').type('Board to Delete')
+      cy.contains('button', 'Create Board').click()
+      cy.visit('/boards')
+    })
+
+    it('shows confirmation dialog when deleting', () => {
+      cy.contains('Board to Delete')
+        .parents('[data-testid="board-card"]')
+        .within(() => {
+          // Open dropdown menu
+          cy.get('button[aria-haspopup="menu"]').click()
+        })
+
+      // Click delete button
+      cy.get('[data-testid="delete-button"]').click()
+
+      // Confirmation dialog should appear
+      cy.contains('Delete Board?').should('be.visible')
+      cy.contains('Are you sure').should('be.visible')
+      cy.contains('This action cannot be undone').should('be.visible')
+    })
+
+    it('cancels deletion when clicking cancel', () => {
+      cy.contains('Board to Delete')
+        .parents('[data-testid="board-card"]')
+        .within(() => {
+          cy.get('button[aria-haspopup="menu"]').click()
+        })
+
+      cy.get('[data-testid="delete-button"]').click()
+
+      // Click cancel
+      cy.contains('button', 'Cancel').click()
+
+      // Dialog should close and board should still exist
+      cy.contains('Delete Board?').should('not.exist')
+      cy.contains('Board to Delete').should('be.visible')
+    })
+
+    it('deletes board successfully when confirmed', () => {
+      cy.contains('Board to Delete')
+        .parents('[data-testid="board-card"]')
+        .within(() => {
+          cy.get('button[aria-haspopup="menu"]').click()
+        })
+
+      cy.get('[data-testid="delete-button"]').click()
+
+      // Confirm deletion
+      cy.get('[data-testid="confirm-delete"]').click()
+
+      // Success message should appear
+      cy.contains(/deleted/i).should('be.visible')
+
+      // Board should be removed from the list
+      cy.contains('Board to Delete').should('not.exist')
+    })
+
+    it('allows undoing deletion within 5 seconds', () => {
+      cy.contains('Board to Delete')
+        .parents('[data-testid="board-card"]')
+        .within(() => {
+          cy.get('button[aria-haspopup="menu"]').click()
+        })
+
+      cy.get('[data-testid="delete-button"]').click()
+      cy.get('[data-testid="confirm-delete"]').click()
+
+      // Click undo button in toast
+      cy.contains('button', 'Undo').click()
+
+      // Success message for cancellation
+      cy.contains(/cancelled/i).should('be.visible')
+
+      // Board should reappear
+      cy.contains('Board to Delete').should('be.visible')
+    })
+
+    it('deletes archived board with confirmation', () => {
+      // First archive the board
+      cy.contains('Board to Delete')
+        .parents('[data-testid="board-card"]')
+        .within(() => {
+          cy.get('button[aria-haspopup="menu"]').click()
+        })
+
+      // Archive it
+      cy.contains('Archive').click()
+
+      // Switch to archived view
+      cy.contains('button', /Archived/i).click()
+
+      // Now delete it
+      cy.contains('Board to Delete')
+        .parents('[data-testid="board-card"]')
+        .within(() => {
+          cy.get('button[aria-haspopup="menu"]').click()
+        })
+
+      cy.get('[data-testid="delete-button"]').click()
+
+      // Confirm deletion
+      cy.get('[data-testid="confirm-delete"]').click()
+
+      // Board should be removed
+      cy.contains('Board to Delete').should('not.exist')
+    })
+
+    it('updates board count after deletion', () => {
+      // Get initial count
+      cy.contains('Active Boards')
+        .parent()
+        .within(() => {
+          cy.contains('1').should('be.visible')
+        })
+
+      // Delete the board
+      cy.contains('Board to Delete')
+        .parents('[data-testid="board-card"]')
+        .within(() => {
+          cy.get('button[aria-haspopup="menu"]').click()
+        })
+
+      cy.get('[data-testid="delete-button"]').click()
+      cy.get('[data-testid="confirm-delete"]').click()
+
+      // Wait for deletion to complete (5s undo window + 1s buffer)
+      cy.wait(UNDO_TIMEOUT_MS + UNDO_TIMEOUT_BUFFER_MS)
+
+      // Count should decrease
+      cy.contains('Active Boards')
+        .parent()
+        .within(() => {
+          cy.contains('0').should('be.visible')
+        })
     })
   })
 
