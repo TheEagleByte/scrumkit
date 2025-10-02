@@ -56,4 +56,19 @@ describe('Sign In Flow', () => {
     cy.contains('Welcome to ScrumKit').should('be.visible')
     cy.contains('Sign in to save your boards').should('be.visible')
   })
+
+  it('should not show magic link option', () => {
+    cy.contains('Send Magic Link').should('not.exist')
+    cy.contains('Or sign in with').should('not.exist')
+  })
+
+  it('should allow email/password sign in with correct form fields', () => {
+    cy.get('input[id="signin-email"]').should('be.visible')
+    cy.get('input[id="signin-password"]').should('be.visible')
+    cy.contains('button', 'Sign In').should('be.visible')
+
+    // Verify OAuth buttons are still present
+    cy.contains('button', 'Google').should('be.visible')
+    cy.contains('button', 'GitHub').should('be.visible')
+  })
 })
