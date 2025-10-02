@@ -13,6 +13,34 @@ export function useAuth() {
 
   const supabase = createClient();
 
+  // Helper function to fetch profile with retry logic
+  const fetchProfile = async (userId: string, retries = 3, delay = 500): Promise<Profile | null> => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const { data: profileData, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", userId)
+          .single();
+
+        if (profileData) {
+          return profileData;
+        }
+
+        // If no profile found and we have retries left, wait and try again
+        if (i < retries - 1) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      } catch (error) {
+        console.error(`Error fetching profile (attempt ${i + 1}/${retries}):`, error);
+        if (i < retries - 1) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    return null;
+  };
+
   useEffect(() => {
     // Get initial session
     const initAuth = async () => {
@@ -23,13 +51,8 @@ export function useAuth() {
           setSession(initialSession);
           setUser(initialSession.user);
 
-          // Fetch user profile
-          const { data: profileData } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", initialSession.user.id)
-            .single();
-
+          // Fetch user profile with retry logic
+          const profileData = await fetchProfile(initialSession.user.id);
           if (profileData) {
             setProfile(profileData);
           }
@@ -51,13 +74,8 @@ export function useAuth() {
       setUser(currentSession?.user || null);
 
       if (currentSession?.user) {
-        // Fetch updated profile
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", currentSession.user.id)
-          .single();
-
+        // Fetch updated profile with retry logic
+        const profileData = await fetchProfile(currentSession.user.id);
         if (profileData) {
           setProfile(profileData);
         }

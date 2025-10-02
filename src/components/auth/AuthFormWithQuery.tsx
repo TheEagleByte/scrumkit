@@ -240,6 +240,7 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
                   placeholder="John Doe"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
+                  required
                   disabled={isLoading}
                 />
               </div>
