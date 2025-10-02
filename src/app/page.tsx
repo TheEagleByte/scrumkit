@@ -829,7 +829,6 @@ export default function Home() {
                   <li><a href="https://discord.gg/scrumkit" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-white transition flex items-center gap-1">
                     <MessageSquare className="w-3 h-3" /> Discord
                   </a></li>
-                  <li><a href="https://twitter.com/scrumkit" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-white transition">Twitter</a></li>
                 </ul>
               </div>
 
