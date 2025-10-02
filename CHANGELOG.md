@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Privacy Policy Page** (Issue #80)
+  - Comprehensive Privacy Policy page at `/privacy`
+  - GDPR and CCPA compliance information
+  - Detailed sections covering:
+    - Information collection practices (account info, usage data, cookies)
+    - Data usage policies (service provision, security, communication)
+    - Data storage and security measures (Supabase, encryption, RLS)
+    - User rights (access, rectification, erasure, data portability)
+    - Third-party services disclosure (Supabase, OAuth providers)
+    - Cookie policy and international data transfers
+  - Self-hosting considerations and data ownership information
+  - Open-source specific privacy guidance
+  - Mobile-responsive layout with proper accessibility
+  - Links back to home page for easy navigation
+  - Comprehensive Cypress E2E test coverage
 - **Planning Poker Mobile Optimization** (Issue #25 - EPIC-003 Story 9)
   - Mobile-optimized voting card layout with larger touch targets (44x44px minimum)
   - Swipeable carousel for card selection on mobile devices
