@@ -290,7 +290,7 @@ export default function Home() {
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  className="group relative p-8 rounded-2xl bg-gradient-to-br from-green-950/30 to-emerald-950/30 border border-green-500/20 hover:border-green-500/40 transition-all"
+                  className="group relative p-8 rounded-2xl bg-gradient-to-br from-green-950/30 to-emerald-950/30 border border-green-500/20 hover:border-green-500/40 transition-all flex flex-col"
                 >
                   <div className="absolute top-4 right-4">
                     <span className="px-3 py-1 rounded-full bg-green-500/10 text-green-400 text-xs font-medium">Available Now</span>
@@ -316,7 +316,7 @@ export default function Home() {
                       Dot voting & prioritization
                     </li>
                   </ul>
-                  <Link href="/boards/new">
+                  <Link href="/boards/new" className="mt-auto">
                     <Button className="w-full bg-green-500/10 hover:bg-green-500/20 text-green-400 border-green-500/20">
                       Start Retrospective
                       <ArrowRight className="ml-2 h-4 w-4" />
@@ -330,10 +330,10 @@ export default function Home() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: 0.1 }}
-                  className="group relative p-8 rounded-2xl bg-gradient-to-br from-blue-950/30 to-cyan-950/30 border border-blue-500/20 hover:border-blue-500/40 transition-all"
+                  className="group relative p-8 rounded-2xl bg-gradient-to-br from-blue-950/30 to-cyan-950/30 border border-blue-500/20 hover:border-blue-500/40 transition-all flex flex-col"
                 >
                   <div className="absolute top-4 right-4">
-                    <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-medium">Coming Soon</span>
+                    <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-medium">Available Now</span>
                   </div>
                   <div className="w-14 h-14 rounded-xl bg-blue-500/10 flex items-center justify-center mb-4">
                     <CreditCard className="w-7 h-7 text-blue-500" />
@@ -356,9 +356,12 @@ export default function Home() {
                       Velocity tracking
                     </li>
                   </ul>
-                  <Button className="w-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border-blue-500/20" disabled>
-                    Coming Soon
-                  </Button>
+                  <Link href="/poker" className="mt-auto">
+                    <Button className="w-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border-blue-500/20">
+                      Start Planning Poker
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
                 </motion.div>
 
                 {/* Daily Standup Feature */}
@@ -367,7 +370,7 @@ export default function Home() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: 0.2 }}
-                  className="group relative p-8 rounded-2xl bg-gradient-to-br from-orange-950/30 to-amber-950/30 border border-orange-500/20 hover:border-orange-500/40 transition-all"
+                  className="group relative p-8 rounded-2xl bg-gradient-to-br from-orange-950/30 to-amber-950/30 border border-orange-500/20 hover:border-orange-500/40 transition-all flex flex-col"
                 >
                   <div className="absolute top-4 right-4">
                     <span className="px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 text-xs font-medium">Coming Soon</span>
@@ -393,7 +396,7 @@ export default function Home() {
                       Async updates for remote teams
                     </li>
                   </ul>
-                  <Button className="w-full bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border-orange-500/20" disabled>
+                  <Button className="w-full bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border-orange-500/20 mt-auto" disabled>
                     Coming Soon
                   </Button>
                 </motion.div>
@@ -404,7 +407,7 @@ export default function Home() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: 0.3 }}
-                  className="group relative p-8 rounded-2xl bg-gradient-to-br from-purple-950/30 to-pink-950/30 border border-purple-500/20 hover:border-purple-500/40 transition-all"
+                  className="group relative p-8 rounded-2xl bg-gradient-to-br from-purple-950/30 to-pink-950/30 border border-purple-500/20 hover:border-purple-500/40 transition-all flex flex-col"
                 >
                   <div className="absolute top-4 right-4">
                     <span className="px-3 py-1 rounded-full bg-purple-500/10 text-purple-400 text-xs font-medium">Coming Soon</span>
@@ -430,7 +433,7 @@ export default function Home() {
                       Heat map visualizations
                     </li>
                   </ul>
-                  <Button className="w-full bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border-purple-500/20" disabled>
+                  <Button className="w-full bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border-purple-500/20 mt-auto" disabled>
                     Coming Soon
                   </Button>
                 </motion.div>
@@ -789,7 +792,7 @@ export default function Home() {
                 <h3 className="font-semibold mb-4 text-gray-300">Features</h3>
                 <ul className="space-y-2">
                   <li><Link href="/boards" className="text-sm text-gray-400 hover:text-white transition">Retrospectives</Link></li>
-                  <li><span className="text-sm text-gray-600">Planning Poker</span></li>
+                  <li><Link href="/poker" className="text-sm text-gray-400 hover:text-white transition">Planning Poker</Link></li>
                   <li><span className="text-sm text-gray-600">Daily Standups</span></li>
                   <li><span className="text-sm text-gray-600">Health Checks</span></li>
                 </ul>

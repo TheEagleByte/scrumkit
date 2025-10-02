@@ -198,10 +198,11 @@ describe('Home Page', () => {
   it('renders available now and coming soon badges', () => {
     render(<Home />)
 
-    expect(screen.getByText('Available Now')).toBeInTheDocument()
+    const availableNowBadges = screen.getAllByText('Available Now')
+    expect(availableNowBadges.length).toBe(2) // Retro and Poker
 
     const comingSoonBadges = screen.getAllByText('Coming Soon')
-    expect(comingSoonBadges.length).toBeGreaterThanOrEqual(3)
+    expect(comingSoonBadges.length).toBe(4) // Daily and Health badges + 2 button texts
   })
 
   it('renders features bento grid', () => {

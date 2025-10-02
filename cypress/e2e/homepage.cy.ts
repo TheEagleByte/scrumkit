@@ -93,6 +93,14 @@ describe('Homepage', () => {
       })
     })
 
+    it('should show Planning Poker as available', () => {
+      cy.visit('/')
+      cy.contains('ScrumKit Poker').parent().parent().within(() => {
+        cy.contains('Available Now').should('exist')
+        cy.get('button').should('not.be.disabled')
+      })
+    })
+
     it('displays feature descriptions', () => {
       // Check for key feature text in the page
       cy.contains('All essential scrum ceremony tools').should('exist')
