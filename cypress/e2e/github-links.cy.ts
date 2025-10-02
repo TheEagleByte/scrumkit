@@ -24,15 +24,10 @@ describe('GitHub Links', () => {
       .should('have.attr', 'href', correctRepo);
   });
 
-  it('should have correct Vercel deploy button URL', () => {
-    cy.scrollTo('center');
-
-    // Check Deploy to Vercel button
-    cy.contains('Deploy to Vercel')
-      .parents('a')
-      .should('have.attr', 'href')
-      .and('include', 'vercel.com/new/clone?repository-url=')
-      .and('include', 'TheEagleByte/scrumkit');
+  it('should not show Vercel deployment button', () => {
+    cy.visit('/');
+    // Deploy to Vercel button should be hidden until production-ready (issue #78)
+    cy.contains('Deploy to Vercel').should('not.exist');
   });
 
   it('should have correct GitHub links in footer resources', () => {

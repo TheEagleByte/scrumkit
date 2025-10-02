@@ -677,9 +677,9 @@ export default function Home() {
                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center mx-auto mb-4">
                     <Zap className="w-8 h-8 text-violet-400" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-2">One-Click Deploy</h3>
+                  <h3 className="text-xl font-semibold mb-2">Quick Setup</h3>
                   <p className="text-gray-400">
-                    Deploy to Vercel in seconds with our pre-configured template. No DevOps required.
+                    Get started quickly with our comprehensive self-hosting guide. Full control over your data.
                   </p>
                 </motion.div>
 
@@ -713,12 +713,20 @@ export default function Home() {
                     Star on GitHub
                   </Button>
                 </a>
+                {/* TODO: Re-enable Deploy to Vercel button once production-ready
+                    Requirements before re-enabling:
+                    - All environment variables are properly documented
+                    - Supabase setup instructions are clear
+                    - Edge Functions are production-ready
+                    - Database migrations are handled correctly
+                    See issue #78 for details
                 <a href="https://vercel.com/new/clone?repository-url=https://github.com/TheEagleByte/scrumkit" target="_blank" rel="noopener noreferrer">
                   <Button size="lg" className="bg-violet-600 hover:bg-violet-700">
                     <Zap className="mr-2 h-5 w-5" />
                     Deploy to Vercel
                   </Button>
                 </a>
+                */}
               </motion.div>
             </div>
           </section>

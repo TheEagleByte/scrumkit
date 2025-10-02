@@ -61,12 +61,14 @@ npm run dev
 # Open http://localhost:3000
 ```
 
-### One-Click Deploy
+### Deployment
 
-Deploy your own instance with one click:
+For self-hosting instructions, see our [Self-Hosting Guide](SELF_HOSTING.md).
 
+<!-- TODO: Re-enable one-click deploy buttons once production-ready (issue #78)
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/TheEagleByte/scrumkit)
 [![Deploy to Railway](https://railway.app/button.svg)](https://railway.app/template/scrumkit)
+-->
 
 ## 🛠️ Tech Stack
 
