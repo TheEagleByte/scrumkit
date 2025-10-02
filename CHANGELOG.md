@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Dropdown Description Text Visibility** (Issue #92)
+  - Improved visibility of description text in dropdown menus and select components on hover
+  - Updated SelectItem component with hover state styling for better contrast
+  - Updated DropdownMenuItem component with same hover behavior
+  - Description text now changes to `text-accent-foreground/80` on focus/hover for improved readability
+  - Added descriptions to UserMenu items (Profile: "View and edit profile", Settings: "Manage preferences")
+  - Comprehensive Cypress E2E tests for dropdown description visibility
+  - Ensures WCAG AA accessibility compliance with sufficient color contrast
+  - Affects: Estimation sequence dropdown in Planning Poker, User menu, and all other dropdowns with descriptions
+
 ### Added
 
 - **Password Confirmation Field on Signup Form** (Issue #89)
