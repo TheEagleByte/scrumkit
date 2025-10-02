@@ -39,9 +39,8 @@ describe('GitHub Links', () => {
       cy.contains('Documentation')
         .should('have.attr', 'href', `${correctRepo}/wiki`);
 
-      // Self-Hosting Guide link
-      cy.contains('Self-Hosting Guide')
-        .should('have.attr', 'href', `${correctRepo}/blob/main/SELF_HOSTING.md`);
+      // Self-Hosting Guide link should be hidden until ready (issue #78)
+      cy.contains('Self-Hosting Guide').should('not.exist');
 
       // Contributing link
       cy.contains('Contributing')

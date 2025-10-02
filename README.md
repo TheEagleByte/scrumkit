@@ -63,9 +63,10 @@ npm run dev
 
 ### Deployment
 
-For self-hosting instructions, see our [Self-Hosting Guide](SELF_HOSTING.md).
+Deployment options coming soon. Stay tuned!
 
-<!-- TODO: Re-enable one-click deploy buttons once production-ready (issue #78)
+<!-- TODO: Re-enable deployment options once production-ready (issue #78)
+For self-hosting instructions, see our [Self-Hosting Guide](SELF_HOSTING.md).
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/TheEagleByte/scrumkit)
 [![Deploy to Railway](https://railway.app/button.svg)](https://railway.app/template/scrumkit)
 -->

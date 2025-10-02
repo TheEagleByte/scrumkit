@@ -677,9 +677,9 @@ export default function Home() {
                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center mx-auto mb-4">
                     <Zap className="w-8 h-8 text-violet-400" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-2">Quick Setup</h3>
+                  <h3 className="text-xl font-semibold mb-2">Easy Deployment</h3>
                   <p className="text-gray-400">
-                    Get started quickly with our comprehensive self-hosting guide. Full control over your data.
+                    Simple deployment options coming soon. Get started with local development today.
                   </p>
                 </motion.div>
 
@@ -811,7 +811,9 @@ export default function Home() {
                 <h3 className="font-semibold mb-4 text-gray-300">Resources</h3>
                 <ul className="space-y-2">
                   <li><a href="https://github.com/TheEagleByte/scrumkit/wiki" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-white transition">Documentation</a></li>
+                  {/* TODO: Re-enable when self-hosting guide is ready (issue #78)
                   <li><a href="https://github.com/TheEagleByte/scrumkit/blob/main/SELF_HOSTING.md" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-white transition">Self-Hosting Guide</a></li>
+                  */}
                   <li><a href="https://github.com/TheEagleByte/scrumkit/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-white transition">Contributing</a></li>
                   <li><a href="https://github.com/TheEagleByte/scrumkit/releases" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-white transition">Changelog</a></li>
                 </ul>
