@@ -118,7 +118,7 @@ export default function HomePageContent() {
                     </Link>
                   </Magnet>
                   <Magnet padding={15} magnetStrength={2}>
-                    <a href="https://github.com/scrumkit/scrumkit" target="_blank" rel="noopener noreferrer">
+                    <a href="https://github.com/TheEagleByte/scrumkit" target="_blank" rel="noopener noreferrer">
                       <Button size="lg" variant="outline" className="border-gray-800 text-white hover:bg-gray-900 px-8 h-12 text-base">
                         <GithubIcon className="mr-2 h-4 w-4" />
                         View on GitHub
