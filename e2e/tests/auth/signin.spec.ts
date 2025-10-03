@@ -31,8 +31,8 @@ test.describe('Sign In Flow', () => {
     const authPage = new AuthPage(page)
     await authPage.goto()
 
-    await expect(page.getByText('Welcome to ScrumKit')).toBeVisible()
-    await expect(page.getByText('Sign in to save your boards')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'ScrumKit' })).toBeVisible()
+    await expect(page.getByText('Sign in to unlock all features')).toBeVisible()
   })
 
   test('should toggle between signin and signup tabs', async ({ page }) => {
@@ -54,7 +54,7 @@ test.describe('Sign In Flow', () => {
     await authPage.goto()
 
     await authPage.continueAsGuest()
-    await expect(page).toHaveURL(/\/retro/)
+    await expect(page).toHaveURL(/\/dashboard/)
   })
 
   test('should display OAuth buttons', async ({ page }) => {
