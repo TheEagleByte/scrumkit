@@ -418,11 +418,47 @@ npm run test:e2e:debug
 ### GitHub Actions
 
 Tests run automatically on:
-- Pull requests
-- Push to main branch
+- Pull requests to main/develop branches
 - Manual workflow dispatch
 
-Configuration in `.github/workflows/playwright.yml` (to be created)
+**Workflows:**
+- `.github/workflows/e2e.yml` - Runs E2E tests on PRs
+- `.github/workflows/cleanup-test-users.yml` - Weekly cleanup of old test users
+
+### Required GitHub Secrets
+
+For E2E tests and cleanup to work in CI/CD, add these secrets to your repository:
+
+**Settings → Secrets and variables → Actions → New repository secret**
+
+1. `NEXT_PUBLIC_SUPABASE_URL`
+   - Your Supabase project URL
+   - Found in: Supabase Dashboard → Settings → API → Project URL
+
+2. `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - Your Supabase anonymous/public key
+   - Found in: Supabase Dashboard → Settings → API → Project API keys → anon/public
+
+3. `SUPABASE_SERVICE_ROLE_KEY` ⚠️
+   - Your Supabase service role key (has admin permissions)
+   - Found in: Supabase Dashboard → Settings → API → Project API keys → service_role
+   - **IMPORTANT:** This key has elevated permissions - never expose it publicly
+
+### Automated Test User Cleanup
+
+**Post-Test Cleanup:**
+- Runs after every E2E test run in CI
+- Deletes test users created during that run (age: 0 days)
+- Uses `--execute --yes --days=0` flags
+- Runs even if tests fail (`if: always()`)
+- Won't fail the workflow if cleanup fails (`continue-on-error: true`)
+
+**Scheduled Cleanup:**
+- Runs every Sunday at 2 AM UTC
+- Deletes test users older than 7 days
+- Processes up to 500 users per run
+- Uses `--execute --yes --days=7 --limit=500` flags
+- Can be triggered manually via "Actions" tab → "Cleanup Test Users" → "Run workflow"
 
 ### Parallel Execution
 
