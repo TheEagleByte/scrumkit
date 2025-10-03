@@ -72,7 +72,10 @@ describe('Anonymous Asset Claiming', () => {
       cy.visit('/poker/new');
 
       // Fill in session creation form
-      cy.get('input[placeholder="Sprint 24 Planning"]').type('Test Session for Claiming');
+      cy.get('input[placeholder="Sprint 24 Planning"]').clear().type('Test Session for Claiming');
+
+      // Wait for form to be ready
+      cy.wait(500);
 
       // Submit form
       cy.contains('button', 'Create Session').click();
@@ -116,7 +119,8 @@ describe('Anonymous Asset Claiming', () => {
 
       // Step 2: Create an anonymous poker session
       cy.visit('/poker/new');
-      cy.get('input[placeholder="Sprint 24 Planning"]').type(`Anonymous Session ${timestamp}`);
+      cy.get('input[placeholder="Sprint 24 Planning"]').clear().type(`Anonymous Session ${timestamp}`);
+      cy.wait(500);
       cy.contains('button', 'Create Session').click();
       cy.contains('Poker session created successfully!', { timeout: 10000 }).should('be.visible');
 
