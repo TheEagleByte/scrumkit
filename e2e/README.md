@@ -282,6 +282,84 @@ test.describe('Feature Name', () => {
 - Use `test.skip()` for temporarily disabled tests
 - Use `test.only()` for debugging (remove before committing!)
 
+### Test Data & User Management
+
+**Dynamic User Creation:**
+- Tests create fresh user accounts dynamically using unique timestamp-based emails (e.g., `test-1234567890@example.com`)
+- No need to pre-seed test users in the database
+- Each test run is isolated and independent
+- Users are created via the actual signup flow, providing true E2E testing
+
+**Example:**
+```typescript
+async function createTestUser(authPage: AuthPage) {
+  const timestamp = Date.now()
+  const user = {
+    name: 'Test User',
+    email: `test-${timestamp}@example.com`,
+    password: 'TestPassword123!',
+  }
+
+  // Create user via signup
+  await authPage.goto()
+  await authPage.switchToSignUp()
+  await authPage.signUp(user.name, user.email, user.password)
+
+  // Wait for redirect and clear session
+  await authPage.page.waitForURL(/\/dashboard/, { timeout: 10000 })
+  await authPage.page.context().clearCookies()
+
+  return user
+}
+```
+
+**Test User Cleanup:**
+
+Test users accumulate in the database over time. A secure cleanup script is provided:
+
+```bash
+# Dry-run (shows what would be deleted, safe to run anytime)
+npm run cleanup:test-users
+
+# Actually delete test users (requires confirmation)
+npm run cleanup:test-users -- --execute
+
+# Delete users older than 14 days
+npm run cleanup:test-users -- --execute --days=14
+
+# Limit to 50 users max
+npm run cleanup:test-users -- --execute --limit=50
+
+# Skip confirmation (for CI/CD automation)
+npm run cleanup:test-users -- --execute --yes
+```
+
+**Safety Features:**
+- ✅ Dry-run mode by default (won't delete unless `--execute` is specified)
+- ✅ Only deletes users matching exact pattern: `test-{timestamp}@example.com`
+- ✅ Refuses to run in production environment (`NODE_ENV=production`)
+- ✅ Warns if Supabase URL doesn't look like localhost
+- ✅ Age-based filtering (default: only deletes users older than 7 days)
+- ✅ Batch size limiting (default: 100 users, max: 500)
+- ✅ Requires confirmation prompt before deletion
+- ✅ Detailed logging of all operations
+- ✅ Uses Supabase Admin API for proper user deletion
+
+**Requirements:**
+- Add `SUPABASE_SERVICE_ROLE_KEY` to `.env.local` (found in Supabase Dashboard > Settings > API)
+- This key has elevated permissions - keep it secret and never commit it
+
+**For CI/CD:**
+- A daily cron job runs automatically via GitHub Actions (3 AM UTC)
+- Deletes test users older than 1 day
+- No manual intervention required
+- Can trigger manually if needed via Actions tab
+
+**Test Data Fixtures:**
+- Static test data stored in `e2e/fixtures/*.json`
+- Use for non-user test data (settings, configurations, etc.)
+- Avoid using fixtures for user accounts - create them dynamically instead
+
 ## Debugging
 
 ### VS Code Integration
@@ -341,11 +419,41 @@ npm run test:e2e:debug
 ### GitHub Actions
 
 Tests run automatically on:
-- Pull requests
-- Push to main branch
+- Pull requests to main/develop branches
 - Manual workflow dispatch
 
-Configuration in `.github/workflows/playwright.yml` (to be created)
+**Workflows:**
+- `.github/workflows/e2e.yml` - Runs E2E tests on PRs
+- `.github/workflows/cleanup-test-users.yml` - Daily cleanup of old test users
+
+### Required GitHub Secrets
+
+For E2E tests and cleanup to work in CI/CD, add these secrets to your repository:
+
+Navigate to: Settings → Secrets and variables → Actions → New repository secret
+
+1. `NEXT_PUBLIC_SUPABASE_URL`
+   - Your Supabase project URL
+   - Found in: Supabase Dashboard → Settings → API → Project URL
+
+2. `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - Your Supabase anonymous/public key
+   - Found in: Supabase Dashboard → Settings → API → Project API keys → anon/public
+
+3. `SUPABASE_SERVICE_ROLE_KEY` ⚠️
+   - Your Supabase service role key (has admin permissions)
+   - Found in: Supabase Dashboard → Settings → API → Project API keys → service_role
+   - **IMPORTANT:** This key has elevated permissions - never expose it publicly
+
+### Automated Test User Cleanup
+
+**Daily Scheduled Cleanup:**
+- Runs daily at 3 AM UTC via GitHub Actions cron
+- Deletes test users older than 1 day
+- Processes up to 500 users per run
+- Uses `--execute --yes --days=1 --limit=500` flags
+- Can be triggered manually via "Actions" tab → "Cleanup Test Users" → "Run workflow"
+- Keeps database clean without manual intervention
 
 ### Parallel Execution
 
