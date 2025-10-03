@@ -6,13 +6,14 @@ import { useBoards } from "@/hooks/use-boards";
 import { BoardList } from "@/components/BoardList";
 import { Button } from "@/components/ui/button";
 import { Plus, LayoutGrid, Sparkles, Archive } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Magnet from "@/components/Magnet";
 import StarBorder from "@/components/StarBorder";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Header } from "@/components/layout/Header";
 import { useUser, useResendVerificationEmail } from "@/hooks/use-auth-query";
 import { EmailVerificationBanner } from "@/components/auth/EmailVerificationBanner";
+import { toast } from "sonner";
 
 export default function BoardsPage() {
   const [showArchived, setShowArchived] = useState(false);
@@ -27,20 +28,15 @@ export default function BoardsPage() {
   const archivedBoards = useMemo(() => boards.filter(board => board.is_archived), [boards]);
   const displayedBoards = showArchived ? archivedBoards : activeBoards;
 
-  // Auto-redirect when last archived board is unarchived
-  const handleArchiveStatusChange = () => {
-    // The query will automatically refetch due to mutation invalidation
-    // Check if we need to switch views
-    if (showArchived) {
-      // Small delay to ensure data is updated
-      setTimeout(() => {
-        const currentArchivedCount = boards.filter(b => b.is_archived).length;
-        if (currentArchivedCount === 0) {
-          setShowArchived(false);
-        }
-      }, 100);
+  // Auto-switch to active tab when last archived board is unarchived
+  useEffect(() => {
+    if (showArchived && archivedBoards.length === 0) {
+      setShowArchived(false);
+      toast.success('Switched to active boards', {
+        description: 'No archived boards remaining'
+      });
     }
-  };
+  }, [archivedBoards.length, showArchived]);
 
   if (isLoading) {
     return (
@@ -253,7 +249,6 @@ export default function BoardsPage() {
           <BoardList
             boards={displayedBoards}
             showArchived={showArchived}
-            onArchiveStatusChange={handleArchiveStatusChange}
           />
         </motion.div>
 
