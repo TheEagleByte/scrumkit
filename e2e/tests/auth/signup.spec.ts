@@ -308,11 +308,13 @@ test.describe('Sign Up Flow', () => {
   })
 
   test.describe('Responsive Design', () => {
-    test('should display correctly on mobile devices', async ({ page, browserName }) => {
+    test('should display correctly on mobile devices', async ({ page }, testInfo) => {
       // Only run this on mobile projects
-      if (!browserName.includes('Mobile') && !browserName.includes('iPhone')) {
-        test.skip()
-      }
+      const mobileProjects = ['Mobile Chrome', 'Mobile Safari']
+      test.skip(
+        !mobileProjects.includes(testInfo.project.name),
+        'Mobile-only test'
+      )
 
       const authPage = new AuthPage(page)
       await authPage.goto()
@@ -325,11 +327,13 @@ test.describe('Sign Up Flow', () => {
       await expect(authPage.signUpButton).toBeVisible()
     })
 
-    test('should display correctly on tablet devices', async ({ page, browserName }) => {
+    test('should display correctly on tablet devices', async ({ page }, testInfo) => {
       // Only run this on tablet/iPad projects
-      if (!browserName.includes('iPad')) {
-        test.skip()
-      }
+      const tabletProjects = ['iPad', 'iPad Landscape']
+      test.skip(
+        !tabletProjects.includes(testInfo.project.name),
+        'Tablet-only test'
+      )
 
       const authPage = new AuthPage(page)
       await authPage.goto()
