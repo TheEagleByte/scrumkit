@@ -73,8 +73,8 @@ export async function claimAnonymousAssets(
  * @returns Number of successfully claimed boards
  */
 async function claimRetrospectives(
-  supabase: any,
-  cookieStore: any,
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  cookieStore: Awaited<ReturnType<typeof cookies>>,
   userId: string,
   boardIds: string[]
 ): Promise<number> {
@@ -116,7 +116,7 @@ async function claimRetrospectives(
     })
     .in(
       "id",
-      boards.map((b: any) => b.id)
+      boards.map((b: { id: string; unique_url: string; creator_cookie: string | null }) => b.id)
     );
 
   if (updateError) {
@@ -137,8 +137,8 @@ async function claimRetrospectives(
  * @returns Number of successfully claimed sessions
  */
 async function claimPokerSessions(
-  supabase: any,
-  cookieStore: any,
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  cookieStore: Awaited<ReturnType<typeof cookies>>,
   userId: string,
   sessionIds: string[]
 ): Promise<number> {
@@ -180,7 +180,7 @@ async function claimPokerSessions(
     })
     .in(
       "id",
-      sessions.map((s: any) => s.id)
+      sessions.map((s: { id: string; unique_url: string; creator_cookie: string | null }) => s.id)
     );
 
   if (updateError) {
