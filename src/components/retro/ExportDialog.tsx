@@ -88,8 +88,11 @@ export function ExportDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[80vh]">
-        <DialogHeader>
+      <DialogContent
+        className="max-w-3xl max-h-[80vh] flex flex-col"
+        data-testid="export-modal"
+      >
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
             Export Retrospective
@@ -100,7 +103,10 @@ export function ExportDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div
+          className="flex-1 overflow-y-auto min-h-0 space-y-4"
+          data-testid="export-content"
+        >
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label htmlFor="grouped-export" className="flex flex-col gap-1">
@@ -157,11 +163,12 @@ export function ExportDialog({
               value={markdownContent}
               readOnly
               className="font-mono text-sm min-h-[300px] resize-none"
+              data-testid="export-preview"
             />
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="flex-shrink-0 gap-2 sm:gap-0" data-testid="modal-footer">
           <Button variant="outline" onClick={handleCopyToClipboard}>
             <Copy className="h-4 w-4 mr-2" />
             Copy to Clipboard
