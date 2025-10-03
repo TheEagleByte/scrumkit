@@ -99,9 +99,9 @@ export function useCreatePokerSession() {
       toast.error("Failed to create poker session");
     },
     onSuccess: (data) => {
-      // Store session ID in localStorage for anonymous claiming
-      if (data.id) {
-        storeAnonymousAsset("poker_session", data.id);
+      // Store session URL in localStorage for anonymous claiming
+      if (data.unique_url) {
+        storeAnonymousAsset("poker_session", data.unique_url);
       }
       toast.success("Poker session created successfully!");
     },

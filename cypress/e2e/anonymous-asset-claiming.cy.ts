@@ -37,7 +37,7 @@ describe('Anonymous Asset Claiming', () => {
       cy.visit('/boards/new');
 
       // Fill in board creation form
-      cy.get('input#board-title').type('Test Board for Claiming');
+      cy.get('input#title').type('Test Board for Claiming');
 
       // Submit form
       cy.contains('button', 'Create Board').click();
@@ -72,7 +72,7 @@ describe('Anonymous Asset Claiming', () => {
       cy.visit('/poker/new');
 
       // Fill in session creation form
-      cy.get('input[id="session-title"]').type('Test Session for Claiming');
+      cy.get('input[placeholder="Sprint 24 Planning"]').type('Test Session for Claiming');
 
       // Submit form
       cy.contains('button', 'Create Session').click();
@@ -104,7 +104,7 @@ describe('Anonymous Asset Claiming', () => {
     it('should claim boards and sessions after signup', () => {
       // Step 1: Create an anonymous board
       cy.visit('/boards/new');
-      cy.get('input#board-title').type(`Anonymous Board ${timestamp}`);
+      cy.get('input#title').type(`Anonymous Board ${timestamp}`);
       cy.contains('button', 'Create Board').click();
       cy.url().should('include', '/retro/');
 
@@ -116,7 +116,7 @@ describe('Anonymous Asset Claiming', () => {
 
       // Step 2: Create an anonymous poker session
       cy.visit('/poker/new');
-      cy.get('input[id="session-title"]').type(`Anonymous Session ${timestamp}`);
+      cy.get('input[placeholder="Sprint 24 Planning"]').type(`Anonymous Session ${timestamp}`);
       cy.contains('button', 'Create Session').click();
       cy.url().should('include', '/poker/');
 
@@ -221,12 +221,12 @@ describe('Anonymous Asset Claiming', () => {
 
       // Create multiple boards
       cy.visit('/boards/new');
-      cy.get('input#board-title').type('Board 1');
+      cy.get('input#title').type('Board 1');
       cy.contains('button', 'Create Board').click();
       cy.url().should('include', '/retro/');
 
       cy.visit('/boards/new');
-      cy.get('input#board-title').type('Board 2');
+      cy.get('input#title').type('Board 2');
       cy.contains('button', 'Create Board').click();
       cy.url().should('include', '/retro/');
 
