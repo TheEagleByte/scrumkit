@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 import { AuthFormWithQuery } from "@/components/auth/AuthFormWithQuery";
 import InteractiveAnimatedLogo from "@/components/InteractiveAnimatedLogo";
@@ -49,6 +50,14 @@ export function AuthPageClient({ redirectTo }: { redirectTo?: string }) {
           </p>
         </div>
         <AuthFormWithQuery redirectTo={redirectTo} />
+        <div className="mt-6 text-center">
+          <Link
+            href="/dashboard"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            continue as guest
+          </Link>
+        </div>
       </div>
     </div>
   );

@@ -28,6 +28,8 @@ test.describe('Sign Up Flow', () => {
       const authPage = new AuthPage(page)
       await authPage.goto()
 
+      await expect(page.getByRole('heading', { name: 'ScrumKit' })).toBeVisible()
+      await expect(page.getByText('Sign in to unlock all features')).toBeVisible()
       await expect(page.getByText('Welcome')).toBeVisible()
       await expect(
         page.getByText('Sign in to your account or create a new one')
@@ -165,6 +167,23 @@ test.describe('Sign Up Flow', () => {
       // Email should be preserved
       const emailValue = await authPage.emailInput.inputValue()
       expect(emailValue).toBe('test@example.com')
+    })
+
+    test('should show continue as guest link', async ({ page }) => {
+      const authPage = new AuthPage(page)
+      await authPage.goto()
+
+      await expect(authPage.continueAsGuestLink).toBeVisible()
+    })
+
+    test('should navigate to dashboard when continue as guest is clicked', async ({ page }) => {
+      const authPage = new AuthPage(page)
+      await authPage.goto()
+
+      await authPage.continueAsGuest()
+
+      // Should navigate to dashboard
+      await expect(page).toHaveURL('/dashboard')
     })
   })
 
