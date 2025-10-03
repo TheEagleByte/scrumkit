@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Export Modal Content Overflow** (Issue #102)
+  - Fixed export modal layout to prevent content overflow and button cutoff
+  - Added flex-column layout with scrollable content area
+  - Header and footer sections now remain fixed and visible
+  - Content area (export options and preview) scrolls independently
+  - Added data-testid attributes for improved testability
+  - Ensures all action buttons (Copy, Download, Close) are always accessible
+  - Improves UX when exporting retrospectives with many items
+
 - **Board Archive Navigation** (Issue #99)
   - Fixed auto-switch to active tab when unarchiving the last archived board
   - Replaced setTimeout-based callback with useEffect for reliable state tracking
