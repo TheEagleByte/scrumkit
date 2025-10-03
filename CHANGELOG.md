@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Card Author Name Display Testing** (Issue #104)
+  - Added comprehensive Cypress E2E tests for retrospective card author name display
+  - Verified authenticated users' cards show correct full name from profile
+  - Confirmed fallback to email username when full_name is not available
+  - Validated anonymous user name display for unauthenticated sessions
+  - Tested multi-user scenarios to ensure different authors are distinguished
+  - Added security tests to verify author name sanitization
+  - Verified author name persistence across page reloads
+  - Tested author name display in export functionality
+  - Implementation confirmed working correctly: uses `profile.full_name || email.split('@')[0] || "User"`
+
 - **Back Navigation to Boards and Sessions** (Issue #103)
   - Added back navigation button to retrospective board page
   - Added back navigation button to poker session page
