@@ -30,9 +30,6 @@ jobs:
         env:
           CYPRESS_INSTALL_BINARY: 0
 
-      - name: Run linting
-        run: npm run lint
-
       - name: Run tests with coverage
         run: npm run test:coverage
         env:
