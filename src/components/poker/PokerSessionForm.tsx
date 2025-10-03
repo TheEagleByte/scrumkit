@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -28,6 +28,16 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
@@ -59,6 +69,7 @@ export function PokerSessionForm() {
   const router = useRouter();
   const createSession = useCreatePokerSession();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
 
   const sequences = getAvailableSequences();
 
@@ -76,6 +87,32 @@ export function PokerSessionForm() {
   });
 
   const selectedSequence = form.watch("estimationSequence");
+
+  // Handle navigation with unsaved changes check
+  const handleNavigateBack = useCallback(() => {
+    if (form.formState.isDirty && !isSubmitting) {
+      setShowUnsavedChangesDialog(true);
+    } else {
+      router.push('/poker');
+    }
+  }, [form.formState.isDirty, isSubmitting, router]);
+
+  const confirmNavigateBack = useCallback(() => {
+    setShowUnsavedChangesDialog(false);
+    router.push('/poker');
+  }, [router]);
+
+  // Add keyboard shortcut (Escape to go back)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isSubmitting) {
+        handleNavigateBack();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleNavigateBack, isSubmitting]);
 
   async function onSubmit(values: FormValues) {
     setIsSubmitting(true);
@@ -322,7 +359,7 @@ export function PokerSessionForm() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => router.back()}
+                onClick={handleNavigateBack}
                 disabled={isSubmitting}
               >
                 Cancel
@@ -334,6 +371,24 @@ export function PokerSessionForm() {
             </div>
           </form>
         </Form>
+
+        {/* Unsaved Changes Dialog */}
+        <AlertDialog open={showUnsavedChangesDialog} onOpenChange={setShowUnsavedChangesDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
+              <AlertDialogDescription>
+                You have unsaved changes. Are you sure you want to leave? All your changes will be lost.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Continue editing</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmNavigateBack}>
+                Discard changes
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );
