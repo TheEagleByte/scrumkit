@@ -65,12 +65,3 @@ jobs:
           name: html-report
           path: playwright-report/
           retention-days: 7
-
-      - name: Cleanup test users
-        if: always() # Run even if tests fail
-        run: npm run cleanup:test-users -- --execute --yes --days=0
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        continue-on-error: true # Don't fail the workflow if cleanup fails

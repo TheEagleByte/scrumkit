@@ -350,9 +350,10 @@ npm run cleanup:test-users -- --execute --yes
 - This key has elevated permissions - keep it secret and never commit it
 
 **For CI/CD:**
-- Run cleanup periodically (e.g., weekly) or after test runs
-- Use `--execute --yes --days=1` to auto-delete recent test users without confirmation
-- Consider using a separate test database to avoid cleanup entirely
+- A daily cron job runs automatically via GitHub Actions (3 AM UTC)
+- Deletes test users older than 1 day
+- No manual intervention required
+- Can trigger manually if needed via Actions tab
 
 **Test Data Fixtures:**
 - Static test data stored in `e2e/fixtures/*.json`
@@ -446,19 +447,13 @@ For E2E tests and cleanup to work in CI/CD, add these secrets to your repository
 
 ### Automated Test User Cleanup
 
-**Post-Test Cleanup:**
-- Runs after every E2E test run in CI
-- Deletes test users created during that run (age: 0 days)
-- Uses `--execute --yes --days=0` flags
-- Runs even if tests fail (`if: always()`)
-- Won't fail the workflow if cleanup fails (`continue-on-error: true`)
-
-**Scheduled Cleanup:**
-- Runs every Sunday at 2 AM UTC
-- Deletes test users older than 7 days
+**Daily Scheduled Cleanup:**
+- Runs daily at 3 AM UTC via GitHub Actions cron
+- Deletes test users older than 1 day
 - Processes up to 500 users per run
-- Uses `--execute --yes --days=7 --limit=500` flags
+- Uses `--execute --yes --days=1 --limit=500` flags
 - Can be triggered manually via "Actions" tab → "Cleanup Test Users" → "Run workflow"
+- Keeps database clean without manual intervention
 
 ### Parallel Execution
 

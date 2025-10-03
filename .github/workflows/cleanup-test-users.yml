@@ -2,8 +2,8 @@ name: Cleanup Test Users
 
 on:
   schedule:
-    # Run every Sunday at 2 AM UTC
-    - cron: '0 2 * * 0'
+    # Run daily at 3 AM UTC
+    - cron: '0 3 * * *'
   workflow_dispatch: # Allow manual triggering
 
 jobs:
@@ -25,8 +25,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Cleanup test users older than 7 days
-        run: npm run cleanup:test-users -- --execute --yes --days=7 --limit=500
+      - name: Cleanup test users older than 1 day
+        run: npm run cleanup:test-users -- --execute --yes --days=1 --limit=500
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
