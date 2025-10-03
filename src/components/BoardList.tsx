@@ -134,6 +134,7 @@ export function BoardList({ boards, showArchived = false }: BoardListProps) {
             whileHover={{ y: -4 }}
           >
             <Card
+              data-testid="board-card"
               className={`hover:shadow-lg transition-all ${
                 board.is_archived ? "opacity-60" : ""
               }`}
