@@ -121,6 +121,7 @@ async function confirm(message: string): Promise<boolean> {
 
 // Find test users to clean up
 async function findTestUsers(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any, // Using any to avoid Supabase client type complications
   minAgeDays: number,
   limit: number
@@ -156,6 +157,7 @@ async function findTestUsers(
 
   // Cast to any[] to work around Supabase type inference issues
   // We validate each field below anyway
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const profiles = data as any[];
 
   for (const profile of profiles) {
