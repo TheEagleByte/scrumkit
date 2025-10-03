@@ -22,7 +22,7 @@ describe('Poker Create Page Navigation', () => {
     cy.visit('/poker/new');
 
     // Cancel button should navigate directly when no changes
-    cy.contains('button', 'Cancel').click();
+    cy.get('[data-testid="cancel-session-button"]').click();
 
     cy.url().should('include', '/poker');
   });
@@ -31,10 +31,10 @@ describe('Poker Create Page Navigation', () => {
     cy.visit('/poker/new');
 
     // Make changes to the form
-    cy.get('input[id="title"]').type('Test Session');
+    cy.get('[data-testid="session-title-input"]').type('Test Session');
 
     // Try to cancel
-    cy.contains('button', 'Cancel').click();
+    cy.get('[data-testid="cancel-session-button"]').click();
 
     // Should show confirmation dialog
     cy.contains('Unsaved changes').should('be.visible');
@@ -45,10 +45,10 @@ describe('Poker Create Page Navigation', () => {
     cy.visit('/poker/new');
 
     // Make changes
-    cy.get('input[id="title"]').type('Test Session');
+    cy.get('[data-testid="session-title-input"]').type('Test Session');
 
     // Try to cancel
-    cy.contains('button', 'Cancel').click();
+    cy.get('[data-testid="cancel-session-button"]').click();
 
     // Click Continue editing
     cy.contains('button', 'Continue editing').click();
@@ -57,17 +57,17 @@ describe('Poker Create Page Navigation', () => {
     cy.url().should('include', '/poker/new');
 
     // Form should still have the changes
-    cy.get('input[id="title"]').should('have.value', 'Test Session');
+    cy.get('[data-testid="session-title-input"]').should('have.value', 'Test Session');
   });
 
   it('should discard changes and navigate away when confirmed', () => {
     cy.visit('/poker/new');
 
     // Make changes
-    cy.get('input[id="title"]').type('Test Session');
+    cy.get('[data-testid="session-title-input"]').type('Test Session');
 
     // Try to cancel
-    cy.contains('button', 'Cancel').click();
+    cy.get('[data-testid="cancel-session-button"]').click();
 
     // Confirm discard
     cy.contains('button', 'Discard changes').click();
@@ -80,7 +80,7 @@ describe('Poker Create Page Navigation', () => {
     cy.visit('/poker/new');
 
     // Make changes
-    cy.get('input[id="title"]').type('Test Session');
+    cy.get('[data-testid="session-title-input"]').type('Test Session');
 
     // Click back button
     cy.get('[data-testid="back-to-sessions"]').click();
@@ -103,7 +103,7 @@ describe('Poker Create Page Navigation', () => {
     cy.visit('/poker/new');
 
     // Make changes
-    cy.get('input[id="title"]').type('Test Session');
+    cy.get('[data-testid="session-title-input"]').type('Test Session');
 
     // Press Escape
     cy.get('body').type('{esc}');
@@ -116,16 +116,16 @@ describe('Poker Create Page Navigation', () => {
     cy.visit('/poker/new');
 
     // Fill in required fields
-    cy.get('input[id="title"]').type('Test Session');
+    cy.get('[data-testid="session-title-input"]').type('Test Session');
 
     // Intercept the submission to make it slow
     cy.intercept('POST', '**/api/**', { delay: 2000 }).as('createSession');
 
     // Submit the form
-    cy.contains('button', 'Create Session').click();
+    cy.get('[data-testid="create-session-button"]').click();
 
     // Try to cancel during submission
-    cy.contains('button', 'Cancel').should('be.disabled');
+    cy.get('[data-testid="cancel-session-button"]').should('be.disabled');
   });
 
   it('should have accessible back navigation', () => {

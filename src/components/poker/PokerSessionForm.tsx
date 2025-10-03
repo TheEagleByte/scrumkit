@@ -38,7 +38,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required").max(255, "Title is too long"),
@@ -153,13 +153,26 @@ export function PokerSessionForm() {
   }
 
   return (
-    <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>Create Planning Poker Session</CardTitle>
-        <CardDescription>
-          Set up a new planning poker session for your team to estimate stories together.
-        </CardDescription>
-      </CardHeader>
+    <>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="mb-6"
+        onClick={handleNavigateBack}
+        disabled={isSubmitting}
+        data-testid="back-to-sessions"
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to Sessions
+      </Button>
+
+      <Card className="max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle>Create Planning Poker Session</CardTitle>
+          <CardDescription>
+            Set up a new planning poker session for your team to estimate stories together.
+          </CardDescription>
+        </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -175,6 +188,7 @@ export function PokerSessionForm() {
                       placeholder="Sprint 24 Planning"
                       {...field}
                       disabled={isSubmitting}
+                      data-testid="session-title-input"
                     />
                   </FormControl>
                   <FormDescription>
@@ -361,10 +375,16 @@ export function PokerSessionForm() {
                 variant="outline"
                 onClick={handleNavigateBack}
                 disabled={isSubmitting}
+                data-testid="cancel-session-button"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting} className="flex-1">
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1"
+                data-testid="create-session-button"
+              >
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Create Session
               </Button>
@@ -391,5 +411,6 @@ export function PokerSessionForm() {
         </AlertDialog>
       </CardContent>
     </Card>
+    </>
   );
 }
