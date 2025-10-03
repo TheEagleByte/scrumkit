@@ -3,11 +3,10 @@ import { getUserFromServer } from "@/lib/supabase/auth";
 import { Suspense } from "react";
 import { AuthPageClient } from "./AuthPageClient";
 
-export default async function AuthPage({
-  searchParams,
-}: {
-  searchParams: { redirectTo?: string };
+export default async function AuthPage(props: {
+  searchParams: Promise<{ redirectTo?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   const user = await getUserFromServer();
 
   // If user is already logged in, redirect them

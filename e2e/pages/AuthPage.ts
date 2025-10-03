@@ -26,7 +26,7 @@ export class AuthPage {
     this.nameInput = page.getByLabel('Full Name')
     this.confirmPasswordInput = page.getByLabel('Confirm Password')
     this.signInButton = page.getByRole('button', { name: 'Sign In' })
-    this.signUpButton = page.getByRole('button', { name: 'Sign Up' })
+    this.signUpButton = page.getByRole('button', { name: 'Create Account' })
     this.googleButton = page.getByRole('button', { name: 'Google' })
     this.githubButton = page.getByRole('button', { name: 'GitHub' })
     this.continueAsGuestLink = page.getByText('continue as guest')
