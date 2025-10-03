@@ -121,7 +121,7 @@ async function confirm(message: string): Promise<boolean> {
 
 // Find test users to clean up
 async function findTestUsers(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any, // Using any to avoid Supabase client type complications
   minAgeDays: number,
   limit: number
 ): Promise<TestUser[]> {
@@ -134,7 +134,7 @@ async function findTestUsers(
   console.log(`   Limit: ${limit} users\n`);
 
   // Query profiles table (safer than directly querying auth.users)
-  const { data: profiles, error } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select("id, email, created_at")
     .ilike("email", "test-%@example.com")
@@ -146,15 +146,36 @@ async function findTestUsers(
     throw new Error(`Failed to fetch test users: ${error.message}`);
   }
 
-  if (!profiles || profiles.length === 0) {
+  if (!data || data.length === 0) {
     return [];
   }
 
   // Double-check each email matches the exact pattern
-  const validatedUsers = profiles.filter((profile) => {
-    if (!profile.email) return false;
-    return isTestEmail(profile.email);
-  }) as TestUser[];
+  // Explicitly type and validate the results
+  const validatedUsers: TestUser[] = [];
+
+  // Cast to any[] to work around Supabase type inference issues
+  // We validate each field below anyway
+  const profiles = data as any[];
+
+  for (const profile of profiles) {
+    // Type guard to ensure we have the expected fields
+    if (
+      profile &&
+      typeof profile === 'object' &&
+      'id' in profile &&
+      'email' in profile &&
+      'created_at' in profile &&
+      typeof profile.email === 'string' &&
+      isTestEmail(profile.email)
+    ) {
+      validatedUsers.push({
+        id: profile.id as string,
+        email: profile.email,
+        created_at: profile.created_at as string,
+      });
+    }
+  }
 
   return validatedUsers;
 }

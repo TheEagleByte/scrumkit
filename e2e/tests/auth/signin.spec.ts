@@ -260,14 +260,21 @@ test.describe('Sign In Flow', () => {
 
       // Navigate back to auth
       await authPage.goto()
+
+      // Add a small delay to auth request to reliably catch the disabled state
+      await page.route('**/auth/v1/token?grant_type=password', async (route) => {
+        await new Promise(resolve => setTimeout(resolve, 500))
+        await route.continue()
+      })
+
       await authPage.emailInput.fill(user.email)
       await authPage.passwordInput.fill(user.password)
 
       // Click button
       const clickPromise = authPage.signInButton.click()
 
-      // Fields should be disabled (check immediately)
-      await expect(authPage.signInButton).toBeDisabled({ timeout: 1000 })
+      // Button should be disabled during submission
+      await expect(authPage.signInButton).toBeDisabled({ timeout: 2000 })
 
       await clickPromise
     })
