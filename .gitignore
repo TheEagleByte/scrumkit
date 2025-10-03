@@ -16,10 +16,10 @@
 coverage.json
 coverage-summary.json
 
-# cypress
-cypress/screenshots
-cypress/videos
-cypress/downloads
+# playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
 
 # next.js
 /.next/
