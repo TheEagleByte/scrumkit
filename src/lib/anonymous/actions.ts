@@ -95,7 +95,7 @@ async function claimRetrospectives(
 
   // Get boards from database that match both the IDs and URLs
   const { data: boards, error: fetchError } = await supabase
-    .from(config.tableName)
+    .from("retrospectives")
     .select("id, unique_url, creator_cookie")
     .in("id", boardIds)
     .in("unique_url", boardUrls)
@@ -108,15 +108,15 @@ async function claimRetrospectives(
 
   // Update boards to be owned by the user
   const { error: updateError } = await supabase
-    .from(config.tableName)
+    .from("retrospectives")
     .update({
-      [config.ownerField]: userId,
-      [config.anonymousField]: false,
+      created_by: userId,
+      is_anonymous: false,
       updated_at: new Date().toISOString(),
     })
     .in(
       "id",
-      boards.map((b: { id: string; unique_url: string; creator_cookie: string | null }) => b.id)
+      boards.map((b) => b.id)
     );
 
   if (updateError) {
@@ -159,7 +159,7 @@ async function claimPokerSessions(
 
   // Get sessions from database that match both the IDs and URLs
   const { data: sessions, error: fetchError } = await supabase
-    .from(config.tableName)
+    .from("poker_sessions")
     .select("id, unique_url, creator_cookie")
     .in("id", sessionIds)
     .in("unique_url", sessionUrls)
@@ -172,15 +172,15 @@ async function claimPokerSessions(
 
   // Update sessions to be owned by the user
   const { error: updateError } = await supabase
-    .from(config.tableName)
+    .from("poker_sessions")
     .update({
-      [config.ownerField]: userId,
-      [config.anonymousField]: false,
+      created_by: userId,
+      is_anonymous: false,
       updated_at: new Date().toISOString(),
     })
     .in(
       "id",
-      sessions.map((s: { id: string; unique_url: string; creator_cookie: string | null }) => s.id)
+      sessions.map((s) => s.id)
     );
 
   if (updateError) {
