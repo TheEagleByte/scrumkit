@@ -314,11 +314,45 @@ async function createTestUser(authPage: AuthPage) {
 ```
 
 **Test User Cleanup:**
-- Test users accumulate in the database over time
-- For local development, this is generally not an issue
-- For CI/CD, consider periodic cleanup or using a separate test database
-- Test users are identifiable by the `test-*@example.com` email pattern
-- Optional: Add a cleanup script to remove test users older than X days
+
+Test users accumulate in the database over time. A secure cleanup script is provided:
+
+```bash
+# Dry-run (shows what would be deleted, safe to run anytime)
+npm run cleanup:test-users
+
+# Actually delete test users (requires confirmation)
+npm run cleanup:test-users -- --execute
+
+# Delete users older than 14 days
+npm run cleanup:test-users -- --execute --days=14
+
+# Limit to 50 users max
+npm run cleanup:test-users -- --execute --limit=50
+
+# Skip confirmation (for CI/CD automation)
+npm run cleanup:test-users -- --execute --yes
+```
+
+**Safety Features:**
+- ✅ Dry-run mode by default (won't delete unless `--execute` is specified)
+- ✅ Only deletes users matching exact pattern: `test-{timestamp}@example.com`
+- ✅ Refuses to run in production environment (`NODE_ENV=production`)
+- ✅ Warns if Supabase URL doesn't look like localhost
+- ✅ Age-based filtering (default: only deletes users older than 7 days)
+- ✅ Batch size limiting (default: 100 users, max: 500)
+- ✅ Requires confirmation prompt before deletion
+- ✅ Detailed logging of all operations
+- ✅ Uses Supabase Admin API for proper user deletion
+
+**Requirements:**
+- Add `SUPABASE_SERVICE_ROLE_KEY` to `.env.local` (found in Supabase Dashboard > Settings > API)
+- This key has elevated permissions - keep it secret and never commit it
+
+**For CI/CD:**
+- Run cleanup periodically (e.g., weekly) or after test runs
+- Use `--execute --yes --days=1` to auto-delete recent test users without confirmation
+- Consider using a separate test database to avoid cleanup entirely
 
 **Test Data Fixtures:**
 - Static test data stored in `e2e/fixtures/*.json`
