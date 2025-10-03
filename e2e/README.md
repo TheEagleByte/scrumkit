@@ -282,6 +282,49 @@ test.describe('Feature Name', () => {
 - Use `test.skip()` for temporarily disabled tests
 - Use `test.only()` for debugging (remove before committing!)
 
+### Test Data & User Management
+
+**Dynamic User Creation:**
+- Tests create fresh user accounts dynamically using unique timestamp-based emails (e.g., `test-1234567890@example.com`)
+- No need to pre-seed test users in the database
+- Each test run is isolated and independent
+- Users are created via the actual signup flow, providing true E2E testing
+
+**Example:**
+```typescript
+async function createTestUser(authPage: AuthPage) {
+  const timestamp = Date.now()
+  const user = {
+    name: 'Test User',
+    email: `test-${timestamp}@example.com`,
+    password: 'TestPassword123!',
+  }
+
+  // Create user via signup
+  await authPage.goto()
+  await authPage.switchToSignUp()
+  await authPage.signUp(user.name, user.email, user.password)
+
+  // Wait for redirect and clear session
+  await authPage.page.waitForURL(/\/dashboard/, { timeout: 10000 })
+  await authPage.page.context().clearCookies()
+
+  return user
+}
+```
+
+**Test User Cleanup:**
+- Test users accumulate in the database over time
+- For local development, this is generally not an issue
+- For CI/CD, consider periodic cleanup or using a separate test database
+- Test users are identifiable by the `test-*@example.com` email pattern
+- Optional: Add a cleanup script to remove test users older than X days
+
+**Test Data Fixtures:**
+- Static test data stored in `e2e/fixtures/*.json`
+- Use for non-user test data (settings, configurations, etc.)
+- Avoid using fixtures for user accounts - create them dynamically instead
+
 ## Debugging
 
 ### VS Code Integration

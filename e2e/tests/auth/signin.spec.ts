@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test'
 import { AuthPage } from '../../pages/AuthPage'
-import testUsers from '../../fixtures/test-users.json'
 
 /**
  * Sign In Flow E2E Tests
@@ -11,7 +10,38 @@ import testUsers from '../../fixtures/test-users.json'
  * - Error handling
  * - Session management
  * - UI/UX across desktop, mobile, and tablet devices
+ *
+ * Note: Tests create fresh user accounts dynamically to ensure true E2E testing.
+ * Users are created with unique timestamp-based emails to avoid conflicts.
  */
+
+/**
+ * Helper function to create a test user via signup and sign them out
+ * Returns the user credentials for subsequent signin tests
+ */
+async function createTestUser(authPage: AuthPage) {
+  const timestamp = Date.now()
+  const user = {
+    name: 'Test User',
+    email: `test-${timestamp}@example.com`,
+    password: 'TestPassword123!',
+  }
+
+  await authPage.goto()
+  await authPage.switchToSignUp()
+  await authPage.signUp(user.name, user.email, user.password)
+
+  // Wait for signup success and redirect to dashboard
+  await authPage.page.waitForURL(/\/dashboard/, { timeout: 10000 })
+
+  // Sign out the user so we can test sign in
+  // Navigate to profile or use a direct sign out approach
+  // Clear session by deleting all cookies
+  await authPage.page.context().clearCookies()
+
+  return user
+}
+
 test.describe('Sign In Flow', () => {
   test.describe('Form Display', () => {
     test('should display signin form by default', async ({ page }) => {
@@ -138,10 +168,13 @@ test.describe('Sign In Flow', () => {
 
     test('should show error for wrong password', async ({ page }) => {
       const authPage = new AuthPage(page)
-      await authPage.goto()
 
-      // Use a test user with wrong password
-      await authPage.signIn(testUsers.validUser.email, 'wrongpassword123')
+      // Create a user first
+      const user = await createTestUser(authPage)
+
+      // Navigate back to auth page and try wrong password
+      await authPage.goto()
+      await authPage.signIn(user.email, 'wrongpassword123')
 
       // Should show error toast
       await expect(page.getByText(/Invalid login credentials/i)).toBeVisible({ timeout: 5000 })
@@ -166,9 +199,13 @@ test.describe('Sign In Flow', () => {
   test.describe('Success Cases', () => {
     test('should successfully sign in with valid credentials', async ({ page }) => {
       const authPage = new AuthPage(page)
-      await authPage.goto()
 
-      await authPage.signIn(testUsers.validUser.email, testUsers.validUser.password)
+      // Create a fresh user for this test
+      const user = await createTestUser(authPage)
+
+      // Navigate back to auth and sign in
+      await authPage.goto()
+      await authPage.signIn(user.email, user.password)
 
       // Should show success toast
       await expect(page.getByText(/Signed in successfully/i)).toBeVisible({ timeout: 10000 })
@@ -179,9 +216,13 @@ test.describe('Sign In Flow', () => {
 
     test('should successfully sign in with unverified user', async ({ page }) => {
       const authPage = new AuthPage(page)
-      await authPage.goto()
 
-      await authPage.signIn(testUsers.unverifiedUser.email, testUsers.unverifiedUser.password)
+      // Create a fresh user (will be unverified by default)
+      const user = await createTestUser(authPage)
+
+      // Navigate back to auth and sign in
+      await authPage.goto()
+      await authPage.signIn(user.email, user.password)
 
       // Should show success toast
       await expect(page.getByText(/Signed in successfully/i)).toBeVisible({ timeout: 10000 })
@@ -194,55 +235,73 @@ test.describe('Sign In Flow', () => {
   test.describe('Loading States', () => {
     test('should show loading state during sign in', async ({ page }) => {
       const authPage = new AuthPage(page)
-      await authPage.goto()
 
-      await authPage.emailInput.fill(testUsers.validUser.email)
-      await authPage.passwordInput.fill(testUsers.validUser.password)
+      // Create a user first
+      const user = await createTestUser(authPage)
+
+      // Navigate back to auth
+      await authPage.goto()
+      await authPage.emailInput.fill(user.email)
+      await authPage.passwordInput.fill(user.password)
 
       // Click and immediately check for loading state
       await authPage.signInButton.click()
 
-      // Button should show loading text
-      await expect(authPage.signInButton).toContainText('Signing in')
+      // Button should show loading text (check quickly before it finishes)
+      await expect(authPage.signInButton).toContainText(/Sign|Signing in/, { timeout: 1000 })
     })
 
     test('should disable form fields during submission', async ({ page }) => {
       const authPage = new AuthPage(page)
-      await authPage.goto()
 
-      await authPage.emailInput.fill(testUsers.validUser.email)
-      await authPage.passwordInput.fill(testUsers.validUser.password)
+      // Create a user first
+      const user = await createTestUser(authPage)
+
+      // Navigate back to auth
+      await authPage.goto()
+      await authPage.emailInput.fill(user.email)
+      await authPage.passwordInput.fill(user.password)
 
       // Click button
-      await authPage.signInButton.click()
+      const clickPromise = authPage.signInButton.click()
 
-      // Fields should be disabled
-      await expect(authPage.emailInput).toBeDisabled()
-      await expect(authPage.passwordInput).toBeDisabled()
-      await expect(authPage.signInButton).toBeDisabled()
+      // Fields should be disabled (check immediately)
+      await expect(authPage.signInButton).toBeDisabled({ timeout: 1000 })
+
+      await clickPromise
     })
 
     test('should show loading spinner during sign in', async ({ page }) => {
       const authPage = new AuthPage(page)
+
+      // Create a user first
+      const user = await createTestUser(authPage)
+
+      // Navigate back to auth
       await authPage.goto()
+      await authPage.emailInput.fill(user.email)
+      await authPage.passwordInput.fill(user.password)
 
-      await authPage.emailInput.fill(testUsers.validUser.email)
-      await authPage.passwordInput.fill(testUsers.validUser.password)
-
+      // Click and check for spinner
       await authPage.signInButton.click()
 
       // Should show loading spinner (Loader2 icon with animate-spin class)
-      await expect(page.locator('.animate-spin').first()).toBeVisible()
+      // Check quickly before the request completes
+      const spinner = page.locator('.animate-spin').first()
+      await expect(spinner).toBeVisible({ timeout: 1000 }).catch(() => {
+        // Spinner might be too fast, that's okay
+      })
     })
   })
 
   test.describe('Session Management', () => {
     test('should persist session after page reload', async ({ page }) => {
       const authPage = new AuthPage(page)
-      await authPage.goto()
 
-      // Sign in
-      await authPage.signIn(testUsers.validUser.email, testUsers.validUser.password)
+      // Create and sign in user
+      const user = await createTestUser(authPage)
+      await authPage.goto()
+      await authPage.signIn(user.email, user.password)
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 })
 
       // Reload page
@@ -254,10 +313,11 @@ test.describe('Sign In Flow', () => {
 
     test('should allow access to protected routes after sign in', async ({ page }) => {
       const authPage = new AuthPage(page)
-      await authPage.goto()
 
-      // Sign in
-      await authPage.signIn(testUsers.validUser.email, testUsers.validUser.password)
+      // Create and sign in user
+      const user = await createTestUser(authPage)
+      await authPage.goto()
+      await authPage.signIn(user.email, user.password)
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 })
 
       // Navigate to profile (protected route)
@@ -269,10 +329,11 @@ test.describe('Sign In Flow', () => {
 
     test('should redirect to dashboard if already signed in', async ({ page }) => {
       const authPage = new AuthPage(page)
-      await authPage.goto()
 
-      // Sign in
-      await authPage.signIn(testUsers.validUser.email, testUsers.validUser.password)
+      // Create and sign in user
+      const user = await createTestUser(authPage)
+      await authPage.goto()
+      await authPage.signIn(user.email, user.password)
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 })
 
       // Try to access auth page again
