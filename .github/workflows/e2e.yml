@@ -58,10 +58,3 @@ jobs:
             test-results/
           retention-days: 7
 
-      - name: Upload test report on failure
-        uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: html-report
-          path: playwright-report/
-          retention-days: 7
