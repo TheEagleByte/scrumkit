@@ -227,12 +227,9 @@ test.describe('Sign Up Flow', () => {
       // Start signup
       await authPage.signUpButton.click()
 
-      // Should show loading text (may be brief)
+      // Should show loading text
       const loadingText = page.getByText('Creating account...')
-      // Use a short timeout since loading state might be very brief
-      await expect(loadingText).toBeVisible({ timeout: 2000 }).catch(() => {
-        // It's okay if we miss it - the state might be too brief to catch
-      })
+      await expect(loadingText).toBeVisible({ timeout: 2000 })
     })
 
     test('should disable fields during signup', async ({ page }) => {
@@ -247,10 +244,8 @@ test.describe('Sign Up Flow', () => {
 
       await authPage.signUpButton.click()
 
-      // Check if button is disabled (may need quick check)
-      const isDisabled = await authPage.signUpButton.isDisabled().catch(() => false)
-      // The button should be disabled during submission, but this might be brief
-      // We just verify the mechanism exists
+      // Button should be disabled during submission
+      await expect(authPage.signUpButton).toBeDisabled()
     })
   })
 
