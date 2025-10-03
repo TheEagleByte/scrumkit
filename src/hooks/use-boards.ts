@@ -15,6 +15,7 @@ import {
   CreateBoardInput,
 } from "@/lib/boards/actions";
 import { toast } from "sonner";
+import { storeAnonymousAsset } from "@/lib/anonymous/asset-claiming";
 
 // Types
 interface Board {
@@ -99,6 +100,10 @@ export function useCreateBoard() {
       toast.error("Failed to create board");
     },
     onSuccess: (data) => {
+      // Store board ID in localStorage for anonymous claiming
+      if (data.id) {
+        storeAnonymousAsset("retrospective", data.id);
+      }
       toast.success("Board created successfully!");
     },
     onSettled: () => {

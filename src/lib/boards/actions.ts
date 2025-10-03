@@ -123,6 +123,7 @@ export async function createBoard(input: CreateBoardInput) {
 
   revalidatePath("/boards");
 
+  // Return board info including ID for localStorage tracking
   return {
     id: retrospective.id,
     unique_url: retrospective.unique_url,

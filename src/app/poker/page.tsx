@@ -11,9 +11,11 @@ import { Plus, TrendingUp, Sparkles, Archive, Play } from "lucide-react";
 import { useState, useMemo } from "react";
 import Magnet from "@/components/Magnet";
 import StarBorder from "@/components/StarBorder";
+import { useUser } from "@/hooks/use-auth-query";
 
 export default function PokerPage() {
   const [showArchived, setShowArchived] = useState(false);
+  const { data: user } = useUser();
 
   // Use TanStack Query to fetch sessions
   const { data: sessions = [], isLoading, error } = usePokerSessions();
@@ -228,37 +230,39 @@ export default function PokerPage() {
         </motion.div>
 
         {/* Info Box for Anonymous Users */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
-          className="mt-12 rounded-xl bg-gradient-to-br from-indigo-500/5 to-purple-500/5 border border-indigo-500/10 p-6"
-        >
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-lg bg-indigo-500/10 flex items-center justify-center flex-shrink-0">
-              <motion.div
-                animate={{ rotate: [0, 360] }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              >
-                <Sparkles className="w-6 h-6 text-indigo-500" />
-              </motion.div>
+        {!user && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+            className="mt-12 rounded-xl bg-gradient-to-br from-indigo-500/5 to-purple-500/5 border border-indigo-500/10 p-6"
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-lg bg-indigo-500/10 flex items-center justify-center flex-shrink-0">
+                <motion.div
+                  animate={{ rotate: [0, 360] }}
+                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                >
+                  <Sparkles className="w-6 h-6 text-indigo-500" />
+                </motion.div>
+              </div>
+              <div>
+                <h3 className="font-semibold mb-2 text-indigo-900 dark:text-indigo-100">
+                  Your sessions are saved locally
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  As an anonymous user, your poker sessions are saved in your browser. Clear your
+                  cookies and you&apos;ll lose access to managing these sessions (though they
+                  will remain accessible via their unique URLs).
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  <strong>Pro tip:</strong> Bookmark your important session URLs or sign up
+                  for an account to permanently save your sessions.
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-semibold mb-2 text-indigo-900 dark:text-indigo-100">
-                Your sessions are saved locally
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                As an anonymous user, your poker sessions are saved in your browser. Clear your
-                cookies and you&apos;ll lose access to managing these sessions (though they
-                will remain accessible via their unique URLs).
-              </p>
-              <p className="text-sm text-muted-foreground">
-                <strong>Pro tip:</strong> Bookmark your important session URLs or sign up
-                for an account to permanently save your sessions.
-              </p>
-            </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        )}
       </div>
     </main>
   );
