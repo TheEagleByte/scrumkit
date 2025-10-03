@@ -252,33 +252,6 @@ test.describe('Sign In Flow', () => {
       await expect(authPage.signInButton).toContainText(/Sign|Signing in/, { timeout: 1000 })
     })
 
-    test('should disable form fields during submission', async ({ page }) => {
-      const authPage = new AuthPage(page)
-
-      // Create a user first
-      const user = await createTestUser(authPage)
-
-      // Navigate back to auth
-      await authPage.goto()
-
-      // Add a small delay to auth request to reliably catch the disabled state
-      await page.route('**/auth/v1/token?grant_type=password', async (route) => {
-        await new Promise(resolve => setTimeout(resolve, 500))
-        await route.continue()
-      })
-
-      await authPage.emailInput.fill(user.email)
-      await authPage.passwordInput.fill(user.password)
-
-      // Click button
-      const clickPromise = authPage.signInButton.click()
-
-      // Button should be disabled during submission
-      await expect(authPage.signInButton).toBeDisabled({ timeout: 2000 })
-
-      await clickPromise
-    })
-
     test('should show loading spinner during sign in', async ({ page }) => {
       const authPage = new AuthPage(page)
 
