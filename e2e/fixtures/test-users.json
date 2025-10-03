@@ -1,0 +1,17 @@
+{
+  "validUser": {
+    "email": "test.user@example.com",
+    "password": "Test123!@#",
+    "name": "Test User"
+  },
+  "adminUser": {
+    "email": "admin@example.com",
+    "password": "Admin123!@#",
+    "name": "Admin User"
+  },
+  "unverifiedUser": {
+    "email": "unverified@example.com",
+    "password": "Unverified123!@#",
+    "name": "Unverified User"
+  }
+}

@@ -115,24 +115,57 @@ The following tables have real-time enabled:
 
 To seed the database with sample data, run the SQL in `supabase/seed/seed.sql` through the Supabase Dashboard SQL editor.
 
-## Authentication Testing
+## E2E Testing with Playwright
 
-### Running Auth Tests
+### Running E2E Tests
 
 ```bash
-# Run all auth tests
-npm run cypress -- --spec "cypress/e2e/auth-*.cy.ts"
+# Run all E2E tests
+npm run test:e2e
 
-# Run specific auth test suite
-npm run cypress -- --spec "cypress/e2e/auth-signin.cy.ts"
+# Run tests in UI mode (interactive)
+npm run test:e2e:ui
 
-# Run in headless mode
-npm run cypress:headless -- --spec "cypress/e2e/auth-*.cy.ts"
+# Run tests in headed mode (watch browser)
+npm run test:e2e:headed
+
+# Run tests in debug mode
+npm run test:e2e:debug
+
+# Run tests for specific browser
+npm run test:e2e:chromium
+npm run test:e2e:firefox
+npm run test:e2e:webkit
+
+# Run mobile device tests
+npm run test:e2e:mobile
+
+# View test report
+npm run test:e2e:report
 ```
+
+### Test Structure
+
+- **Test Directory**: `e2e/tests/` - Organized by feature (auth, retro, poker, dashboard, public)
+- **Page Objects**: `e2e/pages/` - Page Object Models for maintainable tests
+- **Utilities**: `e2e/utils/` - Helper functions for common operations
+- **Fixtures**: `e2e/fixtures/` - Test data and configurations
+
+### Test Categories
+
+The E2E test suite covers:
+- **Authentication**: Sign up, sign in, OAuth, email verification, session management
+- **Retrospective Boards**: CRUD, voting, drag & drop, real-time collaboration
+- **Planning Poker**: Session management, voting, sequences, real-time updates
+- **Dashboard & Navigation**: Layout, routing, responsive design
+- **Public Pages**: Homepage, privacy, terms, footer links
+- **Accessibility**: WCAG compliance, keyboard navigation, screen readers
+- **Responsive**: Mobile, tablet, desktop viewports
+- **Cross-browser**: Chromium, Firefox, WebKit
 
 ### Test Users
 
-Test users are defined in `cypress/fixtures/test-users.json`. Ensure these users exist in your test Supabase instance before running tests.
+Test users are defined in `e2e/fixtures/test-users.json`. Ensure these users exist in your test Supabase instance before running tests.
 
 ### Auth Flow Overview
 
@@ -141,6 +174,16 @@ Test users are defined in `cypress/fixtures/test-users.json`. Ensure these users
 3. **Signin**: User provides email, password → authenticated session
 4. **Session**: Persists across page reloads, managed by Supabase Auth
 5. **Signout**: Clears session, redirects to auth page
+
+### E2E Testing Documentation
+
+See `e2e/README.md` for comprehensive E2E testing documentation including:
+- Setup and installation
+- Running tests in different modes
+- Writing new tests
+- Debugging and troubleshooting
+- CI/CD integration
+- Device and browser coverage
 
 ### Auth Documentation
 
