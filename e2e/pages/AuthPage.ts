@@ -10,6 +10,7 @@ export class AuthPage {
   readonly emailInput: Locator
   readonly passwordInput: Locator
   readonly nameInput: Locator
+  readonly confirmPasswordInput: Locator
   readonly signInButton: Locator
   readonly signUpButton: Locator
   readonly googleButton: Locator
@@ -23,6 +24,7 @@ export class AuthPage {
     this.emailInput = page.getByLabel('Email')
     this.passwordInput = page.getByLabel('Password', { exact: true })
     this.nameInput = page.getByLabel('Full Name')
+    this.confirmPasswordInput = page.getByLabel('Confirm Password')
     this.signInButton = page.getByRole('button', { name: 'Sign In' })
     this.signUpButton = page.getByRole('button', { name: 'Create Account' })
     this.googleButton = page.getByRole('button', { name: 'Google' })
@@ -53,6 +55,7 @@ export class AuthPage {
     await this.nameInput.fill(name)
     await this.emailInput.fill(email)
     await this.passwordInput.fill(password)
+    await this.confirmPasswordInput.fill(password)
     await this.signUpButton.click()
   }
 

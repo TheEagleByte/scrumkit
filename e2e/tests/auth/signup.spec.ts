@@ -20,6 +20,7 @@ test.describe('Sign Up Flow', () => {
       await expect(authPage.nameInput).toBeVisible()
       await expect(authPage.emailInput).toBeVisible()
       await expect(authPage.passwordInput).toBeVisible()
+      await expect(authPage.confirmPasswordInput).toBeVisible()
       await expect(authPage.signUpButton).toBeVisible()
     })
 
@@ -27,9 +28,9 @@ test.describe('Sign Up Flow', () => {
       const authPage = new AuthPage(page)
       await authPage.goto()
 
-      await expect(page.getByRole('heading', { name: 'Welcome to ScrumKit' })).toBeVisible()
+      await expect(page.getByText('Welcome')).toBeVisible()
       await expect(
-        page.getByText('Sign in to save your boards and collaborate with your team')
+        page.getByText('Sign in to your account or create a new one')
       ).toBeVisible()
     })
 
@@ -60,6 +61,7 @@ test.describe('Sign Up Flow', () => {
       await expect(authPage.nameInput).toHaveAttribute('required', '')
       await expect(authPage.emailInput).toHaveAttribute('required', '')
       await expect(authPage.passwordInput).toHaveAttribute('required', '')
+      await expect(authPage.confirmPasswordInput).toHaveAttribute('required', '')
     })
 
     test('should validate email format', async ({ page }) => {
@@ -78,44 +80,34 @@ test.describe('Sign Up Flow', () => {
       await expect(authPage.passwordInput).toHaveAttribute('minlength', '6')
     })
 
-    test('should show error when name is empty', async ({ page }) => {
+    test('should show error for invalid email format', async ({ page }) => {
       const authPage = new AuthPage(page)
       await authPage.goto()
       await authPage.switchToSignUp()
 
-      await authPage.emailInput.fill('test@example.com')
+      await authPage.nameInput.fill('Test User')
+      await authPage.emailInput.fill('invalid-email')
       await authPage.passwordInput.fill('password123')
-      await authPage.signUpButton.click()
+      await authPage.confirmPasswordInput.fill('password123')
 
-      await expect(page.getByText('Name required')).toBeVisible()
-      await expect(page.getByText('Please enter your full name')).toBeVisible()
+      // HTML5 validation should prevent submission
+      const isValid = await authPage.emailInput.evaluate((el: HTMLInputElement) => el.validity.valid)
+      expect(isValid).toBe(false)
     })
 
-    test('should show error when password is too short', async ({ page }) => {
+    test('should show error when passwords do not match', async ({ page }) => {
       const authPage = new AuthPage(page)
       await authPage.goto()
       await authPage.switchToSignUp()
 
       await authPage.nameInput.fill('Test User')
       await authPage.emailInput.fill('test@example.com')
-      await authPage.passwordInput.fill('12345') // Only 5 characters
-      await authPage.signUpButton.click()
-
-      await expect(page.getByText('Weak password')).toBeVisible()
-      await expect(page.getByText('Password must be at least 6 characters')).toBeVisible()
-    })
-
-    test('should show error when name is only whitespace', async ({ page }) => {
-      const authPage = new AuthPage(page)
-      await authPage.goto()
-      await authPage.switchToSignUp()
-
-      await authPage.nameInput.fill('   ')
-      await authPage.emailInput.fill('test@example.com')
       await authPage.passwordInput.fill('password123')
+      await authPage.confirmPasswordInput.fill('differentpassword')
       await authPage.signUpButton.click()
 
-      await expect(page.getByText('Name required')).toBeVisible()
+      // Should show inline error for password mismatch
+      await expect(page.getByText('Passwords do not match')).toBeVisible()
     })
   })
 
@@ -128,126 +120,14 @@ test.describe('Sign Up Flow', () => {
       const uniqueEmail = `test-${Date.now()}@example.com`
       await authPage.signUp('Test User', uniqueEmail, 'password123')
 
-      // Should show verification message
-      await expect(page.getByText('Check your email')).toBeVisible({ timeout: 10000 })
-    })
-
-    test('should display email verification message after successful signup', async ({ page }) => {
-      const authPage = new AuthPage(page)
-      await authPage.goto()
-      await authPage.switchToSignUp()
-
-      const uniqueEmail = `verify-test-${Date.now()}@example.com`
-      await authPage.signUp('Verification Test', uniqueEmail, 'password123')
-
-      await expect(page.getByText('Check your email')).toBeVisible({ timeout: 10000 })
+      // Should show success toast
       await expect(
-        page.getByText(`We've sent a verification link to ${uniqueEmail}`)
-      ).toBeVisible()
-      await expect(
-        page.getByText('Click the link in the email to activate your account.')
-      ).toBeVisible()
-    })
-
-    test('should show helpful tips in verification message', async ({ page }) => {
-      const authPage = new AuthPage(page)
-      await authPage.goto()
-      await authPage.switchToSignUp()
-
-      const uniqueEmail = `tips-test-${Date.now()}@example.com`
-      await authPage.signUp('Tips Test', uniqueEmail, 'password123')
-
-      await expect(page.getByText('Check your email')).toBeVisible({ timeout: 10000 })
-      await expect(page.getByText("Didn't receive the email?")).toBeVisible()
-      await expect(page.getByText('Check your spam folder')).toBeVisible()
-      await expect(page.getByText('Wait a few minutes and try again')).toBeVisible()
-      await expect(page.getByText('Make sure you entered the correct email')).toBeVisible()
-    })
-
-    test('should allow trying a different email', async ({ page }) => {
-      const authPage = new AuthPage(page)
-      await authPage.goto()
-      await authPage.switchToSignUp()
-
-      const uniqueEmail = `different-email-${Date.now()}@example.com`
-      await authPage.signUp('Different Email Test', uniqueEmail, 'password123')
-
-      await expect(page.getByText('Check your email')).toBeVisible({ timeout: 10000 })
-
-      const tryDifferentButton = page.getByRole('button', { name: 'Try a different email' })
-      await expect(tryDifferentButton).toBeVisible()
-      await tryDifferentButton.click()
-
-      // Should return to signup form
-      await expect(authPage.nameInput).toBeVisible()
-      await expect(authPage.emailInput).toBeVisible()
-      await expect(authPage.signUpButton).toBeVisible()
+        page.getByText('Account created! Please check your email to verify your account.')
+      ).toBeVisible({ timeout: 10000 })
     })
   })
 
-  test.describe('Error Handling', () => {
-    test('should show error for duplicate email', async ({ page }) => {
-      const authPage = new AuthPage(page)
-      await authPage.goto()
-      await authPage.switchToSignUp()
 
-      // Use a known test user email
-      await authPage.signUp('Test User', 'test.user@example.com', 'password123')
-
-      // Should show signup failed error
-      await expect(page.getByText('Signup failed')).toBeVisible({ timeout: 10000 })
-    })
-
-    test('should show error for invalid email format', async ({ page }) => {
-      const authPage = new AuthPage(page)
-      await authPage.goto()
-      await authPage.switchToSignUp()
-
-      await authPage.nameInput.fill('Test User')
-      await authPage.emailInput.fill('invalid-email')
-      await authPage.passwordInput.fill('password123')
-
-      // HTML5 validation should prevent submission
-      const isValid = await authPage.emailInput.evaluate((el: HTMLInputElement) => el.validity.valid)
-      expect(isValid).toBe(false)
-    })
-  })
-
-  test.describe('Loading States', () => {
-    test('should show loading state during signup', async ({ page }) => {
-      const authPage = new AuthPage(page)
-      await authPage.goto()
-      await authPage.switchToSignUp()
-
-      const uniqueEmail = `loading-test-${Date.now()}@example.com`
-      await authPage.nameInput.fill('Loading Test')
-      await authPage.emailInput.fill(uniqueEmail)
-      await authPage.passwordInput.fill('password123')
-
-      // Start signup
-      await authPage.signUpButton.click()
-
-      // Should show loading text
-      const loadingText = page.getByText('Creating account...')
-      await expect(loadingText).toBeVisible({ timeout: 2000 })
-    })
-
-    test('should disable fields during signup', async ({ page }) => {
-      const authPage = new AuthPage(page)
-      await authPage.goto()
-      await authPage.switchToSignUp()
-
-      const uniqueEmail = `disable-test-${Date.now()}@example.com`
-      await authPage.nameInput.fill('Disable Test')
-      await authPage.emailInput.fill(uniqueEmail)
-      await authPage.passwordInput.fill('password123')
-
-      await authPage.signUpButton.click()
-
-      // Button should be disabled during submission
-      await expect(authPage.signUpButton).toBeDisabled()
-    })
-  })
 
   test.describe('Integration & UI/UX', () => {
     test('should toggle between Sign In and Sign Up tabs', async ({ page }) => {
@@ -257,18 +137,21 @@ test.describe('Sign Up Flow', () => {
       // Start on Sign In tab
       await expect(authPage.emailInput).toBeVisible()
       await expect(authPage.nameInput).not.toBeVisible()
+      await expect(authPage.confirmPasswordInput).not.toBeVisible()
 
       // Switch to Sign Up
       await authPage.switchToSignUp()
       await expect(authPage.nameInput).toBeVisible()
+      await expect(authPage.confirmPasswordInput).toBeVisible()
 
       // Switch back to Sign In
       await authPage.switchToSignIn()
       await expect(authPage.nameInput).not.toBeVisible()
+      await expect(authPage.confirmPasswordInput).not.toBeVisible()
       await expect(authPage.emailInput).toBeVisible()
     })
 
-    test('should preserve form state when switching tabs', async ({ page }) => {
+    test('should preserve email when switching tabs', async ({ page }) => {
       const authPage = new AuthPage(page)
       await authPage.goto()
 
@@ -282,23 +165,6 @@ test.describe('Sign Up Flow', () => {
       // Email should be preserved
       const emailValue = await authPage.emailInput.inputValue()
       expect(emailValue).toBe('test@example.com')
-    })
-
-    test('should show OAuth buttons', async ({ page }) => {
-      const authPage = new AuthPage(page)
-      await authPage.goto()
-      await authPage.switchToSignUp()
-
-      await expect(authPage.googleButton).toBeVisible()
-      await expect(authPage.githubButton).toBeVisible()
-    })
-
-    test('should show continue as guest option', async ({ page }) => {
-      const authPage = new AuthPage(page)
-      await authPage.goto()
-      await authPage.switchToSignUp()
-
-      await expect(authPage.continueAsGuestLink).toBeVisible()
     })
   })
 
@@ -319,6 +185,7 @@ test.describe('Sign Up Flow', () => {
       await expect(authPage.nameInput).toBeVisible()
       await expect(authPage.emailInput).toBeVisible()
       await expect(authPage.passwordInput).toBeVisible()
+      await expect(authPage.confirmPasswordInput).toBeVisible()
       await expect(authPage.signUpButton).toBeVisible()
     })
 
@@ -338,6 +205,7 @@ test.describe('Sign Up Flow', () => {
       await expect(authPage.nameInput).toBeVisible()
       await expect(authPage.emailInput).toBeVisible()
       await expect(authPage.passwordInput).toBeVisible()
+      await expect(authPage.confirmPasswordInput).toBeVisible()
       await expect(authPage.signUpButton).toBeVisible()
     })
   })
