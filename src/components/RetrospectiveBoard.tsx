@@ -28,7 +28,10 @@ import {
   Star,
   Settings2,
   Palette,
+  ArrowLeft,
 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { DraggableRetroItem } from "@/components/retro/DraggableRetroItem";
 import type { RetroItemData } from "@/components/retro/RetroItem";
 import type { DraggableItem } from "@/types/drag-and-drop";
@@ -152,6 +155,7 @@ export function RetrospectiveBoard({
   teamName = "Development Team",
   sprintName = "Current Sprint",
 }: RetrospectiveBoardProps) {
+  const router = useRouter();
   const boardRef = useRef<HTMLDivElement>(null);
   const [newItemText, setNewItemText] = useState("");
   const [activeColumn, setActiveColumn] = useState<string | null>(null);
@@ -251,6 +255,25 @@ export function RetrospectiveBoard({
 
     return () => clearInterval(interval);
   }, []);
+
+  // Handle Esc key to navigate back to boards list
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only navigate back if Esc is pressed and no modals are open
+      if (
+        e.key === "Escape" &&
+        !exportDialogOpen &&
+        !customizationDialogOpen &&
+        !facilitatorPanelOpen &&
+        !activeColumn // Don't navigate if adding an item
+      ) {
+        router.push("/boards");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [router, exportDialogOpen, customizationDialogOpen, facilitatorPanelOpen, activeColumn]);
 
   const handleAddItem = async (columnId: string) => {
     // Validate input
@@ -611,11 +634,19 @@ export function RetrospectiveBoard({
       <div className="relative min-h-screen p-4 pt-24 md:px-8 md:pt-24 md:pb-8" ref={boardRef}>
       {/* Header */}
       <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold mb-1">
-            {retrospective?.title || sprintName}
-          </h1>
-          <p className="text-muted-foreground">{teamName}</p>
+        <div className="flex items-center gap-4">
+          <Link href="/boards" data-testid="back-to-boards">
+            <Button variant="ghost" size="sm" className="gap-1.5">
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Back to Boards</span>
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold mb-1">
+              {retrospective?.title || sprintName}
+            </h1>
+            <p className="text-muted-foreground">{teamName}</p>
+          </div>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           {/* Facilitator State Indicators */}

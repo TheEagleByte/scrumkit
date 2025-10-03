@@ -9,12 +9,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Calendar, Settings } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { TrendingUp, Calendar, Settings, ArrowLeft } from "lucide-react";
 import { getSequenceByType } from "@/lib/poker/utils";
 import { format } from "date-fns";
 import { StoryManager } from "@/components/poker/StoryManager";
 import { SessionSummary } from "@/components/poker/SessionSummary";
 import { ExportButton } from "@/components/poker/ExportButton";
+import Link from "next/link";
 
 export default async function PokerSessionPage({
   params,
@@ -43,13 +45,19 @@ export default async function PokerSessionPage({
         {/* Session Header */}
         <div className="mb-8">
           <div className="flex items-start justify-between gap-4">
-            <div>
+            <div className="flex-1">
               <div className="mb-2 flex items-center gap-3">
+                <Link href="/poker" data-testid="back-to-poker">
+                  <Button variant="ghost" size="sm" className="gap-1.5">
+                    <ArrowLeft className="h-4 w-4" />
+                    <span className="hidden sm:inline">Back to Sessions</span>
+                  </Button>
+                </Link>
                 <TrendingUp className="h-8 w-8 text-indigo-500" />
                 <h1 className="text-4xl font-bold">{session.title}</h1>
               </div>
               {session.description && (
-                <p className="text-muted-foreground mt-2 text-lg">
+                <p className="text-muted-foreground mt-2 text-lg ml-[120px] sm:ml-[160px]">
                   {session.description}
                 </p>
               )}

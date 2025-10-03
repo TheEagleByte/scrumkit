@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Back Navigation to Boards and Sessions** (Issue #103)
+  - Added back navigation button to retrospective board page
+  - Added back navigation button to poker session page
+  - Implemented Esc key shortcut to navigate back to boards list
+  - Back button intelligently avoids navigation when modals are open
+  - Responsive design: text hidden on mobile, icon-only button
+  - Comprehensive Cypress E2E test coverage for navigation scenarios
+  - Improves UX by providing clear navigation path without relying on browser controls
+
 ### Fixed
 
 - **Export Modal Content Overflow** (Issue #102)
