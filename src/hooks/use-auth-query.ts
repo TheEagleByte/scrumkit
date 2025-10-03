@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import type { User, AuthError } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types-enhanced";
 import { isDuplicateEmailError } from "@/lib/utils/auth-utils";
+import { claimAnonymousAssets } from "@/lib/anonymous/actions";
+import { getAllAnonymousAssets, clearAllAnonymousAssets, formatClaimResultMessage } from "@/lib/anonymous/asset-claiming";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type ProfileInsert = Database["public"]["Tables"]["profiles"]["Insert"];
@@ -363,6 +365,28 @@ export function useAuthStateChange(
         // Handle specific auth events
         switch (event) {
           case "SIGNED_IN":
+            // Claim anonymous assets on sign in
+            if (session?.user?.id) {
+              const assets = getAllAnonymousAssets();
+              if (assets.retrospectives.length > 0 || assets.pokerSessions.length > 0) {
+                claimAnonymousAssets(session.user.id, assets)
+                  .then((result) => {
+                    clearAllAnonymousAssets();
+                    if (result.total > 0) {
+                      const message = formatClaimResultMessage(result);
+                      toast.success(message.title, {
+                        description: message.description,
+                      });
+                      // Refresh boards and poker sessions
+                      queryClient.invalidateQueries({ queryKey: ["boards"] });
+                      queryClient.invalidateQueries({ queryKey: ["poker-sessions"] });
+                    }
+                  })
+                  .catch((error) => {
+                    console.error("Error claiming assets on sign in:", error);
+                  });
+              }
+            }
             toast.success("Welcome back!");
             break;
           case "SIGNED_OUT":

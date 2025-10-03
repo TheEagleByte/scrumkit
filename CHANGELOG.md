@@ -18,6 +18,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Anonymous Asset Claiming System** (Issue #100)
+  - Automatic claiming of anonymous assets (retrospective boards and planning poker sessions) when users create accounts
+  - Generic, extensible architecture supporting multiple asset types
+  - Client-side tracking via localStorage for anonymous board and session creation
+  - Server-side validation using cookies to ensure secure asset ownership
+  - Seamless integration with signup and signin flows
+  - Assets automatically claimed on both signup and signin events
+  - Anonymous user warnings hidden for authenticated users on boards and poker pages
+  - Database RLS policies updated to support claiming transition
+  - Comprehensive E2E test coverage for asset claiming scenarios
+  - Features:
+    - Track retrospective boards created anonymously
+    - Track planning poker sessions created anonymously
+    - Claim all assets in single operation during authentication
+    - Graceful error handling and edge case management
+    - Success notifications showing number of claimed assets
+    - Device-specific claiming (assets claimed where they were created)
+  - Infrastructure designed for easy addition of future asset types
+  - Note: Assets created anonymously on one device are claimed when signing in on that same device
+
 - **Settings Page** (Issue #93)
   - Comprehensive Settings page at `/settings` with tabbed layout
   - Four main settings categories:

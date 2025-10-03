@@ -253,37 +253,39 @@ export default function BoardsPage() {
         </motion.div>
 
         {/* Info Box for Anonymous Users */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
-          className="mt-12 rounded-xl bg-gradient-to-br from-violet-500/5 to-blue-500/5 border border-violet-500/10 p-6"
-        >
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-lg bg-violet-500/10 flex items-center justify-center flex-shrink-0">
-              <motion.div
-                animate={{ rotate: [0, 360] }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              >
-                <Sparkles className="w-6 h-6 text-violet-500" />
-              </motion.div>
+        {!user && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+            className="mt-12 rounded-xl bg-gradient-to-br from-violet-500/5 to-blue-500/5 border border-violet-500/10 p-6"
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-lg bg-violet-500/10 flex items-center justify-center flex-shrink-0">
+                <motion.div
+                  animate={{ rotate: [0, 360] }}
+                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                >
+                  <Sparkles className="w-6 h-6 text-violet-500" />
+                </motion.div>
+              </div>
+              <div>
+                <h3 className="font-semibold mb-2 text-violet-900 dark:text-violet-100">
+                  Your boards are saved locally
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  As an anonymous user, your boards are saved in your browser. Clear your
+                  cookies and you&apos;ll lose access to managing these boards (though the boards
+                  will remain accessible via their unique URLs).
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  <strong>Pro tip:</strong> Bookmark your important board URLs or sign up
+                  for an account to permanently save your boards.
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-semibold mb-2 text-violet-900 dark:text-violet-100">
-                Your boards are saved locally
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                As an anonymous user, your boards are saved in your browser. Clear your
-                cookies and you&apos;ll lose access to managing these boards (though the boards
-                will remain accessible via their unique URLs).
-              </p>
-              <p className="text-sm text-muted-foreground">
-                <strong>Pro tip:</strong> Bookmark your important board URLs or sign up
-                for an account to permanently save your boards.
-              </p>
-            </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        )}
       </div>
     </main>
   );

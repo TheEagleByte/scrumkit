@@ -11,6 +11,7 @@ import { useSignIn, useSignUp, useSignInWithProvider } from "@/hooks/use-auth-qu
 import { Loader2, ArrowRight, Github } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { isDuplicateEmailError } from "@/lib/utils/auth-utils";
+import { useClaimAssets } from "@/hooks/use-claim-assets";
 
 /**
  * Props for the AuthFormWithQuery component
@@ -47,6 +48,7 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
   const signInMutation = useSignIn();
   const signUpMutation = useSignUp();
   const signInWithProviderMutation = useSignInWithProvider();
+  const claimAssetsMutation = useClaimAssets();
 
   /**
    * Handle email/password sign-in form submission
@@ -56,7 +58,18 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
     e.preventDefault();
 
     try {
-      await signInMutation.mutateAsync({ email, password });
+      const result = await signInMutation.mutateAsync({ email, password });
+
+      // Claim anonymous assets after successful sign in
+      if (result.user?.id) {
+        try {
+          await claimAssetsMutation.mutateAsync(result.user.id);
+        } catch (claimError) {
+          // Don't block sign in if claiming fails
+          console.error("Failed to claim assets on sign in:", claimError);
+        }
+      }
+
       router.push(redirectTo);
       router.refresh();
     } catch (error) {
@@ -96,11 +109,21 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
     }
 
     try {
-      await signUpMutation.mutateAsync({
+      const result = await signUpMutation.mutateAsync({
         email,
         password,
         fullName
       });
+
+      // Claim anonymous assets after successful signup
+      if (result.user?.id) {
+        try {
+          await claimAssetsMutation.mutateAsync(result.user.id);
+        } catch (claimError) {
+          // Don't block signup if claiming fails
+          console.error("Failed to claim assets on signup:", claimError);
+        }
+      }
     } catch (error) {
       // Check if this is a duplicate email error using shared utility
       if (isDuplicateEmailError(error)) {
@@ -127,7 +150,7 @@ export function AuthFormWithQuery({ redirectTo = "/dashboard" }: AuthFormWithQue
   };
 
   const isLoading = signInMutation.isPending || signUpMutation.isPending ||
-                   signInWithProviderMutation.isPending;
+                   signInWithProviderMutation.isPending || claimAssetsMutation.isPending;
 
   return (
     <Card className="w-full max-w-md mx-auto">

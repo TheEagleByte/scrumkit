@@ -20,6 +20,7 @@ import type {
   PokerSession,
 } from "@/lib/poker/types";
 import { toast } from "sonner";
+import { storeAnonymousAsset } from "@/lib/anonymous/asset-claiming";
 
 // Query keys factory
 export const pokerSessionKeys = {
@@ -98,6 +99,10 @@ export function useCreatePokerSession() {
       toast.error("Failed to create poker session");
     },
     onSuccess: (data) => {
+      // Store session URL in localStorage for anonymous claiming
+      if (data.unique_url) {
+        storeAnonymousAsset("poker_session", data.unique_url);
+      }
       toast.success("Poker session created successfully!");
     },
     onSettled: () => {

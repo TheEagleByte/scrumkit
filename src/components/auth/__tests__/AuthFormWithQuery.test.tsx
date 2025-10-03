@@ -6,12 +6,15 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthFormWithQuery } from '../AuthFormWithQuery';
 import { useSignIn, useSignUp, useSignInWithProvider } from '@/hooks/use-auth-query';
 import { useRouter } from 'next/navigation';
+import { useClaimAssets } from '@/hooks/use-claim-assets';
 
 // Mock the hooks
 jest.mock('@/hooks/use-auth-query');
+jest.mock('@/hooks/use-claim-assets');
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }));
@@ -19,11 +22,28 @@ jest.mock('next/navigation', () => ({
 const mockUseSignIn = useSignIn as jest.MockedFunction<typeof useSignIn>;
 const mockUseSignUp = useSignUp as jest.MockedFunction<typeof useSignUp>;
 const mockUseSignInWithProvider = useSignInWithProvider as jest.MockedFunction<typeof useSignInWithProvider>;
+const mockUseClaimAssets = useClaimAssets as jest.MockedFunction<typeof useClaimAssets>;
+
+// Helper function to render with QueryClient
+const renderWithQueryClient = (component: React.ReactElement) => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      {component}
+    </QueryClientProvider>
+  );
+};
 
 describe('AuthFormWithQuery - Password Confirmation', () => {
   const mockPush = jest.fn();
   const mockRefresh = jest.fn();
   const mockMutateAsync = jest.fn();
+  const mockClaimMutateAsync = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -47,12 +67,17 @@ describe('AuthFormWithQuery - Password Confirmation', () => {
       mutateAsync: mockMutateAsync,
       isPending: false,
     } as any);
+
+    mockUseClaimAssets.mockReturnValue({
+      mutateAsync: mockClaimMutateAsync,
+      isPending: false,
+    } as any);
   });
 
   describe('Password Confirmation Field', () => {
     it('should render password confirmation field on signup tab', async () => {
       const user = userEvent.setup();
-      render(<AuthFormWithQuery />);
+      renderWithQueryClient(<AuthFormWithQuery />);
 
       await user.click(screen.getByRole('tab', { name: 'Sign Up' }));
 
@@ -62,7 +87,7 @@ describe('AuthFormWithQuery - Password Confirmation', () => {
 
     it('should show error when passwords do not match', async () => {
       const user = userEvent.setup();
-      render(<AuthFormWithQuery />);
+      renderWithQueryClient(<AuthFormWithQuery />);
 
       await user.click(screen.getByRole('tab', { name: 'Sign Up' }));
 
@@ -82,7 +107,7 @@ describe('AuthFormWithQuery - Password Confirmation', () => {
 
     it('should not show error when passwords match', async () => {
       const user = userEvent.setup();
-      render(<AuthFormWithQuery />);
+      renderWithQueryClient(<AuthFormWithQuery />);
 
       await user.click(screen.getByRole('tab', { name: 'Sign Up' }));
 
@@ -101,7 +126,7 @@ describe('AuthFormWithQuery - Password Confirmation', () => {
 
     it('should prevent form submission when passwords do not match', async () => {
       const user = userEvent.setup();
-      render(<AuthFormWithQuery />);
+      renderWithQueryClient(<AuthFormWithQuery />);
 
       await user.click(screen.getByRole('tab', { name: 'Sign Up' }));
 
@@ -132,7 +157,7 @@ describe('AuthFormWithQuery - Password Confirmation', () => {
     it('should allow form submission when passwords match', async () => {
       mockMutateAsync.mockResolvedValue({});
       const user = userEvent.setup();
-      render(<AuthFormWithQuery />);
+      renderWithQueryClient(<AuthFormWithQuery />);
 
       await user.click(screen.getByRole('tab', { name: 'Sign Up' }));
 
@@ -160,7 +185,7 @@ describe('AuthFormWithQuery - Password Confirmation', () => {
 
     it('should clear error when user corrects confirm password', async () => {
       const user = userEvent.setup();
-      render(<AuthFormWithQuery />);
+      renderWithQueryClient(<AuthFormWithQuery />);
 
       await user.click(screen.getByRole('tab', { name: 'Sign Up' }));
 
@@ -187,7 +212,7 @@ describe('AuthFormWithQuery - Password Confirmation', () => {
 
     it('should have proper accessibility attributes when passwords do not match', async () => {
       const user = userEvent.setup();
-      render(<AuthFormWithQuery />);
+      renderWithQueryClient(<AuthFormWithQuery />);
 
       await user.click(screen.getByRole('tab', { name: 'Sign Up' }));
 
@@ -215,7 +240,7 @@ describe('AuthFormWithQuery - Password Confirmation', () => {
       mockMutateAsync.mockRejectedValue(duplicateError);
 
       const user = userEvent.setup();
-      render(<AuthFormWithQuery />);
+      renderWithQueryClient(<AuthFormWithQuery />);
 
       await user.click(screen.getByRole('tab', { name: 'Sign Up' }));
 
