@@ -424,13 +424,13 @@ Tests run automatically on:
 
 **Workflows:**
 - `.github/workflows/e2e.yml` - Runs E2E tests on PRs
-- `.github/workflows/cleanup-test-users.yml` - Weekly cleanup of old test users
+- `.github/workflows/cleanup-test-users.yml` - Daily cleanup of old test users
 
 ### Required GitHub Secrets
 
 For E2E tests and cleanup to work in CI/CD, add these secrets to your repository:
 
-**Settings → Secrets and variables → Actions → New repository secret**
+Navigate to: Settings → Secrets and variables → Actions → New repository secret
 
 1. `NEXT_PUBLIC_SUPABASE_URL`
    - Your Supabase project URL

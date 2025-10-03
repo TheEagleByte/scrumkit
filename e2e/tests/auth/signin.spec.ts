@@ -31,13 +31,14 @@ async function createTestUser(authPage: AuthPage) {
   await authPage.switchToSignUp()
   await authPage.signUp(user.name, user.email, user.password)
 
-  // Wait for signup success and redirect to dashboard
-  await authPage.page.waitForURL(/\/dashboard/, { timeout: 10000 })
+  // Wait for signup success toast
+  await authPage.page.waitForSelector('text=/Account created/i', { timeout: 10000 })
 
-  // Sign out the user so we can test sign in
-  // Navigate to profile or use a direct sign out approach
-  // Clear session by deleting all cookies
+  // Clear session by deleting all cookies to sign out
   await authPage.page.context().clearCookies()
+
+  // Navigate to a clean state
+  await authPage.page.goto('/')
 
   return user
 }
