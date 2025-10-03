@@ -50,10 +50,9 @@ interface Board {
 interface BoardListProps {
   boards: Board[];
   showArchived?: boolean;
-  onArchiveStatusChange?: () => void;
 }
 
-export function BoardList({ boards, showArchived = false, onArchiveStatusChange }: BoardListProps) {
+export function BoardList({ boards, showArchived = false }: BoardListProps) {
   const [loadingBoardId, setLoadingBoardId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [boardToDelete, setBoardToDelete] = useState<Board | null>(null);
@@ -70,11 +69,6 @@ export function BoardList({ boards, showArchived = false, onArchiveStatusChange 
         uniqueUrl: board.unique_url,
         updates: { is_archived: !board.is_archived }
       });
-
-      // Notify parent component about archive status change
-      if (onArchiveStatusChange) {
-        onArchiveStatusChange();
-      }
     } finally {
       setLoadingBoardId(null);
     }
@@ -140,6 +134,7 @@ export function BoardList({ boards, showArchived = false, onArchiveStatusChange 
             whileHover={{ y: -4 }}
           >
             <Card
+              data-testid="board-card"
               className={`hover:shadow-lg transition-all ${
                 board.is_archived ? "opacity-60" : ""
               }`}

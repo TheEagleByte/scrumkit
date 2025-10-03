@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Board Archive Navigation** (Issue #99)
+  - Fixed auto-switch to active tab when unarchiving the last archived board
+  - Replaced setTimeout-based callback with useEffect for reliable state tracking
+  - Added user-friendly toast notification when auto-switching views
+  - Prevents dead-end UX where users are stuck on empty archived tab
+  - Comprehensive Cypress E2E test coverage for archive navigation scenarios
+
 ### Added
 
 - **Settings Page** (Issue #93)
