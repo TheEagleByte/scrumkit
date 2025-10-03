@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -28,7 +28,17 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Loader2, ArrowLeft } from "lucide-react";
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required").max(255, "Title is too long"),
@@ -59,6 +69,7 @@ export function PokerSessionForm() {
   const router = useRouter();
   const createSession = useCreatePokerSession();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
 
   const sequences = getAvailableSequences();
 
@@ -76,6 +87,32 @@ export function PokerSessionForm() {
   });
 
   const selectedSequence = form.watch("estimationSequence");
+
+  // Handle navigation with unsaved changes check
+  const handleNavigateBack = useCallback(() => {
+    if (form.formState.isDirty && !isSubmitting) {
+      setShowUnsavedChangesDialog(true);
+    } else {
+      router.push('/poker');
+    }
+  }, [form.formState.isDirty, isSubmitting, router]);
+
+  const confirmNavigateBack = useCallback(() => {
+    setShowUnsavedChangesDialog(false);
+    router.push('/poker');
+  }, [router]);
+
+  // Add keyboard shortcut (Escape to go back)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isSubmitting) {
+        handleNavigateBack();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleNavigateBack, isSubmitting]);
 
   async function onSubmit(values: FormValues) {
     setIsSubmitting(true);
@@ -116,13 +153,26 @@ export function PokerSessionForm() {
   }
 
   return (
-    <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>Create Planning Poker Session</CardTitle>
-        <CardDescription>
-          Set up a new planning poker session for your team to estimate stories together.
-        </CardDescription>
-      </CardHeader>
+    <>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="mb-6"
+        onClick={handleNavigateBack}
+        disabled={isSubmitting}
+        data-testid="back-to-sessions"
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to Sessions
+      </Button>
+
+      <Card className="max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle>Create Planning Poker Session</CardTitle>
+          <CardDescription>
+            Set up a new planning poker session for your team to estimate stories together.
+          </CardDescription>
+        </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -138,6 +188,7 @@ export function PokerSessionForm() {
                       placeholder="Sprint 24 Planning"
                       {...field}
                       disabled={isSubmitting}
+                      data-testid="session-title-input"
                     />
                   </FormControl>
                   <FormDescription>
@@ -322,19 +373,44 @@ export function PokerSessionForm() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => router.back()}
+                onClick={handleNavigateBack}
                 disabled={isSubmitting}
+                data-testid="cancel-session-button"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting} className="flex-1">
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1"
+                data-testid="create-session-button"
+              >
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Create Session
               </Button>
             </div>
           </form>
         </Form>
+
+        {/* Unsaved Changes Dialog */}
+        <AlertDialog open={showUnsavedChangesDialog} onOpenChange={setShowUnsavedChangesDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
+              <AlertDialogDescription>
+                You have unsaved changes. Are you sure you want to leave? All your changes will be lost.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Continue editing</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmNavigateBack}>
+                Discard changes
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
+    </>
   );
 }
