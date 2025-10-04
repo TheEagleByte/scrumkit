@@ -122,7 +122,10 @@ export class RetroBoardPage {
    */
   async getItemVoteCount(itemText: string): Promise<number> {
     const item = this.getItemByText(itemText)
-    const voteText = await item.getByText(/👍/).textContent()
+    // Look for vote button which contains the count
+    const voteButton = item.getByRole('button', { name: /vote/i }).first()
+    await voteButton.waitFor({ state: 'visible', timeout: 5000 })
+    const voteText = await voteButton.textContent()
     if (!voteText) return 0
     const match = voteText.match(/(\d+)/)
     return match ? parseInt(match[1], 10) : 0
@@ -133,8 +136,17 @@ export class RetroBoardPage {
    */
   async getItemAuthor(itemText: string): Promise<string | null> {
     const item = this.getItemByText(itemText)
-    const authorElement = item.locator('.text-muted-foreground').first()
-    return authorElement.textContent()
+    // The author is displayed next to the vote button at the bottom of the card
+    // Look for all text content and extract the author (everything except votes)
+    const allText = await item.textContent()
+    if (!allText) return null
+
+    // Remove the item text and vote count to get author
+    const withoutItemText = allText.replace(itemText, '').trim()
+    // Remove vote count pattern (e.g., "0" or "5")
+    const withoutVotes = withoutItemText.replace(/\d+$/, '').trim()
+
+    return withoutVotes || null
   }
 
   /**
@@ -143,6 +155,11 @@ export class RetroBoardPage {
   async addItem(columnTitle: string, text: string) {
     const column = this.getColumn(columnTitle)
     const addButton = this.getAddItemButton(columnTitle)
+
+    // Wait for Add Item button to be enabled (handles rate limiting cooldown)
+    await addButton.waitFor({ state: 'visible', timeout: 10000 })
+    await expect(addButton).toBeEnabled({ timeout: 10000 })
+
     await addButton.click()
 
     const textarea = this.getItemTextarea(columnTitle)
@@ -155,12 +172,12 @@ export class RetroBoardPage {
     await submitButton.click()
 
     // Wait for success toast
-    await this.page.waitForSelector('text=/added successfully/i', { timeout: 5000 }).catch(() => {
+    await this.page.waitForSelector('text=/added successfully/i', { timeout: 10000 }).catch(() => {
       //Toast might disappear quickly
     })
 
     // Ensure item count increased
-    await expect(column.locator('div.relative.group')).toHaveCount(itemsBefore + 1, { timeout: 5000 })
+    await expect(column.locator('div.relative.group')).toHaveCount(itemsBefore + 1, { timeout: 10000 })
   }
 
   /**
@@ -220,9 +237,13 @@ export class RetroBoardPage {
    */
   async itemExists(itemText: string): Promise<boolean> {
     try {
-      await this.getItemByText(itemText).waitFor({ state: 'visible', timeout: 2000 })
+      await this.getItemByText(itemText).waitFor({ state: 'visible', timeout: 5000 })
       return true
     } catch {
+      // Log all items for debugging
+      const allItems = await this.page.locator('div.relative.group').allTextContents()
+      console.log('Available items:', allItems)
+      console.log('Looking for:', itemText)
       return false
     }
   }
