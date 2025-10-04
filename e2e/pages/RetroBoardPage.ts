@@ -140,8 +140,8 @@ export class RetroBoardPage {
     const submitButton = this.getItemSubmitButton(columnTitle)
     await submitButton.click()
 
-    // Wait for the item to appear
-    await this.page.waitForTimeout(500)
+    // Wait for the item to appear using Playwright's auto-waiting
+    await this.getItemByText(text).waitFor({ state: 'visible', timeout: 5000 })
   }
 
   /**
@@ -160,19 +160,20 @@ export class RetroBoardPage {
     const saveButton = item.getByRole('button', { name: /check|save/i }).first()
     await saveButton.click()
 
-    // Wait for the edit to complete
-    await this.page.waitForTimeout(500)
+    // Wait for the updated text to appear (debounced save)
+    await this.getItemByText(newText).waitFor({ state: 'visible', timeout: 5000 })
   }
 
   /**
    * Delete an item
    */
   async deleteItem(itemText: string) {
+    const item = this.getItemByText(itemText)
     const deleteButton = this.getItemDeleteButton(itemText)
     await deleteButton.click()
 
-    // Wait for the item to be removed
-    await this.page.waitForTimeout(500)
+    // Wait for the item to be removed from the DOM
+    await item.waitFor({ state: 'detached', timeout: 5000 })
   }
 
   /**
@@ -180,10 +181,19 @@ export class RetroBoardPage {
    */
   async voteOnItem(itemText: string) {
     const voteButton = this.getItemVoteButton(itemText)
+
     await voteButton.click()
 
-    // Wait for the vote to register
-    await this.page.waitForTimeout(300)
+    // Wait for a network response indicating the vote was processed
+    // The vote count will update via optimistic UI or real-time subscription
+    await this.page.waitForResponse(
+      (response) =>
+        response.url().includes('retrospective_items') ||
+        response.url().includes('votes'),
+      { timeout: 3000 }
+    ).catch(() => {
+      // If no network request detected, continue - might be optimistic update
+    })
   }
 
   /**
@@ -241,5 +251,72 @@ export class RetroBoardPage {
   async reloadPage() {
     await this.page.reload()
     await this.page.waitForLoadState('networkidle')
+  }
+
+  /**
+   * Drag and drop an item to reorder within the same column
+   */
+  async dragItemWithinColumn(itemText: string, targetItemText: string) {
+    const sourceItem = this.getItemByText(itemText)
+    const targetItem = this.getItemByText(targetItemText)
+
+    await sourceItem.dragTo(targetItem)
+
+    // Wait for reordering to complete (network request)
+    await this.page.waitForResponse(
+      (response) =>
+        response.url().includes('retrospective_items') && response.status() === 200,
+      { timeout: 3000 }
+    ).catch(() => {
+      // Optimistic update might happen without network request
+    })
+  }
+
+  /**
+   * Drag and drop an item from one column to another
+   */
+  async dragItemToColumn(itemText: string, targetColumnTitle: string) {
+    const sourceItem = this.getItemByText(itemText)
+    const targetColumn = this.getColumn(targetColumnTitle)
+
+    await sourceItem.dragTo(targetColumn)
+
+    // Wait for the move to complete
+    await this.page.waitForResponse(
+      (response) =>
+        response.url().includes('retrospective_items') && response.status() === 200,
+      { timeout: 3000 }
+    ).catch(() => {
+      // Optimistic update might happen without network request
+    })
+  }
+
+  /**
+   * Check which column an item is in
+   */
+  async getItemColumn(itemText: string): Promise<string | null> {
+    const item = this.getItemByText(itemText)
+    // Navigate up to the column card and find its heading
+    const columnCard = item.locator('..').locator('..').locator('..').locator('..')
+    const heading = columnCard.locator('h3').first()
+    return heading.textContent()
+  }
+
+  /**
+   * Get the position of an item within its column (0-indexed)
+   */
+  async getItemPosition(itemText: string, columnTitle: string): Promise<number> {
+    const items = this.getColumnItems(columnTitle)
+    const count = await items.count()
+
+    for (let i = 0; i < count; i++) {
+      const itemElement = items.nth(i)
+      const text = await itemElement.textContent()
+      if (text?.includes(itemText)) {
+        return i
+      }
+    }
+
+    return -1 // Not found
   }
 }

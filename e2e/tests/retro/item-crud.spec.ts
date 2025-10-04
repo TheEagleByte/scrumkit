@@ -237,8 +237,7 @@ test.describe('Retrospective Item CRUD Operations', () => {
       const submitButton = retroPage.getItemSubmitButton('What went well?')
       await submitButton.click()
 
-      // Should show error toast
-      await page.waitForTimeout(500)
+      // Should show error toast (if validation is implemented)
       // The item should not be created
       // Note: Actual validation depends on implementation
     })
@@ -311,12 +310,10 @@ test.describe('Retrospective Item CRUD Operations', () => {
       const retroPage = new RetroBoardPage(page)
 
       await retroPage.addItem('What went well?', 'First item')
-      await page.waitForTimeout(100)
       await retroPage.addItem('What went well?', 'Second item')
-      await page.waitForTimeout(100)
       await retroPage.addItem('What went well?', 'Third item')
 
-      // Items should be visible
+      // Items should be visible (addItem already waits for visibility)
       expect(await retroPage.itemExists('First item')).toBe(true)
       expect(await retroPage.itemExists('Second item')).toBe(true)
       expect(await retroPage.itemExists('Third item')).toBe(true)
@@ -334,9 +331,7 @@ test.describe('Retrospective Item CRUD Operations', () => {
       await retroPage.addItem('What went well?', originalText)
       await retroPage.editItem(originalText, updatedText)
 
-      // Wait for debounced save
-      await page.waitForTimeout(1000)
-
+      // editItem already waits for the updated text to appear (debounced save handled)
       // Original text should no longer exist
       const originalExists = await retroPage.itemExists(originalText)
       expect(originalExists).toBe(false)
@@ -379,9 +374,7 @@ test.describe('Retrospective Item CRUD Operations', () => {
       await retroPage.addItem('What went well?', originalText)
       await retroPage.editItem(originalText, updatedText)
 
-      // Wait for save
-      await page.waitForTimeout(1000)
-
+      // editItem already waits for save to complete
       // Reload page
       await retroPage.reloadPage()
 
@@ -400,8 +393,7 @@ test.describe('Retrospective Item CRUD Operations', () => {
       await retroPage.addItem('What went well?', originalText)
       await retroPage.editItem(originalText, updatedText)
 
-      await page.waitForTimeout(1000)
-
+      // editItem already waits for updated text to appear
       const exists = await retroPage.itemExists(updatedText)
       expect(exists).toBe(true)
     })
@@ -464,8 +456,7 @@ test.describe('Retrospective Item CRUD Operations', () => {
       await retroPage.addItem('What went well?', itemText)
       await retroPage.voteOnItem(itemText)
 
-      // Verify vote was added
-      await page.waitForTimeout(500)
+      // Verify vote was added (voteOnItem waits for network response)
       const voteCount = await retroPage.getItemVoteCount(itemText)
       expect(voteCount).toBeGreaterThan(0)
 
@@ -563,7 +554,7 @@ test.describe('Retrospective Item CRUD Operations', () => {
       const initialVotes = await retroPage.getItemVoteCount(itemText)
       await retroPage.voteOnItem(itemText)
 
-      await page.waitForTimeout(500)
+      // voteOnItem waits for network response
       const newVotes = await retroPage.getItemVoteCount(itemText)
       expect(newVotes).toBeGreaterThan(initialVotes)
     })
@@ -577,13 +568,11 @@ test.describe('Retrospective Item CRUD Operations', () => {
 
       // Vote
       await retroPage.voteOnItem(itemText)
-      await page.waitForTimeout(500)
       const votesAfterUpvote = await retroPage.getItemVoteCount(itemText)
       expect(votesAfterUpvote).toBe(1)
 
       // Remove vote
       await retroPage.voteOnItem(itemText)
-      await page.waitForTimeout(500)
       const votesAfterRemove = await retroPage.getItemVoteCount(itemText)
       expect(votesAfterRemove).toBe(0)
     })
@@ -596,7 +585,6 @@ test.describe('Retrospective Item CRUD Operations', () => {
       await retroPage.addItem('What went well?', itemText)
       await retroPage.voteOnItem(itemText)
 
-      await page.waitForTimeout(500)
       const votesBefore = await retroPage.getItemVoteCount(itemText)
 
       // Reload
@@ -618,8 +606,6 @@ test.describe('Retrospective Item CRUD Operations', () => {
       await retroPage.voteOnItem('Item 1')
       await retroPage.voteOnItem('Item 2')
       await retroPage.voteOnItem('Item 3')
-
-      await page.waitForTimeout(500)
 
       expect(await retroPage.getItemVoteCount('Item 1')).toBeGreaterThan(0)
       expect(await retroPage.getItemVoteCount('Item 2')).toBeGreaterThan(0)
@@ -697,7 +683,6 @@ test.describe('Retrospective Item CRUD Operations', () => {
       await retroPage.addItem('What went well?', itemText)
       await retroPage.voteOnItem(itemText)
 
-      await page.waitForTimeout(500)
       const votes = await retroPage.getItemVoteCount(itemText)
       expect(votes).toBeGreaterThan(0)
     })
@@ -715,7 +700,6 @@ test.describe('Retrospective Item CRUD Operations', () => {
       await retroPage.addItem('What went well?', originalText)
       await retroPage.editItem(originalText, updatedText)
 
-      await page.waitForTimeout(1000)
       expect(await retroPage.itemExists(updatedText)).toBe(true)
     })
 
@@ -773,6 +757,149 @@ test.describe('Retrospective Item CRUD Operations', () => {
     })
   })
 
+  test.describe('Drag and Drop', () => {
+    test('should reorder items within the same column', async ({ page }) => {
+      const { boardId } = await createAndNavigateToBoard(page)
+      const retroPage = new RetroBoardPage(page)
+
+      // Create items in specific order
+      await retroPage.addItem('What went well?', 'First item')
+      await retroPage.addItem('What went well?', 'Second item')
+      await retroPage.addItem('What went well?', 'Third item')
+
+      // Verify initial order by checking positions
+      const initialPos1 = await retroPage.getItemPosition('First item', 'What went well?')
+      const initialPos3 = await retroPage.getItemPosition('Third item', 'What went well?')
+
+      // Drag first item below third item
+      await retroPage.dragItemWithinColumn('First item', 'Third item')
+
+      // Verify order changed
+      const newPos1 = await retroPage.getItemPosition('First item', 'What went well?')
+      const newPos3 = await retroPage.getItemPosition('Third item', 'What went well?')
+
+      // First item should now be after third item
+      expect(newPos1).toBeGreaterThan(initialPos1)
+    })
+
+    test('should move item to different column', async ({ page }) => {
+      const { boardId } = await createAndNavigateToBoard(page)
+      const retroPage = new RetroBoardPage(page)
+
+      const itemText = 'Item to move'
+      await retroPage.addItem('What went well?', itemText)
+
+      // Verify item is in source column
+      const column1 = retroPage.getColumn('What went well?')
+      await expect(column1).toContainText(itemText)
+
+      // Drag to different column
+      await retroPage.dragItemToColumn(itemText, 'What could be improved?')
+
+      // Verify item moved to target column
+      const column2 = retroPage.getColumn('What could be improved?')
+      await expect(column2).toContainText(itemText)
+
+      // Verify item is no longer in source column
+      const stillInSource = await column1.getByText(itemText, { exact: false }).count()
+      expect(stillInSource).toBe(0)
+    })
+
+    test('should persist drag and drop changes after reload', async ({ page }) => {
+      const { boardId } = await createAndNavigateToBoard(page)
+      const retroPage = new RetroBoardPage(page)
+
+      const itemText = 'Persistent moved item'
+      await retroPage.addItem('What went well?', itemText)
+
+      // Move to different column
+      await retroPage.dragItemToColumn(itemText, 'What blocked us?')
+
+      // Reload page
+      await retroPage.reloadPage()
+
+      // Item should still be in new column
+      const targetColumn = retroPage.getColumn('What blocked us?')
+      await expect(targetColumn).toContainText(itemText)
+    })
+
+    test('should maintain votes when moving items between columns', async ({ page }) => {
+      const { boardId } = await createAndNavigateToBoard(page)
+      const retroPage = new RetroBoardPage(page)
+
+      const itemText = 'Item with votes to move'
+      await retroPage.addItem('What went well?', itemText)
+      await retroPage.voteOnItem(itemText)
+
+      const votesBefore = await retroPage.getItemVoteCount(itemText)
+      expect(votesBefore).toBeGreaterThan(0)
+
+      // Move to different column
+      await retroPage.dragItemToColumn(itemText, 'What could be improved?')
+
+      // Votes should be maintained
+      const votesAfter = await retroPage.getItemVoteCount(itemText)
+      expect(votesAfter).toBe(votesBefore)
+    })
+
+    test('should drag and drop on mobile devices', async ({ page }, testInfo) => {
+      const mobileProjects = ['Mobile Chrome', 'Mobile Safari']
+      test.skip(!mobileProjects.includes(testInfo.project.name), 'Mobile-only test')
+
+      const { boardId } = await createAndNavigateToBoard(page)
+      const retroPage = new RetroBoardPage(page)
+
+      await retroPage.addItem('What went well?', 'Mobile item 1')
+      await retroPage.addItem('What went well?', 'Mobile item 2')
+
+      // Note: Touch-based drag and drop might require special handling
+      // This test verifies the functionality is accessible on mobile
+      await retroPage.dragItemWithinColumn('Mobile item 1', 'Mobile item 2')
+    })
+
+    test('should reorder multiple items', async ({ page }) => {
+      const { boardId } = await createAndNavigateToBoard(page)
+      const retroPage = new RetroBoardPage(page)
+
+      await retroPage.addItem('What went well?', 'Item A')
+      await retroPage.addItem('What went well?', 'Item B')
+      await retroPage.addItem('What went well?', 'Item C')
+      await retroPage.addItem('What went well?', 'Item D')
+
+      // Reorder: move D to top
+      await retroPage.dragItemWithinColumn('Item D', 'Item A')
+
+      // All items should still exist
+      expect(await retroPage.itemExists('Item A')).toBe(true)
+      expect(await retroPage.itemExists('Item B')).toBe(true)
+      expect(await retroPage.itemExists('Item C')).toBe(true)
+      expect(await retroPage.itemExists('Item D')).toBe(true)
+    })
+
+    test('should move items across all columns', async ({ page }) => {
+      const { boardId } = await createAndNavigateToBoard(page)
+      const retroPage = new RetroBoardPage(page)
+
+      const itemText = 'Traveling item'
+
+      // Start in first column
+      await retroPage.addItem('What went well?', itemText)
+
+      // Move through all columns
+      await retroPage.dragItemToColumn(itemText, 'What could be improved?')
+      const column2 = retroPage.getColumn('What could be improved?')
+      await expect(column2).toContainText(itemText)
+
+      await retroPage.dragItemToColumn(itemText, 'What blocked us?')
+      const column3 = retroPage.getColumn('What blocked us?')
+      await expect(column3).toContainText(itemText)
+
+      await retroPage.dragItemToColumn(itemText, 'Action items')
+      const column4 = retroPage.getColumn('Action items')
+      await expect(column4).toContainText(itemText)
+    })
+  })
+
   test.describe('Error Handling', () => {
     test('should handle network errors gracefully', async ({ page }) => {
       const { boardId } = await createAndNavigateToBoard(page)
@@ -790,8 +917,13 @@ test.describe('Retrospective Item CRUD Operations', () => {
       const submitButton = retroPage.getItemSubmitButton('What went well?')
       await submitButton.click()
 
-      // Should show error (wait for potential error toast)
-      await page.waitForTimeout(2000)
+      // Should show error toast or fail to create
+      // Wait for error state to be visible
+      try {
+        await page.locator('[data-sonner-toast]').waitFor({ state: 'visible', timeout: 3000 })
+      } catch {
+        // Error toast may not appear depending on offline handling
+      }
 
       // Re-enable network
       await page.context().setOffline(false)
