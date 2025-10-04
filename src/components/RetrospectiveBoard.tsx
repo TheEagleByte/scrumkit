@@ -70,7 +70,6 @@ import {
 import { restrictToWindowEdges } from "@dnd-kit/modifiers";
 import { useRetrospectiveRealtime } from "@/hooks/use-realtime";
 import { Users } from "lucide-react";
-import { getCooldownTime } from "@/lib/utils/rate-limit";
 import { debounce } from "@/lib/utils/debounce";
 import { throttle } from "@/lib/utils/throttle";
 import { isAnonymousItemOwner } from "@/lib/boards/anonymous-items";
@@ -159,7 +158,6 @@ export function RetrospectiveBoard({
   const boardRef = useRef<HTMLDivElement>(null);
   const [newItemText, setNewItemText] = useState("");
   const [activeColumn, setActiveColumn] = useState<string | null>(null);
-  const [cooldowns, setCooldowns] = useState<Map<string, number>>(new Map());
   const [activeItem, setActiveItem] = useState<RetroItemData | null>(null);
   const [sortByVotes, setSortByVotes] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
@@ -283,13 +281,6 @@ export function RetrospectiveBoard({
       return;
     }
 
-    const cooldownTime = getCooldownTime("create", currentUser.id);
-    if (cooldownTime > 0) {
-      setCooldowns(prev => new Map(prev).set(`create-${currentUser.id}`, Date.now() + cooldownTime));
-      toast.error(`Please wait ${Math.ceil(cooldownTime / 1000)} seconds`);
-      return;
-    }
-
     // Sanitize the input before saving
     const sanitizedContent = sanitizeItemContent(newItemText);
 
@@ -304,12 +295,6 @@ export function RetrospectiveBoard({
 
       setNewItemText("");
       setActiveColumn(null);
-
-      // Set cooldown
-      const newCooldown = getCooldownTime("create", currentUser.id);
-      if (newCooldown > 0) {
-        setCooldowns(prev => new Map(prev).set(`create-${currentUser.id}`, Date.now() + newCooldown));
-      }
     } catch (error) {
       console.error('Failed to add item:', error);
       // Error toast is handled by the mutation
@@ -329,13 +314,6 @@ export function RetrospectiveBoard({
   const handleToggleVote = async (itemId: string) => {
     const hasVoted = votes.some(v => v.item_id === itemId && v.profile_id === currentUser.id);
 
-    const cooldownTime = getCooldownTime("vote", currentUser.id);
-    if (cooldownTime > 0) {
-      setCooldowns(prev => new Map(prev).set(`vote-${currentUser.id}`, Date.now() + cooldownTime));
-      toast.error(`Please wait ${Math.ceil(cooldownTime / 1000)} seconds`);
-      return;
-    }
-
     try {
       await toggleVoteMutation.mutateAsync({
         itemId,
@@ -343,12 +321,6 @@ export function RetrospectiveBoard({
         retrospectiveId,
         hasVoted,
       });
-
-      // Set cooldown
-      const newCooldown = getCooldownTime("vote", currentUser.id);
-      if (newCooldown > 0) {
-        setCooldowns(prev => new Map(prev).set(`vote-${currentUser.id}`, Date.now() + newCooldown));
-      }
     } catch (error) {
       console.error('Failed to toggle vote:', error);
       // Error toast is handled by the mutation
@@ -843,20 +815,6 @@ export function RetrospectiveBoard({
         </div>
       </div>
 
-      {/* Cooldown badges */}
-      <div className="mb-4 flex gap-2">
-        {cooldowns.has(`create-${currentUser.id}`) && (
-          <Badge variant="outline" className="text-orange-500">
-            Create cooldown: {Math.ceil((cooldowns.get(`create-${currentUser.id}`)! - Date.now()) / 1000)}s
-          </Badge>
-        )}
-        {cooldowns.has(`vote-${currentUser.id}`) && (
-          <Badge variant="outline" className="text-blue-500">
-            Vote cooldown: {Math.ceil((cooldowns.get(`vote-${currentUser.id}`)! - Date.now()) / 1000)}s
-          </Badge>
-        )}
-      </div>
-
       {/* Columns */}
       <div className={`grid grid-cols-1 md:grid-cols-2 ${columns.length > 3 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-6`}>
         {columns.sort((a, b) => (a.display_order || 0) - (b.display_order || 0)).map((column, index) => {
@@ -901,7 +859,7 @@ export function RetrospectiveBoard({
                       <Button
                         size="sm"
                         onClick={() => handleAddItem(column.id)}
-                        disabled={createItemMutation.isPending || cooldowns.has(`create-${currentUser.id}`)}
+                        disabled={createItemMutation.isPending}
                       >
                         Add
                       </Button>
@@ -923,7 +881,6 @@ export function RetrospectiveBoard({
                     size="sm"
                     className="w-full mb-4"
                     onClick={() => setActiveColumn(column.id)}
-                    disabled={cooldowns.has(`create-${currentUser.id}`)}
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Item

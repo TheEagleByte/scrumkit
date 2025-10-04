@@ -156,10 +156,6 @@ export class RetroBoardPage {
     const column = this.getColumn(columnTitle)
     const addButton = this.getAddItemButton(columnTitle)
 
-    // Wait for Add Item button to be enabled (handles rate limiting cooldown)
-    await addButton.waitFor({ state: 'visible', timeout: 10000 })
-    await expect(addButton).toBeEnabled({ timeout: 10000 })
-
     await addButton.click()
 
     const textarea = this.getItemTextarea(columnTitle)
