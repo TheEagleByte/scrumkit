@@ -409,7 +409,7 @@ test.describe('Board Creation & Templates', () => {
     })
   })
 
-  test.describe('Board Creation Success - Authenticated Users', () => {
+  test.describe.serial('Board Creation Success - Authenticated Users', () => {
     test('should create board as authenticated user', async ({ page }) => {
       const authPage = new AuthPage(page)
       const boardPage = new BoardCreationPage(page)
