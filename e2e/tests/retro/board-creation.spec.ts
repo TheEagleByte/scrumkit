@@ -31,8 +31,14 @@ async function createTestUser(authPage: AuthPage) {
   await authPage.switchToSignUp()
   await authPage.signUp(user.name, user.email, user.password)
 
-  // Wait for signup success
+  // Wait for signup success toast
   await authPage.page.waitForSelector('text=/Account created/i', { timeout: 10000 })
+
+  // Clear session by deleting all cookies to sign out
+  await authPage.page.context().clearCookies()
+
+  // Navigate to a clean state
+  await authPage.page.goto('/')
 
   return user
 }
@@ -404,8 +410,7 @@ test.describe('Board Creation & Templates', () => {
   })
 
   test.describe('Board Creation Success - Authenticated Users', () => {
-    test.skip('should create board as authenticated user', async ({ page }) => {
-      // TODO: This test is slow due to user creation. Consider using a pre-created test user or mocking auth.
+    test('should create board as authenticated user', async ({ page }) => {
       const authPage = new AuthPage(page)
       const boardPage = new BoardCreationPage(page)
 
@@ -413,6 +418,11 @@ test.describe('Board Creation & Templates', () => {
       const user = await createTestUser(authPage)
       await authPage.goto()
       await authPage.signIn(user.email, user.password)
+
+      // Should show success toast
+      await expect(page.getByText(/Signed in successfully/i)).toBeVisible({ timeout: 10000 })
+
+      // Should redirect to dashboard
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 })
 
       // Create board
@@ -424,8 +434,7 @@ test.describe('Board Creation & Templates', () => {
       await boardPage.waitForRedirect()
     })
 
-    test.skip('should allow authenticated user to create multiple boards', async ({ page }) => {
-      // TODO: This test is slow due to user creation. Consider using a pre-created test user or mocking auth.
+    test('should allow authenticated user to create multiple boards', async ({ page }) => {
       const authPage = new AuthPage(page)
       const boardPage = new BoardCreationPage(page)
 
@@ -433,6 +442,11 @@ test.describe('Board Creation & Templates', () => {
       const user = await createTestUser(authPage)
       await authPage.goto()
       await authPage.signIn(user.email, user.password)
+
+      // Should show success toast
+      await expect(page.getByText(/Signed in successfully/i)).toBeVisible({ timeout: 10000 })
+
+      // Should redirect to dashboard
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 })
 
       // Create first board
