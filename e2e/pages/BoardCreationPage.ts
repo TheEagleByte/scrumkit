@@ -81,8 +81,8 @@ export class BoardCreationPage {
 
   async getTemplateColumns(templateId: string) {
     const card = await this.getTemplateCard(templateId)
-    // Get all generic elements in the column section - they contain column names
-    const columnElements = card.locator('> div:last-child > div')
+    // The column section is the second child, which contains a flex wrapper with span elements
+    const columnElements = card.locator('> div:last-child > div > span')
     return columnElements.allTextContents()
   }
 
