@@ -50,8 +50,8 @@ export class BoardCreationPage {
 
   async getTemplateCard(templateId: string) {
     const templateName = this.getTemplateName(templateId)
-    // Template cards are the parent containers of the template name text
-    return this.page.getByText(templateName, { exact: true }).locator('..').locator('..').locator('..')
+    // Navigate up to the main card container (5 levels up from the template name)
+    return this.page.getByText(templateName, { exact: true }).locator('../../../../..')
   }
 
   async getSelectedTemplate() {
@@ -63,8 +63,7 @@ export class BoardCreationPage {
   async isTemplateSelected(templateId: string) {
     const templateName = this.getTemplateName(templateId)
     // Find the card containing this template name, then check if its radio is checked
-    const templateText = this.page.getByText(templateName, { exact: true })
-    const card = templateText.locator('..').locator('..').locator('..')
+    const card = this.page.getByText(templateName, { exact: true }).locator('../../../../..')
     const radio = card.getByRole('radio').first()
     return radio.isChecked()
   }
@@ -81,13 +80,10 @@ export class BoardCreationPage {
   }
 
   async getTemplateColumns(templateId: string) {
-    const templateName = this.getTemplateName(templateId)
-    // Find the template card and get all its column badge texts
-    const templateText = this.page.getByText(templateName, { exact: true })
-    const card = templateText.locator('../../../..')
-    const columns = await card.locator('span').allTextContents()
-    // Filter to only column names (they're in the bottom section of the card)
-    return columns.filter(text => text.trim().length > 0)
+    const card = await this.getTemplateCard(templateId)
+    // Get all generic elements in the column section - they contain column names
+    const columnElements = card.locator('> div:last-child > div')
+    return columnElements.allTextContents()
   }
 
   async isCreateButtonEnabled() {
