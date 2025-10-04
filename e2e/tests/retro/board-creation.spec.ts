@@ -66,14 +66,14 @@ test.describe('Board Creation & Templates', () => {
       const boardPage = new BoardCreationPage(page)
       await boardPage.goto()
 
-      // Check all templates are visible
-      await expect(page.getByRole('heading', { name: 'Default (What Went Well)' })).toBeVisible()
-      await expect(page.getByRole('heading', { name: 'Mad, Sad, Glad' })).toBeVisible()
-      await expect(page.getByRole('heading', { name: 'Start, Stop, Continue' })).toBeVisible()
-      await expect(page.getByRole('heading', { name: '4Ls (Liked, Learned, Lacked, Longed For)' })).toBeVisible()
-      await expect(page.getByRole('heading', { name: 'Sailboat' })).toBeVisible()
-      await expect(page.getByRole('heading', { name: 'Plus/Delta' })).toBeVisible()
-      await expect(page.getByRole('heading', { name: 'DAKI (Drop, Add, Keep, Improve)' })).toBeVisible()
+      // Check all templates are visible (they are plain text, not headings)
+      await expect(page.getByText('Default (What Went Well)', { exact: true })).toBeVisible()
+      await expect(page.getByText('Mad, Sad, Glad', { exact: true })).toBeVisible()
+      await expect(page.getByText('Start, Stop, Continue', { exact: true })).toBeVisible()
+      await expect(page.getByText('4Ls (Liked, Learned, Lacked, Longed For)', { exact: true })).toBeVisible()
+      await expect(page.getByText('Sailboat', { exact: true })).toBeVisible()
+      await expect(page.getByText('Plus/Delta', { exact: true })).toBeVisible()
+      await expect(page.getByText('DAKI (Drop, Add, Keep, Improve)', { exact: true })).toBeVisible()
     })
 
     test('should have default template selected by default', async ({ page }) => {

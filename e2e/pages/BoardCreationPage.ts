@@ -28,33 +28,7 @@ export class BoardCreationPage {
     await this.titleInput.fill(title)
   }
 
-  async selectTemplate(templateId: string) {
-    // Find the template card by its ID and click it
-    const templateCard = this.page.locator(`[data-template-id="${templateId}"]`).first()
-
-    // If no data attribute, find by template name
-    if (await templateCard.count() === 0) {
-      // Map template IDs to names for fallback
-      const templateNames: Record<string, string> = {
-        'default': 'Default (What Went Well)',
-        'mad-sad-glad': 'Mad, Sad, Glad',
-        'start-stop-continue': 'Start, Stop, Continue',
-        '4ls': '4Ls (Liked, Learned, Lacked, Longed For)',
-        'sailboat': 'Sailboat',
-        'plus-delta': 'Plus/Delta',
-        'daki': 'DAKI (Drop, Add, Keep, Improve)',
-      }
-
-      const templateName = templateNames[templateId]
-      if (templateName) {
-        await this.page.getByRole('heading', { name: templateName }).click()
-      }
-    } else {
-      await templateCard.click()
-    }
-  }
-
-  async getTemplateCard(templateId: string) {
+  private getTemplateName(templateId: string): string {
     const templateNames: Record<string, string> = {
       'default': 'Default (What Went Well)',
       'mad-sad-glad': 'Mad, Sad, Glad',
@@ -64,22 +38,35 @@ export class BoardCreationPage {
       'plus-delta': 'Plus/Delta',
       'daki': 'DAKI (Drop, Add, Keep, Improve)',
     }
+    return templateNames[templateId] || templateId
+  }
 
-    const templateName = templateNames[templateId]
-    return this.page.locator('div[role="group"]').filter({ hasText: templateName }).first()
+  async selectTemplate(templateId: string) {
+    const templateName = this.getTemplateName(templateId)
+    // Find the template by text and click on its parent card
+    const templateCard = this.page.getByText(templateName, { exact: true }).locator('..').locator('..')
+    await templateCard.click()
+  }
+
+  async getTemplateCard(templateId: string) {
+    const templateName = this.getTemplateName(templateId)
+    // Template cards are the parent containers of the template name text
+    return this.page.getByText(templateName, { exact: true }).locator('..').locator('..').locator('..')
   }
 
   async getSelectedTemplate() {
-    // Find the checked radio button's value
-    const checkedRadio = this.page.locator('button[role="radio"][data-state="checked"]')
-    return checkedRadio.getAttribute('value')
+    // Find the checked radio button
+    const checkedRadio = this.page.getByRole('radio', { checked: true }).first()
+    return checkedRadio.isVisible()
   }
 
   async isTemplateSelected(templateId: string) {
-    const templateCard = await this.getTemplateCard(templateId)
-    const radioButton = templateCard.locator('button[role="radio"]')
-    const state = await radioButton.getAttribute('data-state')
-    return state === 'checked'
+    const templateName = this.getTemplateName(templateId)
+    // Find the card containing this template name, then check if its radio is checked
+    const templateText = this.page.getByText(templateName, { exact: true })
+    const card = templateText.locator('..').locator('..').locator('..')
+    const radio = card.getByRole('radio').first()
+    return radio.isChecked()
   }
 
   async createBoard(title: string, templateId: string = 'default') {
@@ -94,9 +81,13 @@ export class BoardCreationPage {
   }
 
   async getTemplateColumns(templateId: string) {
-    const templateCard = await this.getTemplateCard(templateId)
-    const columnBadges = templateCard.locator('.bg-muted')
-    return columnBadges.allTextContents()
+    const templateName = this.getTemplateName(templateId)
+    // Find the template card and get all its column badge texts
+    const templateText = this.page.getByText(templateName, { exact: true })
+    const card = templateText.locator('../../../..')
+    const columns = await card.locator('span').allTextContents()
+    // Filter to only column names (they're in the bottom section of the card)
+    return columns.filter(text => text.trim().length > 0)
   }
 
   async isCreateButtonEnabled() {
