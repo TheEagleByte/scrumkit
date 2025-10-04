@@ -59,6 +59,9 @@ async function createAndNavigateToBoard(page: any, boardTitle?: string) {
   // Wait for redirect to board
   await boardPage.waitForRedirect()
 
+  // Wait for board to fully load - wait for first column title to be visible
+  await page.locator('[data-slot="card-title"]').first().waitFor({ state: 'visible', timeout: 10000 })
+
   // Extract board ID from URL
   const url = page.url()
   const match = url.match(/\/retro\/([a-zA-Z0-9-]+)/)

@@ -1,4 +1,4 @@
-import { Page, Locator } from '@playwright/test'
+import { Page, Locator, expect } from '@playwright/test'
 
 /**
  * Page Object Model for the Retrospective Board page
@@ -26,13 +26,20 @@ export class RetroBoardPage {
 
   async goto(boardId: string) {
     await this.page.goto(`/retro/${boardId}`)
+
+    // Wait for board to finish loading
+    await this.page.waitForLoadState('networkidle')
+
+    // Wait for columns to be visible (board loaded) - CardTitle renders as div with data-slot
+    await this.page.locator('[data-slot="card-title"]').first().waitFor({ state: 'visible', timeout: 10000 })
   }
 
   /**
    * Get a column card by its title
    */
   getColumn(columnTitle: string): Locator {
-    return this.page.getByRole('heading', { name: columnTitle }).locator('../..')
+    // Find the CardTitle div with exact text match, then go up to the card container
+    return this.page.locator('[data-slot="card-title"]').filter({ hasText: columnTitle }).locator('../..')
   }
 
   /**
@@ -72,15 +79,18 @@ export class RetroBoardPage {
    */
   getColumnItems(columnTitle: string): Locator {
     const column = this.getColumn(columnTitle)
-    // Items are in card elements with a specific structure
-    return column.locator('[role="group"]').locator('..')
+    // Items are divs with class "relative group" (from DraggableRetroItem)
+    return column.locator('div.relative.group')
   }
 
   /**
    * Get a specific item by its text content
+   * Targets only the item cards, not the add item form
    */
   getItemByText(text: string): Locator {
-    return this.page.getByText(text, { exact: false }).locator('../..')
+    // Find items by their class and filter by text content
+    // This avoids matching text in forms or other UI elements
+    return this.page.locator('div.relative.group').filter({ hasText: text }).first()
   }
 
   /**
@@ -131,17 +141,26 @@ export class RetroBoardPage {
    * Add an item to a column
    */
   async addItem(columnTitle: string, text: string) {
+    const column = this.getColumn(columnTitle)
     const addButton = this.getAddItemButton(columnTitle)
     await addButton.click()
 
     const textarea = this.getItemTextarea(columnTitle)
     await textarea.fill(text)
 
+    // Count items before adding
+    const itemsBefore = await column.locator('div.relative.group').count()
+
     const submitButton = this.getItemSubmitButton(columnTitle)
     await submitButton.click()
 
-    // Wait for the item to appear using Playwright's auto-waiting
-    await this.getItemByText(text).waitFor({ state: 'visible', timeout: 5000 })
+    // Wait for success toast
+    await this.page.waitForSelector('text=/added successfully/i', { timeout: 5000 }).catch(() => {
+      //Toast might disappear quickly
+    })
+
+    // Ensure item count increased
+    await expect(column.locator('div.relative.group')).toHaveCount(itemsBefore + 1, { timeout: 5000 })
   }
 
   /**
