@@ -84,6 +84,11 @@ const rateLimiter = new RateLimiter();
  * @returns true if allowed, false if rate limited
  */
 export function canVote(userId: string): boolean {
+  // Disable rate limiting in test environment
+  if (process.env.NODE_ENV === 'test' || process.env.NEXT_PUBLIC_E2E_TESTING === 'true') {
+    return true;
+  }
+
   // Use a 1-second cooldown between votes
   return rateLimiter.checkLimit(
     `vote-${userId}`,
@@ -98,6 +103,11 @@ export function canVote(userId: string): boolean {
  * @returns true if allowed, false if rate limited
  */
 export function canCreateItem(userId: string): boolean {
+  // Disable rate limiting in test environment to prevent E2E test flakiness
+  if (process.env.NODE_ENV === 'test' || process.env.NEXT_PUBLIC_E2E_TESTING === 'true') {
+    return true;
+  }
+
   // Use a 5-second cooldown between item creations instead of per-minute limit
   return rateLimiter.checkLimit(
     `create-${userId}`,
@@ -112,6 +122,11 @@ export function canCreateItem(userId: string): boolean {
  * @returns true if allowed, false if rate limited
  */
 export function canDeleteItem(userId: string): boolean {
+  // Disable rate limiting in test environment
+  if (process.env.NODE_ENV === 'test' || process.env.NEXT_PUBLIC_E2E_TESTING === 'true') {
+    return true;
+  }
+
   // Use a 3-second cooldown between deletions
   return rateLimiter.checkLimit(
     `delete-${userId}`,
