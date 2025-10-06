@@ -156,6 +156,8 @@ export class RetroBoardPage {
     const column = this.getColumn(columnTitle)
     const addButton = this.getAddItemButton(columnTitle)
 
+    // Wait for button to be visible and actionable
+    await addButton.waitFor({ state: 'visible', timeout: 10000 })
     await addButton.click()
 
     const textarea = this.getItemTextarea(columnTitle)
@@ -174,6 +176,11 @@ export class RetroBoardPage {
 
     // Ensure item count increased
     await expect(column.locator('div.relative.group')).toHaveCount(itemsBefore + 1, { timeout: 10000 })
+
+    // Wait for form to fully close before next operation
+    await this.getItemTextarea(columnTitle).waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {
+      // Form might close too fast
+    })
   }
 
   /**
