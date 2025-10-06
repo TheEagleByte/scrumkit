@@ -84,8 +84,8 @@ test.describe('Retrospective Item CRUD - Basic', () => {
   })
 })
 
-test.describe.skip('Retrospective Item CRUD Operations', () => {
-  test.describe('Item Creation', () => {
+test.describe('Retrospective Item CRUD Operations', () => {
+  test.describe.only('Item Creation', () => {
     test('should create item in "What went well?" column', async ({ page }) => {
       const { boardId } = await createAndNavigateToBoard(page)
       const retroPage = new RetroBoardPage(page)
